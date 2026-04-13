@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    environment:
+      VITE_API_URL: "http://localhost:${SERVER_PORT:-3000}"
+    depends_on:
+      - server
+    networks:
+      - openfactu_net
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    ports:
+      - "${SERVER_PORT:-3000}:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./plugins:/app/plugins
+      - ./storage:/app/storage
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-openfactu}:${POSTGRES_PASSWORD:-openfactu_pass}@db:5432/${POSTGRES_DB:-openfactudb}
+    networks:
+      - openfactu_net
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-openfactu}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-openfactu_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-openfactudb}
+    ports:
+      - "0.0.0.0:${DB_PORT:-5432}:5432"
+    volumes:
+      - ./storage/db_data:/var/lib/postgresql/data
+    networks:
+      - openfactu_net
+
+networks:
+  openfactu_net:
+    driver: bridge

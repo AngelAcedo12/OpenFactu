@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenFactu ERP</title>
+    
+    <!-- Import Map para Plugins Dinámicos -->
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "/api/plugins/sdk/react",
+          "react-dom": "/api/plugins/sdk/react-dom",
+          "lucide-react": "/api/plugins/sdk/lucide-react",
+          "@openfactu/ui": "/api/plugins/sdk/@openfactu/ui",
+          "react-router-dom": "/api/plugins/sdk/react-router-dom"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

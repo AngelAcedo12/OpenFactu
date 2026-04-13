@@ -1,0 +1,20 @@
+{
+  "name": "openfactu",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "plugins/*"
+  ],
+  "scripts": {
+    "dev": "docker compose up -d",
+    "dev:server": "npm run dev --workspace=@openfactu/server",
+    "dev:web": "npm run dev --workspace=@openfactu/web",
+    "dev:all": "docker compose stop server web && docker compose up -d db && concurrently \"npm run dev:server\" \"npm run dev:web\"",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
