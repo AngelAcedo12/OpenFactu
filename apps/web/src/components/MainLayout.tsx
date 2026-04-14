@@ -1,168 +1,216 @@
-import { 
-  LayoutDashboard, 
-  Puzzle, 
-  Settings, 
-  Eye, 
-  ChevronRight,
-  ChevronDown,
-  LogOut,
-  Users as UsersIcon,
-  Zap,
-  Package,
-  Layers,
-  Hash
-} from 'lucide-react';
-import { NavItem } from '@openfactu/ui';
+import React, { useState } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Outlet, useLocation } from 'react-router-dom';
-import { usePlugins } from '../context/PluginContext';
-import { useState } from 'react';
+import { 
+  BarChart3, 
+  Package, 
+  Settings, 
+  MapPin, 
+  Users, 
+  LogOut, 
+  Layers, 
+  ChevronDown, 
+  ChevronRight,
+  Database,
+  Grid,
+  Hash,
+  Boxes,
+  Zap,
+  Cpu,
+  Terminal,
+  ExternalLink,
+  Network,
+  Calendar,
+  FileDigit,
+  ShoppingCart,
+  Truck,
+  FileStack,
+  Percent
+} from 'lucide-react';
+import { cn, NavGroup } from '@openfactu/ui';
+
+interface NavItemProps {
+  icon: any;
+  label: string;
+  path: string;
+  isActive: boolean;
+  onClick: () => void;
+  className?: string;
+}
+
+const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, path, isActive, onClick, className }) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all group relative overflow-hidden",
+      isActive 
+        ? "bg-blue-600/10 text-blue-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] shadow-blue-500/10" 
+        : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200",
+      className
+    )}
+  >
+    {isActive && (
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.6)]" />
+    )}
+    <Icon size={18} className={cn("transition-transform group-hover:scale-110", isActive ? "text-blue-500" : "opacity-70")} />
+    <span className="truncate">{label}</span>
+    {!isActive && (
+      <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+        <ChevronRight size={12} className="text-slate-600" />
+      </div>
+    )}
+  </button>
+);
 
 export const MainLayout: React.FC = () => {
-  const { manifests } = usePlugins();
-  const { user, logout } = useAuth();
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    general: true,
+    central: true,
     inventario: true,
-    extensiones: true,
-    herramientas: false
+    compras: true,
+    ventas: true,
+    terceros: true,
+    finanzas: true,
+    extensiones: false,
+    soporte: false
   });
+  const [searchQuery, setSearchQuery] = useState('');
 
   const toggleGroup = (group: string) => {
     setOpenGroups(prev => ({ ...prev, [group]: !prev[group] }));
   };
 
-  const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/';
-    return location.pathname.startsWith(path);
-  };
+  const menuItems = [
+    { group: 'central', icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
+    { group: 'central', icon: Layers, label: 'Plugins', path: '/plugins' },
+    { group: 'central', icon: Users, label: 'Usuarios', path: '/users' },
+    { group: 'central', icon: Zap, label: 'Tarifas', path: '/pricelists' },
+    { group: 'inventario', icon: Grid, label: 'Catálogo', path: '/items' },
+    { group: 'inventario', icon: Hash, label: 'Categorías', path: '/categories' },
+    { group: 'inventario', icon: MapPin, label: 'Gestión Bins', path: '/warehouses' },
+    { group: 'inventario', icon: Boxes, label: 'Unidades', path: '/uom' },
+    { group: 'compras', icon: FileDigit, label: 'Pedidos', path: '/purchase-orders' },
+    { group: 'compras', icon: Truck, label: 'Albaranes', path: '/purchases/delivery-notes' },
+    { group: 'compras', icon: FileStack, label: 'Facturas', path: '/purchases/invoices' },
+    { group: 'ventas', icon: FileDigit, label: 'Pedidos', path: '/sales-orders' },
+    { group: 'ventas', icon: Truck, label: 'Albaranes', path: '/sales/delivery-notes' },
+    { group: 'ventas', icon: FileStack, label: 'Facturas', path: '/sales/invoices' },
+    { group: 'terceros', icon: Network, label: 'Grupos', path: '/partner-groups' },
+    { group: 'terceros', icon: Users, label: 'Directorio', path: '/partners' },
+    { group: 'finanzas', icon: Calendar, label: 'Periodos', path: '/accounting-periods' },
+    { group: 'finanzas', icon: Percent, label: 'Impuestos', path: '/taxes' },
+    { group: 'finanzas', icon: FileDigit, label: 'Series Doc.', path: '/document-series' },
+    { group: 'extensiones', icon: Terminal, label: 'Dev Console', path: '/ui' },
+  ];
+
+  const filteredItems = menuItems.filter(item => 
+    item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.group.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const groups = [
+    { id: 'central', label: 'Gestión Central', icon: Cpu },
+    { id: 'inventario', label: 'Logística & Stock', icon: Database },
+    { id: 'compras', label: 'Compras', icon: ShoppingCart },
+    { id: 'ventas', label: 'Ventas', icon: Cpu },
+    { id: 'terceros', label: 'Interlocutores', icon: Users },
+    { id: 'finanzas', label: 'Finanzas & Setup', icon: Database },
+    { id: 'extensiones', label: 'Extensiones', icon: Zap },
+    { id: 'soporte', label: 'Soporte & Dev', icon: Terminal },
+  ];
+
+  const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar Fija y Moderna */}
-      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col fixed inset-y-0 z-50 border-r border-slate-800 shadow-2xl">
-        <div className="p-6 text-white font-bold text-xl flex items-center gap-3 border-b border-slate-800/50">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20 ring-1 ring-white/20">
-            <span className="text-white">O</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="tracking-tight leading-none">OpenFactu</span>
-            <span className="text-[10px] text-blue-400 font-medium tracking-widest mt-1 uppercase">ERP Core</span>
+    <div className="flex h-screen bg-white">
+      {/* Sidebar de Alta Gama */}
+      <aside className="w-64 flex flex-col bg-slate-900 border-r border-slate-800 shadow-2xl z-50">
+        <div className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 group cursor-pointer transition-transform hover:rotate-3">
+              <Boxes className="text-white" size={24} />
+            </div>
+            <div>
+              <h1 className="text-lg font-black text-white leading-none tracking-tighter font-display">OpenFactu</h1>
+              <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-0.5">Enterprise v2</p>
+            </div>
           </div>
         </div>
-        
-        <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-slate-700">
-          
-          {/* Grupo General */}
-          <div className="space-y-1">
-            <button 
-              onClick={() => toggleGroup('general')}
-              className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors"
-            >
-              <span>Gestión Central</span>
-              {openGroups.general ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            </button>
-            
-            {openGroups.general && (
-              <div className="mt-1 space-y-1 animate-in slide-in-from-top-1 duration-200">
-                <NavItem label="Dashboard" path="/" icon={LayoutDashboard} isActive={isActive('/')} />
-                <NavItem label="Plugins" path="/plugins" icon={Settings} isActive={isActive('/plugins')} />
-                {(user?.role === 'ADMIN' || user?.role === 'SUPERUSER') && (
-                  <NavItem label="Usuarios" path="/users" icon={UsersIcon} isActive={isActive('/users')} />
-                )}
-              </div>
-            )}
-          </div>
 
-          {/* Grupo Inventario */}
-          <div className="space-y-1">
-            <button 
-              onClick={() => toggleGroup('inventario')}
-              className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors"
-            >
-              <span>Inventario</span>
-              {openGroups.inventario ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            </button>
-            
-            {openGroups.inventario && (
-              <div className="mt-1 space-y-1 animate-in slide-in-from-top-1 duration-200">
-                <NavItem label="Catálogo" path="/items" icon={Package} isActive={isActive('/items')} />
-                <NavItem label="Categorías" path="/categories" icon={Layers} isActive={isActive('/categories')} />
-                <NavItem label="Unidades" path="/uom" icon={Hash} isActive={isActive('/uom')} />
-              </div>
-            )}
-          </div>
+        <div className="px-4 py-2">
+           <div className="relative group/search">
+             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+               <svg className="h-3.5 w-3.5 text-slate-500 group-focus-within/search:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+               </svg>
+             </div>
+             <input 
+               type="text" 
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+               placeholder="Buscar en menú..." 
+               className="block w-full pl-9 pr-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all font-medium"
+             />
+           </div>
+        </div>
 
-          {/* Grupo Extensiones (Dinámico) */}
-          {manifests.length > 0 && (
-            <div className="space-y-1">
-              <button 
-                onClick={() => toggleGroup('extensiones')}
-                className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors"
+        <nav className="flex-1 overflow-y-auto px-2 space-y-1 py-4 scrollbar-hide">
+          {groups.map(group => {
+            const itemsInGroup = filteredItems.filter(i => i.group === group.id);
+            if (itemsInGroup.length === 0 && group.id !== 'soporte') return null;
+            
+            const isGroupOpen = searchQuery ? true : openGroups[group.id];
+
+            return (
+              <NavGroup 
+                key={group.id}
+                id={group.id} 
+                label={group.label} 
+                icon={group.icon} 
+                isOpen={isGroupOpen} 
+                onToggle={toggleGroup}
               >
-                <span>Extensiones</span>
-                {openGroups.extensiones ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-              </button>
-              
-              {openGroups.extensiones && (
-                <div className="mt-1 space-y-1">
-                  {manifests.map(m => 
-                    m.ui.menuItems.map(item => (
-                      <NavItem 
-                        key={`${m.id}-${item.path}`}
-                        label={item.label} 
-                        path={item.path} 
-                        icon={Puzzle} 
-                        isActive={isActive(item.path)} 
-                      />
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Grupo Herramientas Peligrosas / Desarrollo */}
-          <div className="space-y-1">
-            <button 
-              onClick={() => toggleGroup('herramientas')}
-              className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors"
-            >
-              <span>Soporte & Dev</span>
-              {openGroups.herramientas ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            </button>
-            
-            {openGroups.herramientas && (
-              <div className="mt-1 space-y-1">
-                <NavItem label="Style Guide" path="/ui" icon={Eye} isActive={isActive('/ui')} />
-                <div className="px-3 py-2 text-[10px] text-slate-600 font-mono bg-slate-950/50 rounded-lg border border-slate-800/50 mt-2">
-                  Build: v0.1.0-alpha.dev
-                </div>
-              </div>
-            )}
-          </div>
+                {itemsInGroup.map(item => (
+                  <NavItem 
+                    key={item.path}
+                    icon={item.icon} 
+                    label={item.label} 
+                    path={item.path} 
+                    isActive={isActive(item.path)} 
+                    onClick={() => navigate(item.path)} 
+                  />
+                ))}
+                {group.id === 'soporte' && !searchQuery && (
+                  <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800/50 hover:text-white transition-all">
+                    <ExternalLink size={18} className="opacity-70" />
+                    <span>Documentación</span>
+                  </button>
+                )}
+              </NavGroup>
+            );
+          })}
         </nav>
 
-        {/* Perfil de Usuario Dinámico */}
+        {/* Profile Section Premium */}
         <div className="p-4 bg-slate-950/50 border-t border-slate-800">
-          <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-slate-900/50 border border-slate-800/50">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-slate-700 to-slate-600 flex items-center justify-center text-sm font-bold text-white shadow-inner uppercase">
-                {user?.username?.substring(0, 2) || '??'}
+          <div className="flex items-center justify-between group p-2 rounded-2xl hover:bg-slate-900 transition-colors cursor-pointer">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-9 h-9 bg-gradient-to-br from-slate-700 to-slate-900 rounded-xl flex items-center justify-center text-xs font-bold text-white shadow-inner border border-white/5">
+                  {user?.username?.charAt(0) || 'A'}
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-950 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full" />
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-xs font-bold text-white truncate">{user?.username || 'Usuario'}</p>
-              <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider truncate">
-                {user?.tenantName || user?.role || 'Acceso'}
-              </p>
+              <div className="overflow-hidden">
+                <p className="text-xs font-black text-slate-100 truncate tracking-tight">{user?.username || 'Administrador'}</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase truncate tracking-widest">{user?.tenantName || 'OpenFactu Core'}</p>
+              </div>
             </div>
             <button 
               onClick={logout}
-              className="text-slate-600 hover:text-rose-400 transition-colors p-1.5 hover:bg-rose-400/10 rounded-lg"
-              title="Cerrar Sesión"
+              className="p-2 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
             >
               <LogOut size={16} />
             </button>
@@ -170,54 +218,60 @@ export const MainLayout: React.FC = () => {
         </div>
       </aside>
 
-      {/* Contenido Principal */}
-      <main className="flex-1 flex flex-col ml-64 min-h-screen">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 !sticky top-0 z-40">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-slate-400">
-              <div className="p-1 px-2 bg-slate-100 rounded text-[10px] font-bold uppercase tracking-widest border border-slate-200">Core</div>
-              <ChevronDown size={14} className="-rotate-90" />
-              <span className="text-sm font-semibold text-slate-600">
-                {location.pathname === '/' ? 'Vista General' : location.pathname.substring(1).split('/').pop()?.replace('-', ' ')}
-              </span>
-            </div>
-            
-            {user?.tenantName && (
-              <div className="flex items-center gap-2 ml-4 pl-4 border-l border-slate-200">
-                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                <span className="text-xs font-black text-blue-600 uppercase tracking-tighter">
-                  {user.tenantName}
-                </span>
-              </div>
-            )}
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
+        <header className="h-16 bg-white border-b border-slate-100 flex items-center px-6 justify-between z-40 shadow-sm shadow-slate-200/50">
+          <div className="flex items-center gap-4 flex-1">
+
+             
+             {/* Global Search Bar */}
+             <div className="max-w-md w-full relative group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                   <svg className="h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                   </svg>
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Buscar interlocutores, artículos o documentos (Ctrl+K)..." 
+                  className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all shadow-sm"
+                />
+             </div>
           </div>
           
-          <div className="flex items-center gap-6">
-            {/* Presencia Colaborativa */}
-            <div className="flex items-center gap-2 group cursor-help" title="Colaboradores en línea">
-              <div className="flex -space-x-2">
-                <div className="w-8 h-8 rounded-full border-2 border-white bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600 shadow-sm uppercase">JS</div>
-                <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm">
-                  +3
-                </div>
-              </div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden lg:block group-hover:text-blue-500 transition-colors">Equipo</span>
-            </div>
+          <div className="flex items-center gap-4">
+             {/* Quick Actions Dropdown (Static for now) */}
+             <div className="relative">
+                <button onClick={() => navigate('/purchase-orders')} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-slate-800 hover:shadow-lg transition-all active:scale-95">
+                   <FileDigit size={16} />
+                   <span>Nuevo Pedido</span>
+                   <ChevronRight size={14} className="opacity-70 ml-1" />
+                </button>
+             </div>
 
-            <div className="h-8 w-px bg-slate-200" />
+             <div className="h-5 w-[1px] bg-slate-200" />
 
-            {/* Acciones Rápidas / Notificaciones */}
-            <button className="relative group p-2 text-slate-400 hover:text-blue-600 transition-all bg-slate-50 hover:bg-blue-50 rounded-xl border border-transparent hover:border-blue-100">
-              <Zap size={20} className="group-hover:scale-110 transition-transform" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white animate-bounce" />
-            </button>
+             {/* Notifications */}
+             <button className="p-2 text-slate-400 hover:text-slate-900 transition-colors relative">
+                <Zap size={20} />
+                <div className="absolute top-1 right-1 w-2 h-2 bg-rose-500 border-2 border-white rounded-full" />
+             </button>
           </div>
         </header>
-
-        <div className="flex-1 overflow-y-auto bg-slate-50/50">
+        <div className="flex-1 overflow-auto bg-slate-50/30">
           <Outlet />
         </div>
       </main>
     </div>
   );
 };
+
+// Componente simple de Badge para el header si no está en @openfactu/ui
+const Badge = ({ label, color }: { label: string, color: string }) => (
+  <div className={cn(
+    "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-[0.15em]",
+    color === 'emerald' ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-slate-100 text-slate-500"
+  )}>
+    {label}
+  </div>
+);

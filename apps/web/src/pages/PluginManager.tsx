@@ -82,11 +82,11 @@ export const PluginManager: React.FC = () => {
       </header>
 
       <div className="grid grid-cols-1 gap-8">
-        <Card title="Plugins Activos" description="Lista de extensiones cargadas en el servidor.">
+        <Card title="Plugins Activos" subtitle="Lista de extensiones cargadas en el servidor.">
           <Table columns={pluginColumns} data={plugins} isLoading={loading} />
         </Card>
 
-        <Card title="Extensiones de Base de Datos" description="Campos inyectados dinámicamente en los esquemas de tenant.">
+        <Card title="Extensiones de Base de Datos" subtitle="Campos inyectados dinámicamente en los esquemas de tenant.">
           <div className="flex items-center gap-2 mb-4 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm">
             <Database size={16} />
             <span>Estos campos son inyectados mediante el MigrationEngine al iniciar el plugin.</span>

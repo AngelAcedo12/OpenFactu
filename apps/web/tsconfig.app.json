@@ -19,7 +19,14 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@openfactu/common": ["../../packages/common/src/index.ts"],
+      "@openfactu/common/*": ["../../packages/common/src/*"],
+      "@openfactu/ui": ["../../packages/ui/src/index.ts"],
+      "@openfactu/ui/*": ["../../packages/ui/src/*"]
+    }
   },
   "include": ["src"]
 }

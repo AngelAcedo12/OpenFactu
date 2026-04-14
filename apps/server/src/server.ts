@@ -11,6 +11,18 @@ import categoriesRouter from './api/categories';
 import uomRouter from './api/uom';
 import partnersRouter from './api/partners';
 import pricelistsRouter from './api/pricelists';
+import zonesRouter from './api/zones';
+import warehousesRouter from './api/warehouses';
+import partnerGroupsRouter from './api/partnerGroups';
+import periodsRouter from './api/periods';
+import seriesRouter from './api/series';
+import purchasesRouter from './api/purchases';
+import purchaseDeliveryNotesRouter from './api/purchaseDeliveryNotes';
+import purchaseInvoicesRouter from './api/purchaseInvoices';
+import salesOrdersRouter from './api/salesOrders';
+import salesDeliveryNotesRouter from './api/salesDeliveryNotes';
+import salesInvoicesRouter from './api/salesInvoices';
+import taxesRouter from './api/taxes';
 import { tenantContextMiddleware } from './api/middleware/tenantContext';
 import { MigrationManager } from './core/tenant/MigrationManager';
 import { bootstrapAdmin } from './core/auth/bootstrap';
@@ -41,6 +53,18 @@ app.use('/api/categories', categoriesRouter);
 app.use('/api/uom', uomRouter);
 app.use('/api/partners', partnersRouter);
 app.use('/api/pricelists', pricelistsRouter);
+app.use('/api/zones', zonesRouter);
+app.use('/api/warehouses', warehousesRouter);
+app.use('/api/partnerGroups', partnerGroupsRouter);
+app.use('/api/periods', periodsRouter);
+app.use('/api/series', seriesRouter);
+app.use('/api/purchases', purchasesRouter);
+app.use('/api/purchases/delivery-notes', purchaseDeliveryNotesRouter);
+app.use('/api/purchases/invoices', purchaseInvoicesRouter);
+app.use('/api/sales', salesOrdersRouter);
+app.use('/api/sales/delivery-notes', salesDeliveryNotesRouter);
+app.use('/api/sales/invoices', salesInvoicesRouter);
+app.use('/api/taxes', taxesRouter);
 
 
 // Health check para el instalador y Docker

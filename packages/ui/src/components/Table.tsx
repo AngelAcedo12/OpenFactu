@@ -3,9 +3,11 @@ import { cn } from '../utils';
 
 export interface TableColumn<T> {
   header: string;
-  accessor: keyof T | ((item: T) => React.ReactNode);
+  accessor?: keyof T | ((item: T, index: number) => React.ReactNode);
+  cell?: (item: T, index: number) => React.ReactNode; // Explicit support for custom cell rendering
   align?: 'left' | 'center' | 'right';
   className?: string;
+  width?: string;
 }
 
 export interface TableProps<T> {
@@ -19,22 +21,26 @@ export interface TableProps<T> {
 
 export function Table<T>({ 
   columns, 
-  data, 
+  data = [], 
   onRowClick, 
   className, 
   emptyMessage = 'No se encontraron registros.',
   isLoading 
 }: TableProps<T>) {
   return (
-    <div className={cn("w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm", className)}>
-      <table className="w-full text-sm text-left">
-        <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+    <div className={cn(
+      "w-full overflow-auto bg-white", 
+      className
+    )}>
+      <table className="w-full text-[13px] leading-tight text-left border-collapse font-sans min-w-full">
+        <thead className="bg-slate-50/80 backdrop-blur-sm sticky top-0 z-10 border-b border-slate-200">
           <tr>
             {columns.map((col, idx) => (
               <th 
                 key={idx} 
+                style={{ width: col.width }}
                 className={cn(
-                  "px-6 py-4 font-semibold uppercase tracking-wider text-[11px]",
+                  "px-4 py-3 font-bold uppercase tracking-tight text-[10px] text-slate-500 font-display whitespace-nowrap",
                   col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left',
                   col.className
                 )}
@@ -44,27 +50,24 @@ export function Table<T>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-50">
+        <tbody className="divide-y divide-slate-100">
           {isLoading ? (
             <tr>
-              <td colSpan={columns.length} className="px-6 py-12 text-center text-slate-400">
+              <td colSpan={columns.length} className="px-4 py-10 text-center text-slate-400 font-medium">
                 <div className="flex flex-col items-center gap-3">
-                  <svg className="animate-spin h-6 w-6 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Cargando datos...</span>
+                  <div className="w-5 h-5 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                  <span className="animate-pulse">Sincronizando con el servidor...</span>
                 </div>
               </td>
             </tr>
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-6 py-12 text-center text-slate-400">
-                <div className="flex flex-col items-center gap-2">
-                  <svg className="h-10 w-10 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <td colSpan={columns.length} className="px-4 py-16 text-center text-slate-400">
+                <div className="flex flex-col items-center gap-2 opacity-50">
+                  <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                   </svg>
-                  <span>{emptyMessage}</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest">{emptyMessage}</span>
                 </div>
               </td>
             </tr>
@@ -74,24 +77,34 @@ export function Table<T>({
                 key={rowIdx} 
                 onClick={() => onRowClick?.(item)}
                 className={cn(
-                  "hover:bg-slate-50/50 transition-colors",
-                  onRowClick && "cursor-pointer"
+                  "group transition-all duration-75",
+                  rowIdx % 2 === 0 ? "bg-white" : "bg-slate-50/50",
+                  onRowClick ? "cursor-pointer hover:bg-blue-50/50" : "hover:bg-slate-50"
                 )}
               >
-                {columns.map((col, colIdx) => (
-                  <td 
-                    key={colIdx} 
-                    className={cn(
-                      "px-6 py-4 text-slate-600 whitespace-nowrap",
-                      col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left',
-                      col.className
-                    )}
-                  >
-                    {typeof col.accessor === 'function' 
-                      ? col.accessor(item) 
-                      : (item[col.accessor] as React.ReactNode)}
-                  </td>
-                ))}
+                {columns.map((col, colIdx) => {
+                  let content: React.ReactNode = null;
+                  if (col.cell) {
+                    content = col.cell(item, rowIdx);
+                  } else if (typeof col.accessor === 'function') {
+                    content = col.accessor(item, rowIdx);
+                  } else if (col.accessor) {
+                    content = item[col.accessor] as React.ReactNode;
+                  }
+
+                  return (
+                    <td 
+                      key={colIdx} 
+                      className={cn(
+                        "px-4 py-3 text-slate-600 font-medium group-hover:text-slate-900 transition-colors",
+                        col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left',
+                        col.className
+                      )}
+                    >
+                      {content}
+                    </td>
+                  );
+                })}
               </tr>
             ))
           )}

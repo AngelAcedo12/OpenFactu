@@ -54,8 +54,15 @@ export class MigrationManager {
           let rawSql = fs.readFileSync(filePath, 'utf8');
           const processedSql = rawSql.replace(/{{schema}}/g, schemaName);
           
-          // Ejecutar SQL masivo
-          await db.execute(sql.raw(processedSql));
+          // Dividir por punto y coma, ignorando aquellos dentro de bloques $$ (PL/pgSQL)
+          const statements = processedSql
+            .split(/;(?=(?:[^$]*\$\$[^$]*\$\$)*[^$]*$)/)
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+
+          for (const statement of statements) {
+            await db.execute(sql.raw(statement));
+          }
           
           // Registrar éxito
           await db.execute(sql.raw(
@@ -64,7 +71,7 @@ export class MigrationManager {
           
           console.log(`   ✅ Sincronizado correctamente.`);
         } catch (error: any) {
-          console.error(`   ❌ Error en ${file}:`, error.message);
+          console.error(`   ❌ Error en ${file}:`, error); // Log full error object
           throw error; 
         }
       }

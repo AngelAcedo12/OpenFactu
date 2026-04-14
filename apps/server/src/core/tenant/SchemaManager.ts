@@ -1,8 +1,8 @@
 import { ClientFactory } from './ClientFactory';
 import { MigrationManager } from './MigrationManager';
 import { sql, eq, or } from 'drizzle-orm';
-import * as schema from '../../db/schema';
 import crypto from 'crypto';
+import * as schema from '../../db/schema';
 
 /**
  * SchemaManager gestiona la creación física de esquemas en Postgres 

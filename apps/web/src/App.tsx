@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { GlobalLoader } from '@openfactu/ui';
 import { Dashboard } from './pages/Dashboard';
 import { SetupWizard } from './pages/SetupWizard';
 import { StyleGuide } from './pages/StyleGuide';
@@ -9,6 +10,20 @@ import { Users } from './pages/Users';
 import { Items } from './pages/Items';
 import { Categories } from './pages/Categories';
 import { Uom } from './pages/Uom';
+import { PriceLists } from './pages/PriceLists';
+import { Warehouses } from './pages/Warehouses';
+import { Zones } from './pages/Zones';
+import { Partners } from './pages/Partners';
+import { PartnerGroups } from './pages/PartnerGroups';
+import { AccountingPeriods } from './pages/AccountingPeriods';
+import { DocumentSeries } from './pages/DocumentSeries';
+import { PurchaseOrders } from './pages/PurchaseOrders';
+import { PurchaseDeliveryNotes } from './pages/PurchaseDeliveryNotes';
+import { PurchaseInvoices } from './pages/PurchaseInvoices';
+import { SalesOrders } from './pages/SalesOrders';
+import { SalesDeliveryNotes } from './pages/SalesDeliveryNotes';
+import { SalesInvoices } from './pages/SalesInvoices';
+import { Taxes } from './pages/Taxes';
 import { PluginViewRenderer } from './pages/PluginViewRenderer';
 import { usePlugins } from './context/PluginContext';
 import { useAuth } from './context/AuthContext';
@@ -39,8 +54,8 @@ function App() {
 
   if (!setupChecked || authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950">
-        <div className="animate-pulse text-blue-500 font-bold tracking-widest uppercase text-xs">Cargando OpenFactu...</div>
+      <div className="min-h-screen bg-slate-50 relative">
+        <GlobalLoader isLoading={true} message="Firmwares Industriales | Cargando Sistema..." />
       </div>
     );
   }
@@ -66,6 +81,19 @@ function App() {
               <Route path="items" element={<Items />} />
               <Route path="categories" element={<Categories />} />
               <Route path="uom" element={<Uom />} />
+              <Route path="pricelists" element={<PriceLists />} />
+              <Route path="warehouses" element={<Warehouses />} />
+              <Route path="partners" element={<Partners />} />
+              <Route path="partner-groups" element={<PartnerGroups />} />
+              <Route path="accounting-periods" element={<AccountingPeriods />} />
+              <Route path="document-series" element={<DocumentSeries />} />
+              <Route path="purchase-orders" element={<PurchaseOrders />} />
+              <Route path="purchases/delivery-notes" element={<PurchaseDeliveryNotes />} />
+              <Route path="purchases/invoices" element={<PurchaseInvoices />} />
+              <Route path="sales-orders" element={<SalesOrders />} />
+              <Route path="sales/delivery-notes" element={<SalesDeliveryNotes />} />
+              <Route path="sales/invoices" element={<SalesInvoices />} />
+              <Route path="taxes" element={<Taxes />} />
               <Route path="ui" element={<StyleGuide />} />
               <Route path="plugins" element={<PluginManager />} />
               

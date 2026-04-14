@@ -1,0 +1,145 @@
+import { Router } from 'express';
+import { eq, desc } from 'drizzle-orm';
+import * as schema from '../db/schema';
+import crypto from 'crypto';
+
+const router = Router();
+
+// GET all orders
+router.get('/', async (req: any, res) => {
+  try {
+    const orders = await req.tenantClient.select({
+      id: schema.salesOrders.id,
+      docNum: schema.salesOrders.docNum,
+      seriesPrefix: schema.documentSeries.prefix,
+      periodCode: schema.accountingPeriods.code,
+      date: schema.salesOrders.date,
+      partnerId: schema.salesOrders.partnerId,
+      total: schema.salesOrders.total,
+      status: schema.salesOrders.status,
+      subtotal: schema.salesOrders.subtotal,
+      taxTotal: schema.salesOrders.taxTotal
+    })
+      .from(schema.salesOrders)
+      .leftJoin(schema.documentSeries, eq(schema.salesOrders.seriesId, schema.documentSeries.id))
+      .leftJoin(schema.accountingPeriods, eq(schema.salesOrders.periodId, schema.accountingPeriods.id))
+      .orderBy(desc(schema.salesOrders.date), desc(schema.salesOrders.createdAt));
+      
+    res.json(orders);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST new sales order
+router.post('/', async (req: any, res) => {
+  const { seriesId, periodId, partnerId, date, deliveryDate, documentDate, warehouseId, lines } = req.body;
+
+  try {
+    const result = await req.tenantClient.transaction(async (tx: any) => {
+      // 1. Numeración
+      const [series] = await tx.select().from(schema.documentSeries).where(eq(schema.documentSeries.id, seriesId));
+      if (!series) throw new Error('Serie no encontrada');
+      if (series.nextNumber > series.lastNumber) throw new Error('Serie numerada agotada');
+
+      const assignedDocNum = series.nextNumber;
+      await tx.update(schema.documentSeries).set({ nextNumber: assignedDocNum + 1 }).where(eq(schema.documentSeries.id, seriesId));
+
+      // 2. Cálculos
+      let calculatedSubtotal = 0;
+      let calculatedTaxTotal = 0;
+      const breakdownMap: Record<string, { base: number, tax: number }> = {};
+
+      const allTaxGroups = await tx.select().from(schema.taxGroups);
+      const taxRateMap = allTaxGroups.reduce((acc: any, curr: any) => {
+        acc[curr.id] = Number(curr.rate);
+        return acc;
+      }, {});
+
+      const orderId = crypto.randomUUID();
+      const linesToInsert = lines.map((line: any, index: number) => {
+        const lineSubtotal = Number(line.quantity) * Number(line.price);
+        const taxRate = taxRateMap[line.taxGroupId] || 0;
+        const lineTax = lineSubtotal * (taxRate / 100);
+
+        calculatedSubtotal += lineSubtotal;
+        calculatedTaxTotal += lineTax;
+
+        const rateKey = String(taxRate);
+        if (!breakdownMap[rateKey]) breakdownMap[rateKey] = { base: 0, tax: 0 };
+        breakdownMap[rateKey].base += lineSubtotal;
+        breakdownMap[rateKey].tax += lineTax;
+
+        return {
+          id: crypto.randomUUID(),
+          orderId,
+          lineNum: index + 1,
+          itemId: line.itemId,
+          warehouseId: line.warehouseId || warehouseId || null,
+          orderedQty: String(line.quantity),
+          deliveredQty: '0',
+          price: String(line.price),
+          taxGroupId: line.taxGroupId || null,
+          lineTotal: String(lineSubtotal + lineTax)
+        };
+      });
+
+      const finalTotal = calculatedSubtotal + calculatedTaxTotal;
+      const [header] = await tx.insert(schema.salesOrders).values({
+        id: orderId,
+        seriesId,
+        docNum: assignedDocNum,
+        periodId,
+        partnerId,
+        date: new Date(date),
+        deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
+        documentDate: documentDate ? new Date(documentDate) : null,
+        status: 'O',
+        billToAddress: req.body.billToAddress || null,
+        shipToAddress: req.body.shipToAddress || null,
+        warehouseId: warehouseId || null,
+        subtotal: String(calculatedSubtotal.toFixed(4)),
+        taxTotal: String(calculatedTaxTotal.toFixed(4)),
+        total: String(finalTotal.toFixed(4)),
+        taxBreakdown: JSON.stringify(breakdownMap)
+      }).returning();
+
+      if (linesToInsert.length > 0) {
+        await tx.insert(schema.salesOrderLines).values(linesToInsert);
+      }
+
+      return { header, assignedDocNum };
+    });
+
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET by ID
+router.get('/:id', async (req: any, res) => {
+  try {
+    const [order] = await req.tenantClient.select({
+      header: schema.salesOrders,
+      seriesPrefix: schema.documentSeries.prefix,
+      periodCode: schema.accountingPeriods.code
+    })
+      .from(schema.salesOrders)
+      .leftJoin(schema.documentSeries, eq(schema.salesOrders.seriesId, schema.documentSeries.id))
+      .leftJoin(schema.accountingPeriods, eq(schema.salesOrders.periodId, schema.accountingPeriods.id))
+      .where(eq(schema.salesOrders.id, req.params.id));
+      
+    if (!order) return res.status(404).json({ error: 'No encontrado' });
+    
+    const lines = await req.tenantClient.select()
+      .from(schema.salesOrderLines)
+      .where(eq(schema.salesOrderLines.orderId, req.params.id));
+      
+    res.json({ ...order.header, seriesPrefix: order.seriesPrefix, periodCode: order.periodCode, lines });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export default router;

@@ -90,6 +90,7 @@ export interface UIComponents {
     Input: React.FC<any>;
     Loader: React.FC<any>;
     ToastProvider: React.FC<{ children: React.ReactNode }>;
+    
     useToast: () => {
         success: (msg: string) => void;
         error: (msg: string) => void;

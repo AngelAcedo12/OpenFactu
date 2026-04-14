@@ -1,0 +1,3117 @@
+{
+  "id": "81b826fc-94b7-4288-ab4a-40de7ff2d7cb",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.Tenant": {
+      "name": "Tenant",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "schemaName": {
+          "name": "schemaName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "config": {
+          "name": "config",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Tenant_name_unique": {
+          "name": "Tenant_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        },
+        "Tenant_schemaName_unique": {
+          "name": "Tenant_schemaName_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "schemaName"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.GlobalUser": {
+      "name": "GlobalUser",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'USER'"
+        },
+        "tenantId": {
+          "name": "tenantId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "GlobalUser_tenantId_Tenant_id_fk": {
+          "name": "GlobalUser_tenantId_Tenant_id_fk",
+          "tableFrom": "GlobalUser",
+          "tableTo": "Tenant",
+          "columnsFrom": [
+            "tenantId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "GlobalUser_email_unique": {
+          "name": "GlobalUser_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        },
+        "GlobalUser_username_unique": {
+          "name": "GlobalUser_username_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "username"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PluginField": {
+      "name": "PluginField",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "pluginId": {
+          "name": "pluginId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tableName": {
+          "name": "tableName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fieldName": {
+          "name": "fieldName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fieldType": {
+          "name": "fieldType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "isManaged": {
+          "name": "isManaged",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PartnerGroup": {
+      "name": "PartnerGroup",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "codePrefix": {
+          "name": "codePrefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isCustomer": {
+          "name": "isCustomer",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "isVendor": {
+          "name": "isVendor",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "PartnerGroup_code_unique": {
+          "name": "PartnerGroup_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.BusinessPartner": {
+      "name": "BusinessPartner",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nif": {
+          "name": "nif",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "foreignName": {
+          "name": "foreignName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "website": {
+          "name": "website",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "groupId": {
+          "name": "groupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "priceListId": {
+          "name": "priceListId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "BusinessPartner_groupId_PartnerGroup_id_fk": {
+          "name": "BusinessPartner_groupId_PartnerGroup_id_fk",
+          "tableFrom": "BusinessPartner",
+          "tableTo": "PartnerGroup",
+          "columnsFrom": [
+            "groupId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "BusinessPartner_priceListId_PriceList_id_fk": {
+          "name": "BusinessPartner_priceListId_PriceList_id_fk",
+          "tableFrom": "BusinessPartner",
+          "tableTo": "PriceList",
+          "columnsFrom": [
+            "priceListId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "BusinessPartner_code_unique": {
+          "name": "BusinessPartner_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        },
+        "BusinessPartner_nif_unique": {
+          "name": "BusinessPartner_nif_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nif"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PartnerAddress": {
+      "name": "PartnerAddress",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "partnerId": {
+          "name": "partnerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "street": {
+          "name": "street",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zipCode": {
+          "name": "zipCode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country": {
+          "name": "country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'B'"
+        },
+        "isDefault": {
+          "name": "isDefault",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "PartnerAddress_partnerId_BusinessPartner_id_fk": {
+          "name": "PartnerAddress_partnerId_BusinessPartner_id_fk",
+          "tableFrom": "PartnerAddress",
+          "tableTo": "BusinessPartner",
+          "columnsFrom": [
+            "partnerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.AccountingPeriod": {
+      "name": "AccountingPeriod",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "startDate": {
+          "name": "startDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "endDate": {
+          "name": "endDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'O'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "AccountingPeriod_code_unique": {
+          "name": "AccountingPeriod_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.DocumentSeries": {
+      "name": "DocumentSeries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "periodId": {
+          "name": "periodId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "docType": {
+          "name": "docType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "firstNumber": {
+          "name": "firstNumber",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nextNumber": {
+          "name": "nextNumber",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lastNumber": {
+          "name": "lastNumber",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prefix": {
+          "name": "prefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "suffix": {
+          "name": "suffix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isDefault": {
+          "name": "isDefault",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "DocumentSeries_periodId_AccountingPeriod_id_fk": {
+          "name": "DocumentSeries_periodId_AccountingPeriod_id_fk",
+          "tableFrom": "DocumentSeries",
+          "tableTo": "AccountingPeriod",
+          "columnsFrom": [
+            "periodId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "DocumentSeries_name_unique": {
+          "name": "DocumentSeries_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.TaxGroup": {
+      "name": "TaxGroup",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rate": {
+          "name": "rate",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "TaxGroup_code_unique": {
+          "name": "TaxGroup_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PriceList": {
+      "name": "PriceList",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ItemPrice": {
+      "name": "ItemPrice",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "priceListId": {
+          "name": "priceListId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "itemId": {
+          "name": "itemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ItemPrice_priceListId_PriceList_id_fk": {
+          "name": "ItemPrice_priceListId_PriceList_id_fk",
+          "tableFrom": "ItemPrice",
+          "tableTo": "PriceList",
+          "columnsFrom": [
+            "priceListId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ItemPrice_itemId_Item_id_fk": {
+          "name": "ItemPrice_itemId_Item_id_fk",
+          "tableFrom": "ItemPrice",
+          "tableTo": "Item",
+          "columnsFrom": [
+            "itemId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "ItemPrice_priceListId_itemId_unique": {
+          "name": "ItemPrice_priceListId_itemId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "priceListId",
+            "itemId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Item": {
+      "name": "Item",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uomId": {
+          "name": "uomId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "categoryId": {
+          "name": "categoryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "manageBy": {
+          "name": "manageBy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'N'"
+        },
+        "basePrice": {
+          "name": "basePrice",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stock": {
+          "name": "stock",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "minStock": {
+          "name": "minStock",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Item_uomId_UnitOfMeasure_id_fk": {
+          "name": "Item_uomId_UnitOfMeasure_id_fk",
+          "tableFrom": "Item",
+          "tableTo": "UnitOfMeasure",
+          "columnsFrom": [
+            "uomId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Item_categoryId_Category_id_fk": {
+          "name": "Item_categoryId_Category_id_fk",
+          "tableFrom": "Item",
+          "tableTo": "Category",
+          "columnsFrom": [
+            "categoryId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Item_code_unique": {
+          "name": "Item_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ItemBatch": {
+      "name": "ItemBatch",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "batchNum": {
+          "name": "batchNum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "itemId": {
+          "name": "itemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "expiryDate": {
+          "name": "expiryDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ItemBatch_itemId_Item_id_fk": {
+          "name": "ItemBatch_itemId_Item_id_fk",
+          "tableFrom": "ItemBatch",
+          "tableTo": "Item",
+          "columnsFrom": [
+            "itemId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ItemSerial": {
+      "name": "ItemSerial",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "serialNum": {
+          "name": "serialNum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "itemId": {
+          "name": "itemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'A'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ItemSerial_itemId_Item_id_fk": {
+          "name": "ItemSerial_itemId_Item_id_fk",
+          "tableFrom": "ItemSerial",
+          "tableTo": "Item",
+          "columnsFrom": [
+            "itemId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "ItemSerial_serialNum_unique": {
+          "name": "ItemSerial_serialNum_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "serialNum"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.WarehouseZone": {
+      "name": "WarehouseZone",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "warehouseId": {
+          "name": "warehouseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "WarehouseZone_warehouseId_Warehouse_id_fk": {
+          "name": "WarehouseZone_warehouseId_Warehouse_id_fk",
+          "tableFrom": "WarehouseZone",
+          "tableTo": "Warehouse",
+          "columnsFrom": [
+            "warehouseId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Warehouse": {
+      "name": "Warehouse",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isDefault": {
+          "name": "isDefault",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ItemWarehouseStock": {
+      "name": "ItemWarehouseStock",
+      "schema": "",
+      "columns": {
+        "itemId": {
+          "name": "itemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "warehouseId": {
+          "name": "warehouseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stock": {
+          "name": "stock",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ItemWarehouseStock_itemId_Item_id_fk": {
+          "name": "ItemWarehouseStock_itemId_Item_id_fk",
+          "tableFrom": "ItemWarehouseStock",
+          "tableTo": "Item",
+          "columnsFrom": [
+            "itemId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ItemWarehouseStock_warehouseId_Warehouse_id_fk": {
+          "name": "ItemWarehouseStock_warehouseId_Warehouse_id_fk",
+          "tableFrom": "ItemWarehouseStock",
+          "tableTo": "Warehouse",
+          "columnsFrom": [
+            "warehouseId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "ItemWarehouseStock_itemId_warehouseId_unique": {
+          "name": "ItemWarehouseStock_itemId_warehouseId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "itemId",
+            "warehouseId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.UnitOfMeasure": {
+      "name": "UnitOfMeasure",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "baseValue": {
+          "name": "baseValue",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'1.0000'"
+        },
+        "baseUomId": {
+          "name": "baseUomId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "UnitOfMeasure_baseUomId_UnitOfMeasure_id_fk": {
+          "name": "UnitOfMeasure_baseUomId_UnitOfMeasure_id_fk",
+          "tableFrom": "UnitOfMeasure",
+          "tableTo": "UnitOfMeasure",
+          "columnsFrom": [
+            "baseUomId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "UnitOfMeasure_code_unique": {
+          "name": "UnitOfMeasure_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ItemAlternativeUom": {
+      "name": "ItemAlternativeUom",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "itemId": {
+          "name": "itemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uomId": {
+          "name": "uomId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "factor": {
+          "name": "factor",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ItemAlternativeUom_itemId_Item_id_fk": {
+          "name": "ItemAlternativeUom_itemId_Item_id_fk",
+          "tableFrom": "ItemAlternativeUom",
+          "tableTo": "Item",
+          "columnsFrom": [
+            "itemId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ItemAlternativeUom_uomId_UnitOfMeasure_id_fk": {
+          "name": "ItemAlternativeUom_uomId_UnitOfMeasure_id_fk",
+          "tableFrom": "ItemAlternativeUom",
+          "tableTo": "UnitOfMeasure",
+          "columnsFrom": [
+            "uomId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Category": {
+      "name": "Category",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "codePrefix": {
+          "name": "codePrefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parentId": {
+          "name": "parentId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Category_parentId_Category_id_fk": {
+          "name": "Category_parentId_Category_id_fk",
+          "tableFrom": "Category",
+          "tableTo": "Category",
+          "columnsFrom": [
+            "parentId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.OrderHeader": {
+      "name": "OrderHeader",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "docNum": {
+          "name": "docNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "partnerId": {
+          "name": "partnerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'O'"
+        },
+        "total": {
+          "name": "total",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "OrderHeader_partnerId_BusinessPartner_id_fk": {
+          "name": "OrderHeader_partnerId_BusinessPartner_id_fk",
+          "tableFrom": "OrderHeader",
+          "tableTo": "BusinessPartner",
+          "columnsFrom": [
+            "partnerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "OrderHeader_docNum_unique": {
+          "name": "OrderHeader_docNum_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "docNum"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.OrderLine": {
+      "name": "OrderLine",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "orderId": {
+          "name": "orderId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lineNum": {
+          "name": "lineNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "itemId": {
+          "name": "itemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "openQty": {
+          "name": "openQty",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uomId": {
+          "name": "uomId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taxGroupId": {
+          "name": "taxGroupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "OrderLine_orderId_OrderHeader_id_fk": {
+          "name": "OrderLine_orderId_OrderHeader_id_fk",
+          "tableFrom": "OrderLine",
+          "tableTo": "OrderHeader",
+          "columnsFrom": [
+            "orderId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "OrderLine_itemId_Item_id_fk": {
+          "name": "OrderLine_itemId_Item_id_fk",
+          "tableFrom": "OrderLine",
+          "tableTo": "Item",
+          "columnsFrom": [
+            "itemId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "OrderLine_uomId_UnitOfMeasure_id_fk": {
+          "name": "OrderLine_uomId_UnitOfMeasure_id_fk",
+          "tableFrom": "OrderLine",
+          "tableTo": "UnitOfMeasure",
+          "columnsFrom": [
+            "uomId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "OrderLine_taxGroupId_TaxGroup_id_fk": {
+          "name": "OrderLine_taxGroupId_TaxGroup_id_fk",
+          "tableFrom": "OrderLine",
+          "tableTo": "TaxGroup",
+          "columnsFrom": [
+            "taxGroupId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.DeliveryHeader": {
+      "name": "DeliveryHeader",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "docNum": {
+          "name": "docNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "partnerId": {
+          "name": "partnerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'O'"
+        },
+        "total": {
+          "name": "total",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "DeliveryHeader_partnerId_BusinessPartner_id_fk": {
+          "name": "DeliveryHeader_partnerId_BusinessPartner_id_fk",
+          "tableFrom": "DeliveryHeader",
+          "tableTo": "BusinessPartner",
+          "columnsFrom": [
+            "partnerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "DeliveryHeader_docNum_unique": {
+          "name": "DeliveryHeader_docNum_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "docNum"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.DeliveryLine": {
+      "name": "DeliveryLine",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "deliveryId": {
+          "name": "deliveryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lineNum": {
+          "name": "lineNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "itemId": {
+          "name": "itemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "openQty": {
+          "name": "openQty",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uomId": {
+          "name": "uomId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taxGroupId": {
+          "name": "taxGroupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "baseLineId": {
+          "name": "baseLineId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "DeliveryLine_deliveryId_DeliveryHeader_id_fk": {
+          "name": "DeliveryLine_deliveryId_DeliveryHeader_id_fk",
+          "tableFrom": "DeliveryLine",
+          "tableTo": "DeliveryHeader",
+          "columnsFrom": [
+            "deliveryId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "DeliveryLine_itemId_Item_id_fk": {
+          "name": "DeliveryLine_itemId_Item_id_fk",
+          "tableFrom": "DeliveryLine",
+          "tableTo": "Item",
+          "columnsFrom": [
+            "itemId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "DeliveryLine_uomId_UnitOfMeasure_id_fk": {
+          "name": "DeliveryLine_uomId_UnitOfMeasure_id_fk",
+          "tableFrom": "DeliveryLine",
+          "tableTo": "UnitOfMeasure",
+          "columnsFrom": [
+            "uomId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "DeliveryLine_taxGroupId_TaxGroup_id_fk": {
+          "name": "DeliveryLine_taxGroupId_TaxGroup_id_fk",
+          "tableFrom": "DeliveryLine",
+          "tableTo": "TaxGroup",
+          "columnsFrom": [
+            "taxGroupId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "DeliveryLine_baseLineId_OrderLine_id_fk": {
+          "name": "DeliveryLine_baseLineId_OrderLine_id_fk",
+          "tableFrom": "DeliveryLine",
+          "tableTo": "OrderLine",
+          "columnsFrom": [
+            "baseLineId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.InvoiceHeader": {
+      "name": "InvoiceHeader",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "docNum": {
+          "name": "docNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "partnerId": {
+          "name": "partnerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'O'"
+        },
+        "total": {
+          "name": "total",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "InvoiceHeader_partnerId_BusinessPartner_id_fk": {
+          "name": "InvoiceHeader_partnerId_BusinessPartner_id_fk",
+          "tableFrom": "InvoiceHeader",
+          "tableTo": "BusinessPartner",
+          "columnsFrom": [
+            "partnerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "InvoiceHeader_docNum_unique": {
+          "name": "InvoiceHeader_docNum_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "docNum"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.InvoiceLine": {
+      "name": "InvoiceLine",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "invoiceId": {
+          "name": "invoiceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lineNum": {
+          "name": "lineNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "itemId": {
+          "name": "itemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uomId": {
+          "name": "uomId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taxGroupId": {
+          "name": "taxGroupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "baseLineId": {
+          "name": "baseLineId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "InvoiceLine_invoiceId_InvoiceHeader_id_fk": {
+          "name": "InvoiceLine_invoiceId_InvoiceHeader_id_fk",
+          "tableFrom": "InvoiceLine",
+          "tableTo": "InvoiceHeader",
+          "columnsFrom": [
+            "invoiceId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "InvoiceLine_itemId_Item_id_fk": {
+          "name": "InvoiceLine_itemId_Item_id_fk",
+          "tableFrom": "InvoiceLine",
+          "tableTo": "Item",
+          "columnsFrom": [
+            "itemId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "InvoiceLine_uomId_UnitOfMeasure_id_fk": {
+          "name": "InvoiceLine_uomId_UnitOfMeasure_id_fk",
+          "tableFrom": "InvoiceLine",
+          "tableTo": "UnitOfMeasure",
+          "columnsFrom": [
+            "uomId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "InvoiceLine_taxGroupId_TaxGroup_id_fk": {
+          "name": "InvoiceLine_taxGroupId_TaxGroup_id_fk",
+          "tableFrom": "InvoiceLine",
+          "tableTo": "TaxGroup",
+          "columnsFrom": [
+            "taxGroupId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "InvoiceLine_baseLineId_DeliveryLine_id_fk": {
+          "name": "InvoiceLine_baseLineId_DeliveryLine_id_fk",
+          "tableFrom": "InvoiceLine",
+          "tableTo": "DeliveryLine",
+          "columnsFrom": [
+            "baseLineId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.DocumentLineDist": {
+      "name": "DocumentLineDist",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "orderLineId": {
+          "name": "orderLineId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deliveryLineId": {
+          "name": "deliveryLineId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "invoiceLineId": {
+          "name": "invoiceLineId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "batchId": {
+          "name": "batchId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "serialId": {
+          "name": "serialId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "DocumentLineDist_orderLineId_OrderLine_id_fk": {
+          "name": "DocumentLineDist_orderLineId_OrderLine_id_fk",
+          "tableFrom": "DocumentLineDist",
+          "tableTo": "OrderLine",
+          "columnsFrom": [
+            "orderLineId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "DocumentLineDist_deliveryLineId_DeliveryLine_id_fk": {
+          "name": "DocumentLineDist_deliveryLineId_DeliveryLine_id_fk",
+          "tableFrom": "DocumentLineDist",
+          "tableTo": "DeliveryLine",
+          "columnsFrom": [
+            "deliveryLineId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "DocumentLineDist_invoiceLineId_InvoiceLine_id_fk": {
+          "name": "DocumentLineDist_invoiceLineId_InvoiceLine_id_fk",
+          "tableFrom": "DocumentLineDist",
+          "tableTo": "InvoiceLine",
+          "columnsFrom": [
+            "invoiceLineId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "DocumentLineDist_batchId_ItemBatch_id_fk": {
+          "name": "DocumentLineDist_batchId_ItemBatch_id_fk",
+          "tableFrom": "DocumentLineDist",
+          "tableTo": "ItemBatch",
+          "columnsFrom": [
+            "batchId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "DocumentLineDist_serialId_ItemSerial_id_fk": {
+          "name": "DocumentLineDist_serialId_ItemSerial_id_fk",
+          "tableFrom": "DocumentLineDist",
+          "tableTo": "ItemSerial",
+          "columnsFrom": [
+            "serialId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PurchaseOrder": {
+      "name": "PurchaseOrder",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "seriesId": {
+          "name": "seriesId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "docNum": {
+          "name": "docNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "periodId": {
+          "name": "periodId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "partnerId": {
+          "name": "partnerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deliveryDate": {
+          "name": "deliveryDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "documentDate": {
+          "name": "documentDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'O'"
+        },
+        "billToAddress": {
+          "name": "billToAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shipToAddress": {
+          "name": "shipToAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "warehouseId": {
+          "name": "warehouseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total": {
+          "name": "total",
+          "type": "numeric(15, 4)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "PurchaseOrder_seriesId_DocumentSeries_id_fk": {
+          "name": "PurchaseOrder_seriesId_DocumentSeries_id_fk",
+          "tableFrom": "PurchaseOrder",
+          "tableTo": "DocumentSeries",
+          "columnsFrom": [
+            "seriesId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseOrder_periodId_AccountingPeriod_id_fk": {
+          "name": "PurchaseOrder_periodId_AccountingPeriod_id_fk",
+          "tableFrom": "PurchaseOrder",
+          "tableTo": "AccountingPeriod",
+          "columnsFrom": [
+            "periodId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseOrder_partnerId_BusinessPartner_id_fk": {
+          "name": "PurchaseOrder_partnerId_BusinessPartner_id_fk",
+          "tableFrom": "PurchaseOrder",
+          "tableTo": "BusinessPartner",
+          "columnsFrom": [
+            "partnerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseOrder_warehouseId_Warehouse_id_fk": {
+          "name": "PurchaseOrder_warehouseId_Warehouse_id_fk",
+          "tableFrom": "PurchaseOrder",
+          "tableTo": "Warehouse",
+          "columnsFrom": [
+            "warehouseId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PurchaseOrderLine": {
+      "name": "PurchaseOrderLine",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "orderId": {
+          "name": "orderId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lineNum": {
+          "name": "lineNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "itemId": {
+          "name": "itemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "warehouseId": {
+          "name": "warehouseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "batchNum": {
+          "name": "batchNum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receivedQty": {
+          "name": "receivedQty",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "price": {
+          "name": "price",
+          "type": "numeric(15, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taxGroupId": {
+          "name": "taxGroupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lineTotal": {
+          "name": "lineTotal",
+          "type": "numeric(15, 4)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "PurchaseOrderLine_orderId_PurchaseOrder_id_fk": {
+          "name": "PurchaseOrderLine_orderId_PurchaseOrder_id_fk",
+          "tableFrom": "PurchaseOrderLine",
+          "tableTo": "PurchaseOrder",
+          "columnsFrom": [
+            "orderId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseOrderLine_itemId_Item_id_fk": {
+          "name": "PurchaseOrderLine_itemId_Item_id_fk",
+          "tableFrom": "PurchaseOrderLine",
+          "tableTo": "Item",
+          "columnsFrom": [
+            "itemId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseOrderLine_warehouseId_Warehouse_id_fk": {
+          "name": "PurchaseOrderLine_warehouseId_Warehouse_id_fk",
+          "tableFrom": "PurchaseOrderLine",
+          "tableTo": "Warehouse",
+          "columnsFrom": [
+            "warehouseId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseOrderLine_taxGroupId_TaxGroup_id_fk": {
+          "name": "PurchaseOrderLine_taxGroupId_TaxGroup_id_fk",
+          "tableFrom": "PurchaseOrderLine",
+          "tableTo": "TaxGroup",
+          "columnsFrom": [
+            "taxGroupId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PurchaseDeliveryNote": {
+      "name": "PurchaseDeliveryNote",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "seriesId": {
+          "name": "seriesId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "docNum": {
+          "name": "docNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "periodId": {
+          "name": "periodId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "partnerId": {
+          "name": "partnerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "orderId": {
+          "name": "orderId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date": {
+          "name": "date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'O'"
+        },
+        "billToAddress": {
+          "name": "billToAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shipToAddress": {
+          "name": "shipToAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "warehouseId": {
+          "name": "warehouseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total": {
+          "name": "total",
+          "type": "numeric(15, 4)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "PurchaseDeliveryNote_seriesId_DocumentSeries_id_fk": {
+          "name": "PurchaseDeliveryNote_seriesId_DocumentSeries_id_fk",
+          "tableFrom": "PurchaseDeliveryNote",
+          "tableTo": "DocumentSeries",
+          "columnsFrom": [
+            "seriesId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseDeliveryNote_periodId_AccountingPeriod_id_fk": {
+          "name": "PurchaseDeliveryNote_periodId_AccountingPeriod_id_fk",
+          "tableFrom": "PurchaseDeliveryNote",
+          "tableTo": "AccountingPeriod",
+          "columnsFrom": [
+            "periodId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseDeliveryNote_partnerId_BusinessPartner_id_fk": {
+          "name": "PurchaseDeliveryNote_partnerId_BusinessPartner_id_fk",
+          "tableFrom": "PurchaseDeliveryNote",
+          "tableTo": "BusinessPartner",
+          "columnsFrom": [
+            "partnerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseDeliveryNote_orderId_PurchaseOrder_id_fk": {
+          "name": "PurchaseDeliveryNote_orderId_PurchaseOrder_id_fk",
+          "tableFrom": "PurchaseDeliveryNote",
+          "tableTo": "PurchaseOrder",
+          "columnsFrom": [
+            "orderId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseDeliveryNote_warehouseId_Warehouse_id_fk": {
+          "name": "PurchaseDeliveryNote_warehouseId_Warehouse_id_fk",
+          "tableFrom": "PurchaseDeliveryNote",
+          "tableTo": "Warehouse",
+          "columnsFrom": [
+            "warehouseId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PurchaseDeliveryNoteLine": {
+      "name": "PurchaseDeliveryNoteLine",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "deliveryId": {
+          "name": "deliveryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lineNum": {
+          "name": "lineNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "itemId": {
+          "name": "itemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "warehouseId": {
+          "name": "warehouseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "batchNum": {
+          "name": "batchNum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "numeric(15, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taxGroupId": {
+          "name": "taxGroupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lineTotal": {
+          "name": "lineTotal",
+          "type": "numeric(15, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "baseLine": {
+          "name": "baseLine",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "PurchaseDeliveryNoteLine_deliveryId_PurchaseDeliveryNote_id_fk": {
+          "name": "PurchaseDeliveryNoteLine_deliveryId_PurchaseDeliveryNote_id_fk",
+          "tableFrom": "PurchaseDeliveryNoteLine",
+          "tableTo": "PurchaseDeliveryNote",
+          "columnsFrom": [
+            "deliveryId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseDeliveryNoteLine_itemId_Item_id_fk": {
+          "name": "PurchaseDeliveryNoteLine_itemId_Item_id_fk",
+          "tableFrom": "PurchaseDeliveryNoteLine",
+          "tableTo": "Item",
+          "columnsFrom": [
+            "itemId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseDeliveryNoteLine_warehouseId_Warehouse_id_fk": {
+          "name": "PurchaseDeliveryNoteLine_warehouseId_Warehouse_id_fk",
+          "tableFrom": "PurchaseDeliveryNoteLine",
+          "tableTo": "Warehouse",
+          "columnsFrom": [
+            "warehouseId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseDeliveryNoteLine_taxGroupId_TaxGroup_id_fk": {
+          "name": "PurchaseDeliveryNoteLine_taxGroupId_TaxGroup_id_fk",
+          "tableFrom": "PurchaseDeliveryNoteLine",
+          "tableTo": "TaxGroup",
+          "columnsFrom": [
+            "taxGroupId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PurchaseInvoice": {
+      "name": "PurchaseInvoice",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "seriesId": {
+          "name": "seriesId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "docNum": {
+          "name": "docNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "periodId": {
+          "name": "periodId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "partnerId": {
+          "name": "partnerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'O'"
+        },
+        "billToAddress": {
+          "name": "billToAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shipToAddress": {
+          "name": "shipToAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total": {
+          "name": "total",
+          "type": "numeric(15, 4)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "PurchaseInvoice_seriesId_DocumentSeries_id_fk": {
+          "name": "PurchaseInvoice_seriesId_DocumentSeries_id_fk",
+          "tableFrom": "PurchaseInvoice",
+          "tableTo": "DocumentSeries",
+          "columnsFrom": [
+            "seriesId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseInvoice_periodId_AccountingPeriod_id_fk": {
+          "name": "PurchaseInvoice_periodId_AccountingPeriod_id_fk",
+          "tableFrom": "PurchaseInvoice",
+          "tableTo": "AccountingPeriod",
+          "columnsFrom": [
+            "periodId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseInvoice_partnerId_BusinessPartner_id_fk": {
+          "name": "PurchaseInvoice_partnerId_BusinessPartner_id_fk",
+          "tableFrom": "PurchaseInvoice",
+          "tableTo": "BusinessPartner",
+          "columnsFrom": [
+            "partnerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PurchaseInvoiceLine": {
+      "name": "PurchaseInvoiceLine",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "invoiceId": {
+          "name": "invoiceId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lineNum": {
+          "name": "lineNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "itemId": {
+          "name": "itemId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "numeric(15, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taxGroupId": {
+          "name": "taxGroupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lineTotal": {
+          "name": "lineTotal",
+          "type": "numeric(15, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "baseType": {
+          "name": "baseType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "baseId": {
+          "name": "baseId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "baseLine": {
+          "name": "baseLine",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "PurchaseInvoiceLine_invoiceId_PurchaseInvoice_id_fk": {
+          "name": "PurchaseInvoiceLine_invoiceId_PurchaseInvoice_id_fk",
+          "tableFrom": "PurchaseInvoiceLine",
+          "tableTo": "PurchaseInvoice",
+          "columnsFrom": [
+            "invoiceId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseInvoiceLine_itemId_Item_id_fk": {
+          "name": "PurchaseInvoiceLine_itemId_Item_id_fk",
+          "tableFrom": "PurchaseInvoiceLine",
+          "tableTo": "Item",
+          "columnsFrom": [
+            "itemId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "PurchaseInvoiceLine_taxGroupId_TaxGroup_id_fk": {
+          "name": "PurchaseInvoiceLine_taxGroupId_TaxGroup_id_fk",
+          "tableFrom": "PurchaseInvoiceLine",
+          "tableTo": "TaxGroup",
+          "columnsFrom": [
+            "taxGroupId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PurchaseDeliveryNoteLineBatch": {
+      "name": "PurchaseDeliveryNoteLineBatch",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "deliveryLineId": {
+          "name": "deliveryLineId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "batchNum": {
+          "name": "batchNum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "expiryDate": {
+          "name": "expiryDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "PurchaseDeliveryNoteLineBatch_deliveryLineId_PurchaseDeliveryNoteLine_id_fk": {
+          "name": "PurchaseDeliveryNoteLineBatch_deliveryLineId_PurchaseDeliveryNoteLine_id_fk",
+          "tableFrom": "PurchaseDeliveryNoteLineBatch",
+          "tableTo": "PurchaseDeliveryNoteLine",
+          "columnsFrom": [
+            "deliveryLineId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.PurchaseInvoiceLineBatch": {
+      "name": "PurchaseInvoiceLineBatch",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "invoiceLineId": {
+          "name": "invoiceLineId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "batchNum": {
+          "name": "batchNum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "expiryDate": {
+          "name": "expiryDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "PurchaseInvoiceLineBatch_invoiceLineId_PurchaseInvoiceLine_id_fk": {
+          "name": "PurchaseInvoiceLineBatch_invoiceLineId_PurchaseInvoiceLine_id_fk",
+          "tableFrom": "PurchaseInvoiceLineBatch",
+          "tableTo": "PurchaseInvoiceLine",
+          "columnsFrom": [
+            "invoiceLineId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

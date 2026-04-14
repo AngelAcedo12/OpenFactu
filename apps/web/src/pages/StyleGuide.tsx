@@ -35,7 +35,7 @@ export const StyleGuide: React.FC = () => {
 
       <main className="max-w-5xl mx-auto space-y-12">
         {/* Buttons */}
-        <Card title="Botones (Buttons)" description="Diferentes variantes y estados para acciones globales.">
+        <Card title="Botones (Buttons)" subtitle="Diferentes variantes y estados para acciones globales.">
           <div className="flex flex-wrap gap-4">
             <Button variant="primary">Principal</Button>
             <Button variant="secondary">Secundario</Button>
@@ -47,7 +47,7 @@ export const StyleGuide: React.FC = () => {
         </Card>
 
         {/* Inputs */}
-        <Card title="Entradas (Inputs)" description="Campos de formulario con validación y soporte de iconos.">
+        <Card title="Entradas (Inputs)" subtitle="Campos de formulario con validación y soporte de iconos.">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input label="Email" placeholder="correo@ejemplo.com" leftIcon={<Mail size={18} />} />
             <Input label="Búsqueda" placeholder="Buscar registros..." leftIcon={<Search size={18} />} />
@@ -56,7 +56,7 @@ export const StyleGuide: React.FC = () => {
         </Card>
 
         {/* Badges */}
-        <Card title="Insignias (Badges)" description="Etiquetas de estado con colores semánticos.">
+        <Card title="Insignias (Badges)" subtitle="Etiquetas de estado con colores semánticos.">
           <div className="flex flex-wrap gap-4">
             <Badge variant="success">Éxito</Badge>
             <Badge variant="warning">Aviso</Badge>
@@ -67,7 +67,7 @@ export const StyleGuide: React.FC = () => {
         </Card>
 
         {/* Loaders */}
-        <Card title="Cargadores (Loaders)" description="Indicadores de progreso y estados de espera.">
+        <Card title="Cargadores (Loaders)" subtitle="Indicadores de progreso y estados de espera.">
           <div className="flex flex-wrap items-end gap-10">
             <div className="flex flex-col items-center gap-2">
                 <Loader size="sm" />
@@ -96,7 +96,7 @@ export const StyleGuide: React.FC = () => {
         </Card>
 
         {/* Notifications */}
-        <Card title="Notificaciones (Toasts)" description="Avisos dinámicos en la esquina superior derecha.">
+        <Card title="Notificaciones (Toasts)" subtitle="Avisos dinámicos en la esquina superior derecha.">
           <div className="flex flex-wrap gap-4">
             <Button onClick={() => toast.success('Operación completada con éxito')} variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
                 Lanzar Éxito
@@ -114,7 +114,7 @@ export const StyleGuide: React.FC = () => {
         </Card>
 
         {/* Tables */}
-        <Card title="Tablas (DataTables)" description="Estructura de datos avanzada para listados de ERP.">
+        <Card title="Tablas (DataTables)" subtitle="Estructura de datos avanzada para listados de ERP.">
           <Table columns={tableColumns} data={tableData} onRowClick={(item) => toast.info(`Seleccionado: ${item.name}`)} />
         </Card>
       </main>

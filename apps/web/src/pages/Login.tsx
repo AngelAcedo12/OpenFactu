@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, Building, ChevronDown } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, Building, ChevronDown, CheckCircle2, ShieldCheck, Zap, Globe } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -35,7 +35,6 @@ export const Login: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, selectedTenantId: selectedTenant })
       });
-// ... (resto del try igual)
 
       const data = await res.json();
 
@@ -43,62 +42,126 @@ export const Login: React.FC = () => {
         login(data.token, data.user);
         navigate('/');
       } else {
-        setError(data.error || 'Ocurrió un error al iniciar sesión');
+        setError(data.error || 'Credenciales incorrectas o empresa no válida');
       }
     } catch (err) {
-      setError('No se pudo conectar con el servidor');
+      setError('No se pudo establecer conexión con el servidor');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 relative overflow-hidden">
-      {/* Background Decorativo Potenciado */}
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-600/20 rounded-full blur-[140px] animate-pulse duration-[10s]" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-indigo-600/20 rounded-full blur-[140px] animate-pulse duration-[10s]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(2,6,23,0.8)_100%)]" />
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white overflow-hidden font-sans">
+      
+      {/* SECTION IZQUIERDA: Brand & Visual (Hidden on mobile) */}
+      <div className="hidden lg:flex lg:w-2/5 relative overflow-hidden bg-slate-900">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="/assets/login_bg.png" 
+            alt="Business Background" 
+            className="w-full h-full object-cover opacity-60 scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-950 via-blue-900/60 to-transparent" />
+        </div>
 
-      <div className="relative z-10 w-full max-w-md p-4">
-        <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[32px] p-10 shadow-2xl">
-          {/* Logo y Header */}
-          <div className="flex flex-col items-center mb-10">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20 ring-1 ring-white/20">
-              <span className="text-white text-2xl font-black">O</span>
+        {/* Content Overlay */}
+        <div className="relative z-10 w-full flex flex-col p-12 justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 shadow-2xl">
+              <span className="text-white text-xl font-black italic tracking-tighter">OF</span>
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">OpenFactu</h1>
-            <p className="text-slate-400 text-sm mt-1 uppercase tracking-widest font-medium">ERP Inteligente</p>
+            <span className="text-2xl font-black text-white tracking-tight">OpenFactu</span>
           </div>
 
-          <h2 className="text-xl font-semibold text-white mb-8 text-center">Bienvenido de nuevo</h2>
+          <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-700">
+             <div className="space-y-4">
+                <h2 className="text-5xl font-black text-white leading-[1.1] tracking-tighter">
+                   Gestión centralizada <br />
+                   <span className="text-blue-400">para empresas</span> inteligentes.
+                </h2>
+                <p className="text-lg text-slate-300 max-w-sm leading-relaxed font-medium">
+                   Optimiza tus compras, ventas y logística en una única plataforma Open Source de alto rendimiento.
+                </p>
+             </div>
+
+             <div className="grid grid-cols-1 gap-6 pt-4">
+                <div className="flex items-start gap-4 group">
+                   <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 border border-blue-500/20 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                      <Zap size={20} />
+                   </div>
+                   <div>
+                      <h4 className="text-white font-bold text-sm">Rendimiento Real</h4>
+                      <p className="text-slate-400 text-xs mt-1">Lógica compartida y reactividad instantánea en todas tus operaciones.</p>
+                   </div>
+                </div>
+                <div className="flex items-start gap-4 group">
+                   <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                      <ShieldCheck size={20} />
+                   </div>
+                   <div>
+                      <h4 className="text-white font-bold text-sm">Seguridad Multi-inquilino</h4>
+                      <p className="text-slate-400 text-xs mt-1">Aislamiento total de datos en esquemas dedicados de base de datos.</p>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+          <div className="flex items-center justify-between text-slate-500 text-[10px] font-black uppercase tracking-widest pt-12 border-t border-white/10">
+             <span>v0.1.0-alpha</span>
+             <div className="flex gap-4">
+                <span className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"><Globe size={10} /> ES</span>
+                <span className="hover:text-white transition-colors cursor-pointer">Documentación</span>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION DERECHA: Login Form */}
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50/30 relative">
+        <div className="w-full max-w-md space-y-10 animate-in fade-in zoom-in-95 duration-500">
+          
+          <div className="lg:hidden flex flex-col items-center mb-8">
+             <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/20 mb-4">
+                <span className="text-white text-xl font-black">O</span>
+             </div>
+             <h1 className="text-2xl font-black text-slate-900 tracking-tight">OpenFactu</h1>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-3xl font-black text-slate-900 tracking-tight">Iniciar Sesión</h3>
+            <p className="text-slate-500 font-medium">Introduce tus credenciales para acceder al ERP.</p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm text-center">
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-sm font-bold flex items-center gap-3 animate-in shake duration-300">
+                <ShieldCheck size={18} />
                 {error}
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* Selector de Empresa */}
               {tenants.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Empresa / Tenant</label>
+                <div className="space-y-1.5 focus-within:translate-y-[-2px] transition-transform">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Empresa</label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-4 flex items-center text-slate-500 group-focus-within:text-blue-400 transition-colors pointer-events-none">
+                    <div className="absolute inset-y-0 left-4 flex items-center text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
                       <Building className="w-4 h-4" />
                     </div>
                     <select 
                       value={selectedTenant}
                       onChange={(e) => setSelectedTenant(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all cursor-pointer"
+                      className="w-full bg-white border border-slate-200 rounded-2xl py-4 pl-12 pr-10 text-slate-900 text-sm appearance-none focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all cursor-pointer font-semibold shadow-sm"
                     >
-                      <option value="" className="bg-slate-900">Seleccionar Empresa...</option>
+                      <option value="">Seleccionar Empresa...</option>
                       {tenants.map(t => (
-                        <option key={t.id} value={t.id} className="bg-slate-900">{t.name}</option>
+                        <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
                     </select>
-                    <div className="absolute inset-y-0 right-4 flex items-center text-slate-500 pointer-events-none">
+                    <div className="absolute inset-y-0 right-4 flex items-center text-slate-400 pointer-events-none group-focus-within:rotate-180 transition-transform">
                       <ChevronDown size={18} />
                     </div>
                   </div>
@@ -106,10 +169,10 @@ export const Login: React.FC = () => {
               )}
 
               {/* Input Email / Username */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Email o Usuario</label>
+              <div className="space-y-1.5 focus-within:translate-y-[-2px] transition-transform">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Usuario / Email</label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-4 flex items-center text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                  <div className="absolute inset-y-0 left-4 flex items-center text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
                     <Mail size={18} />
                   </div>
                   <input 
@@ -118,19 +181,19 @@ export const Login: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="admin o usuario@empresa.com"
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                    className="w-full bg-white border border-slate-200 rounded-2xl py-4 pl-12 pr-4 text-slate-900 text-sm placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-semibold shadow-sm"
                   />
                 </div>
               </div>
 
               {/* Input Password */}
-              <div className="space-y-2">
+              <div className="space-y-1.5 focus-within:translate-y-[-2px] transition-transform">
                 <div className="flex justify-between items-center ml-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Contraseña</label>
-                  <button type="button" className="text-xs text-blue-400 hover:text-blue-300 transition">¿Olvidé mi contraseña?</button>
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Contraseña</label>
+                  <button type="button" className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline transition">Olvido su contraseña?</button>
                 </div>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-4 flex items-center text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                  <div className="absolute inset-y-0 left-4 flex items-center text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
                     <Lock size={18} />
                   </div>
                   <input 
@@ -139,12 +202,12 @@ export const Login: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-12 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                    className="w-full bg-white border border-slate-200 rounded-2xl py-4 pl-12 pr-12 text-slate-900 text-sm placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-semibold shadow-sm"
                   />
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-4 flex items-center text-slate-500 hover:text-white transition-colors"
+                    className="absolute inset-y-0 right-4 flex items-center text-slate-400 hover:text-blue-600 transition-colors"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -152,31 +215,45 @@ export const Login: React.FC = () => {
               </div>
             </div>
 
-            <button 
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
-            >
-              {isSubmitting ? (
-                <Loader2 className="animate-spin" size={20} />
-              ) : (
-                <>
-                  Iniciar Sesión
-                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-            </button>
+            <div className="pt-2">
+               <button 
+                 type="submit"
+                 disabled={isSubmitting}
+                 className="w-full bg-slate-950 hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4.5 rounded-2xl shadow-xl shadow-slate-900/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group tracking-tight"
+               >
+                 {isSubmitting ? (
+                   <Loader2 className="animate-spin" size={20} />
+                 ) : (
+                   <>
+                     Entrar al Sistema
+                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                   </>
+                 )}
+               </button>
+            </div>
 
-            <div className="text-center pt-2">
-              <p className="text-slate-500 text-sm">
-                ¿No tienes cuenta? <button type="button" className="text-blue-400 font-bold hover:text-blue-300">Regístrate</button>
-              </p>
+            <div className="text-center pt-4">
+               <p className="text-slate-400 text-xs font-bold">
+                  Dudas con tu acceso? <button type="button" className="text-blue-600 hover:underline">Contactar soporte</button>
+               </p>
             </div>
           </form>
+
+          {/* Trusted Badges */}
+          <div className="pt-12 flex items-center justify-center gap-8 opacity-40 grayscale hover:grayscale-0 transition-all">
+             <div className="flex items-center gap-2 text-[10px] font-black text-slate-900 tracking-tighter">
+                <CheckCircle2 size={16} />
+                <span>SECURED DB</span>
+             </div>
+             <div className="flex items-center gap-2 text-[10px] font-black text-slate-900 tracking-tighter">
+                <Zap size={16} />
+                <span>TURBO CORE</span>
+             </div>
+          </div>
         </div>
-        
-        <p className="text-center text-slate-600 text-xs mt-8 font-medium">
-          OpenFactu ERP v0.1.0-alpha &bull; © 2026
+
+        <p className="absolute bottom-8 text-slate-300 text-[10px] font-black uppercase tracking-[0.2em] pointer-events-none">
+          Open Source ERP Platform &bull; 2026
         </p>
       </div>
     </div>

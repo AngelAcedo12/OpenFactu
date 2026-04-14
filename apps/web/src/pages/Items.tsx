@@ -1,122 +1,94 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Card, Button, Input, Badge, Loader, useToast } from '@openfactu/ui';
+import { Table, Card, Button, Input, Loader, useToast, Badge, Modal } from '@openfactu/ui';
 import { useAuth } from '../context/AuthContext';
-import { Package, Plus, Search, Edit2, Trash2, Tag, DollarSign, Barcode } from 'lucide-react';
+import { Package, Plus, Trash2, Search, Settings2, Boxes, Scale, Tag } from 'lucide-react';
 
 export const Items: React.FC = () => {
   const { token, user } = useAuth();
   const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
-  const toast = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
-
   const [categories, setCategories] = useState<any[]>([]);
   const [uoms, setUoms] = useState<any[]>([]);
-
-  // Estado del formulario
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    description: '',
-    barcode: '',
-    categoryId: '',
-    uomId: '',
-    salePrice: '0',
-    purchasePrice: '0',
-    isActive: true
-  });
-
+  const [loading, setLoading] = useState(true);
+  const [stockDetailLoading, setStockDetailLoading] = useState(false);
+  const [selectedStockItem, setSelectedStockItem] = useState<any | null>(null);
+  const [stockDetail, setStockDetail] = useState<any>(null);
+  const [zones, setZones] = useState<any[]>([]);
+  
+  // Form State
+  const [showItemModal, setShowItemModal] = useState(false);
+  const [code, setCode] = useState('');
+  const [name, setName] = useState('');
+  const [uomId, setUomId] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [basePrice, setBasePrice] = useState('0');
+  const [manageBy, setManageBy] = useState('N'); // N: None, B: Batch, S: Serial
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'generales' | 'logistica' | 'unidades'>('generales');
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  
+  const toast = useToast();
 
-  const fetchItems = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/items', {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'x-tenant-id': user?.tenantId || ''
-        }
-      });
-      const data = await res.json();
-      setItems(Array.isArray(data) ? data : []);
+      const headers = { 
+        Authorization: `Bearer ${token}`,
+        'x-tenant-id': user?.tenantId || ''
+      };
+      const [iRes, cRes, uRes, zRes] = await Promise.all([
+        fetch('/api/items', { headers }),
+        fetch('/api/categories', { headers }),
+        fetch('/api/uom', { headers }),
+        fetch('/api/zones', { headers })
+      ]);
+      const iData = await iRes.json();
+      const cData = await cRes.json();
+      const uData = await uRes.json();
+      const zData = await zRes.json();
+
+      setItems(Array.isArray(iData) ? iData : []);
+      setCategories(Array.isArray(cData) ? cData : []);
+      setUoms(Array.isArray(uData) ? uData : []);
+      setZones(Array.isArray(zData) ? zData : []);
     } catch (err) {
-      console.error('Error fetching items', err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchMetadata = async () => {
-    try {
-      const headers = { Authorization: `Bearer ${token}`, 'x-tenant-id': user?.tenantId || '' };
-      const [catRes, uomRes] = await Promise.all([
-        fetch('/api/categories', { headers }),
-        fetch('/api/uom', { headers })
-      ]);
-      const [cats, units] = await Promise.all([catRes.json(), uomRes.json()]);
-      setCategories(Array.isArray(cats) ? cats : []);
-      setUoms(Array.isArray(units) ? units : []);
-    } catch (err) {
-      console.error('Error fetching metadata', err);
-    }
-  };
-
   useEffect(() => {
-    if (user?.tenantId) {
-      fetchItems();
-      fetchMetadata();
-    }
+    if (user?.tenantId) fetchData();
   }, [user?.tenantId]);
 
-  const resetForm = () => {
-    setShowForm(false);
-    setEditingItem(null);
-    setFormData({
-      code: '',
-      name: '',
-      description: '',
-      barcode: '',
-      categoryId: '',
-      uomId: '',
-      salePrice: '0',
-      purchasePrice: '0',
-      isActive: true
-    });
-  };
-
-  const startEdit = (item: any) => {
-    setEditingItem(item);
-    setFormData({
-      code: item.code,
-      name: item.name,
-      description: item.description || '',
-      barcode: item.barcode || '',
-      categoryId: item.categoryId || '',
-      uomId: item.uomId || '',
-      salePrice: item.salePrice.toString(),
-      purchasePrice: item.purchasePrice.toString(),
-      isActive: item.isActive
-    });
-    setShowForm(true);
-  };
+  useEffect(() => {
+    if (selectedItem) {
+      setCode(selectedItem.code || '');
+      setName(selectedItem.name || '');
+      setUomId(selectedItem.uomId || '');
+      setCategoryId(selectedItem.categoryId || '');
+      setBasePrice(selectedItem.basePrice?.toString() || '0');
+      setManageBy(selectedItem.manageBy || 'N');
+      setActiveTab('generales');
+    } else {
+      setCode('');
+      setName('');
+      setUomId('');
+      setCategoryId('');
+      setBasePrice('0');
+      setManageBy('N');
+    }
+  }, [selectedItem]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const url = editingItem ? `/api/items/${editingItem.id}` : '/api/items';
-      const method = editingItem ? 'PATCH' : 'POST';
+      const method = selectedItem ? 'PATCH' : 'POST';
+      const url = selectedItem ? `/api/items/${selectedItem.id}` : '/api/items';
       
-      const payload = {
-        ...formData,
-        categoryId: formData.categoryId || null,
-        uomId: formData.uomId || null,
-        salePrice: parseFloat(formData.salePrice),
-        purchasePrice: parseFloat(formData.purchasePrice)
-      };
-
       const res = await fetch(url, {
         method,
         headers: { 
@@ -124,16 +96,29 @@ export const Items: React.FC = () => {
           Authorization: `Bearer ${token}`,
           'x-tenant-id': user?.tenantId || ''
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ 
+          code, 
+          name, 
+          uomId, 
+          categoryId: categoryId || null, 
+          basePrice: parseFloat(basePrice),
+          manageBy 
+        })
       });
 
       if (res.ok) {
-        resetForm();
-        fetchItems();
-        toast.success(editingItem ? 'Artículo actualizado' : 'Artículo creado');
+        if (!selectedItem) {
+          setCode('');
+          setName('');
+          setBasePrice('0');
+        } else {
+          setSelectedItem(null);
+        }
+        fetchData();
+        toast.success(selectedItem ? 'Artículo actualizado' : 'Artículo maestro creado');
       } else {
-        const error = await res.json();
-        toast.error(error.error || 'Fallo en la operación');
+        const errData = await res.json();
+        toast.error(errData.error || 'Error en la operación');
       }
     } catch (err) {
       toast.error('Error de conexión');
@@ -142,22 +127,92 @@ export const Items: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este artículo?')) return;
-    try {
-      const res = await fetch(`/api/items/${id}`, {
-        method: 'DELETE',
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'x-tenant-id': user?.tenantId || ''
-        }
-      });
-      if (res.ok) {
-        fetchItems();
-        toast.success('Artículo eliminado');
+  const columns = [
+    { 
+      header: 'Código / Nombre', 
+      accessor: (i: any) => (
+        <div className="flex flex-col">
+          <span className="font-black text-blue-600 text-[10px] uppercase tracking-tighter">{i.code}</span>
+          <span className="font-bold text-slate-800 text-sm leading-tight">{i.name}</span>
+        </div>
+      )
+    },
+    { 
+      header: 'UoM', 
+      accessor: (i: any) => {
+        const uom = uoms.find(u => u.id === i.uomId);
+        return <span className="font-mono text-[11px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 uppercase">{uom?.symbol || '?'}</span>;
       }
-    } catch (err) {
-      toast.error('Fallo al eliminar');
+    },
+    { 
+      header: 'Gestión', 
+      accessor: (i: any) => (
+        <div className="flex items-center gap-1.5">
+          {i.manageBy === 'N' && <span className="p-0.5 px-1.5 bg-slate-50 text-slate-400 text-[9px] font-black rounded uppercase border border-slate-100">Std</span>}
+          {i.manageBy === 'B' && <span className="p-0.5 px-1.5 bg-amber-50 text-amber-600 text-[9px] font-black rounded uppercase border border-amber-100 italic">Lote</span>}
+          {i.manageBy === 'S' && <span className="p-0.5 px-1.5 bg-indigo-50 text-indigo-600 text-[9px] font-black rounded uppercase border border-indigo-100 italic">Serie</span>}
+        </div>
+      )
+    },
+    { 
+      header: 'Comprometido', 
+      accessor: (i: any) => <span className="text-slate-400 font-mono text-[11px] font-bold">-{Number(i.committed).toFixed(2)}</span> 
+    },
+    { 
+      header: 'Pedido', 
+      accessor: (i: any) => <span className="text-blue-400 font-mono text-[11px] font-bold">+{Number(i.ordered).toFixed(2)}</span> 
+    },
+    { 
+      header: 'Disponible', 
+      accessor: (i: any) => {
+        const available = Number(i.stock) - Number(i.committed) + Number(i.ordered);
+        return <span className={`font-mono font-black ${available > 0 ? 'text-blue-600' : 'text-rose-600'}`}>{available.toFixed(2)}</span>
+      }
+    },
+    { 
+      header: 'Precio Base', 
+      accessor: (i: any) => <span className="font-mono font-bold text-slate-600">{i.basePrice}€</span> 
+    },
+    { 
+      header: 'Stock Total', 
+      accessor: (i: any) => (
+        <span className={`font-mono font-black ${i.stock > 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+          {i.stock.toFixed(2)}
+        </span>
+      )
+    },
+    { 
+      header: 'Acciones', 
+      align: 'right' as const,
+      accessor: (i: any) => (
+        <div className="flex items-center justify-end gap-1">
+          <button onClick={() => handleViewStock(i)} title="Ver Inventario" className="p-2 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
+            <Boxes size={14} />
+          </button>
+          <button onClick={() => setSelectedItem(i)} className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+            <Settings2 size={14} />
+          </button>
+          <button className="p-2 text-slate-200 hover:text-rose-500 transition-colors">
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )
+    }
+  ];
+
+  const handleViewStock = async (item: any) => {
+    setSelectedStockItem(item);
+    setStockDetailLoading(true);
+    try {
+      const res = await fetch(`/api/items/${item.id}/stock`, {
+          headers: { Authorization: `Bearer ${token}`, 'x-tenant-id': user?.tenantId || '' }
+      });
+      const data = await res.json();
+      setStockDetail(data);
+    } catch {
+      toast.error('Error al cargar inventario');
+    } finally {
+      setStockDetailLoading(false);
     }
   };
 
@@ -166,227 +221,277 @@ export const Items: React.FC = () => {
     i.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const columns = [
-    { 
-      header: 'Código', 
-      accessor: (i: any) => (
-        <div className="flex flex-col">
-          <span className="font-mono text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded w-fit">{i.code}</span>
-          <span className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
-            <Barcode size={10} /> {i.barcode || 'S/G'}
-          </span>
-        </div>
-      )
-    },
-    { 
-      header: 'Producto', 
-      accessor: (i: any) => (
-        <div className="flex flex-col">
-          <span className="font-bold text-slate-900">{i.name}</span>
-          <span className="text-xs text-slate-500 line-clamp-1">{i.description || 'Sin descripción'}</span>
-        </div>
-      )
-    },
-    { 
-      header: 'Precio Venta', 
-      accessor: (i: any) => (
-        <span className="font-bold text-slate-900">{parseFloat(i.salePrice).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</span>
-      )
-    },
-    { 
-      header: 'Estado', 
-      accessor: (i: any) => (
-        <Badge variant={i.isActive ? 'success' : 'neutral'}>
-          {i.isActive ? 'Activo' : 'Inactivo'}
-        </Badge>
-      )
-    },
-    { 
-      header: 'Acciones', 
-      accessor: (i: any) => (
-        <div className="flex gap-2">
-          <button onClick={() => startEdit(i)} className="p-1 hover:text-blue-600 transition-colors">
-            <Edit2 size={16} />
-          </button>
-          <button onClick={() => handleDelete(i.id)} className="p-1 hover:text-red-600 transition-colors">
-            <Trash2 size={16} />
-          </button>
-        </div>
-      )
-    }
-  ];
-
-  if (!user?.tenantId) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="max-w-md p-8 text-center space-y-4">
-          <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
-            <Tag size={32} />
-          </div>
-          <h2 className="text-xl font-bold">Acceso Global Requerido</h2>
-          <p className="text-slate-500">Para gestionar artículos debes estar dentro del contexto de una empresa específica. Por favor, selecciona una empresa en el login.</p>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+          <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3 tracking-tighter font-display">
             <Package className="text-blue-600" size={32} />
             Catálogo de Artículos
           </h1>
-          <p className="text-slate-500 mt-1 font-medium">Gestiona tu inventario, precios y productos.</p>
+          <p className="text-slate-500 mt-1 font-medium text-sm">Gestión de datos maestros de productos y servicios.</p>
         </div>
-        
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <div className="relative group flex gap-4">
+          <div className="relative w-full md:w-80">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
             <Input 
-              placeholder="Buscar por nombre o código..." 
+              placeholder="Buscar por código o nombre..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white border-slate-200"
+              className="pl-10 h-10 w-full shadow-sm"
             />
           </div>
-          <Button onClick={() => setShowForm(true)} className="flex items-center gap-2 shadow-lg shadow-blue-500/20">
-            <Plus size={18} />
-            Nuevo Producto
-          </Button>
+        </div>
+      </header>
+
+      <div className="space-y-8">
+        {/* Tabla Maestra */}
+        <div>
+          <Card 
+            noPadding 
+            title="Fichero de Artículos" 
+            subtitle={`Mostrando ${filteredItems.length} registros empresariales.`}
+            headerAction={
+              <Button size="sm" onClick={() => { setSelectedItem(null); setShowItemModal(true); }} className="flex items-center gap-2">
+                <Plus size={14} /> Nuevo
+              </Button>
+            }
+          >
+            <Table columns={columns} data={filteredItems} isLoading={loading} />
+          </Card>
         </div>
       </div>
 
-      {showForm && (
-        <Card title={editingItem ? `Editando: ${editingItem.name}` : "Nuevo Producto"} className="border-blue-100 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Código de Referencia</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center text-slate-400">
-                    <Tag size={16} />
-                  </div>
-                  <Input 
-                    placeholder="ART-001"
-                    value={formData.code}
-                    onChange={(e) => setFormData({...formData, code: e.target.value})}
-                    required
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Nombre del Producto</label>
-                <Input 
-                  placeholder="Ej: Laptop Pro 16"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required
-                />
-              </div>
-
-              <div className="md:col-span-3 space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Descripción</label>
-                <Input 
-                  placeholder="Detalles del producto, especificaciones, etc."
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Categoría</label>
-                <select 
-                  value={formData.categoryId}
-                  onChange={(e) => setFormData({...formData, categoryId: e.target.value})}
-                  className="w-full bg-white border border-slate-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                >
-                  <option value="">Seleccionar Categoría...</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Unidad de Medida</label>
-                <select 
-                  value={formData.uomId}
-                  onChange={(e) => setFormData({...formData, uomId: e.target.value})}
-                  className="w-full bg-white border border-slate-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                >
-                  <option value="">Seleccionar Unidad...</option>
-                  {uoms.map(u => <option key={u.id} value={u.id}>{u.name} ({u.symbol})</option>)}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Código de Barras (EAN)</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center text-slate-400">
-                    <Barcode size={16} />
-                  </div>
-                  <Input 
-                    placeholder="84123..."
-                    value={formData.barcode}
-                    onChange={(e) => setFormData({...formData, barcode: e.target.value})}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Precio Compra (€)</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center text-slate-400">
-                    <DollarSign size={16} />
-                  </div>
-                  <Input 
-                    type="number" step="0.01"
-                    value={formData.purchasePrice}
-                    onChange={(e) => setFormData({...formData, purchasePrice: e.target.value})}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 font-black text-blue-600">Precio Venta (€)</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center text-blue-500">
-                    <DollarSign size={16} />
-                  </div>
-                  <Input 
-                    type="number" step="0.01"
-                    value={formData.salePrice}
-                    onChange={(e) => setFormData({...formData, salePrice: e.target.value})}
-                    required
-                    className="pl-10 border-blue-200 focus:ring-blue-500 focus:border-blue-500 font-bold"
-                  />
-                </div>
+      <Modal
+        isOpen={!!selectedStockItem}
+        onClose={() => setSelectedStockItem(null)}
+        title={`Detalle de Inventario: ${selectedStockItem?.name}`}
+        subtitle="Desglose por almacenes y trazabilidad."
+        maxWidth="2xl"
+      >
+        {stockDetailLoading ? (
+          <div className="flex justify-center p-10"><Loader /></div>
+        ) : (
+          <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <Boxes size={12} className="text-blue-500" />
+                Existencias por Almacén
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                 {stockDetail?.warehouseStock?.length > 0 ? stockDetail.warehouseStock.map((ws: any) => (
+                   <div key={ws.warehouseId} className="p-4 bg-white rounded-xl border border-slate-200/60 shadow-sm flex justify-between items-center group hover:border-blue-300 hover:shadow-md hover:shadow-blue-500/5 transition-all">
+                      <div>
+                        <p className="text-xs font-black text-slate-800 uppercase tracking-tight leading-none mb-1">{ws.warehouseName}</p>
+                        <Badge variant="info" className="text-[8px] py-0 px-1 border-blue-100 bg-blue-50/50 text-blue-600 font-black">STOCK FÍSICO</Badge>
+                      </div>
+                      <p className="text-2xl font-black text-slate-900 font-mono tracking-tighter leading-none">{Number(ws.stock).toFixed(2)}</p>
+                   </div>
+                 )) : (
+                   <div className="col-span-2 p-8 text-center bg-slate-50/30 rounded-xl border-dashed border-2 border-slate-200 text-slate-400 text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                     Sin existencias físicas en ningún almacén.
+                   </div>
+                 )}
               </div>
             </div>
+
+            {stockDetail?.zoneStock?.length > 0 && (
+              <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 italic">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Package size={12} className="text-blue-500" />
+                  Reparto por Ubicaciones (Zonas)
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {stockDetail.zoneStock.map((zs: any) => (
+                    <div key={zs.zoneId} className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col group hover:border-blue-400 transition-all">
+                      <span className="text-[10px] font-black text-slate-900 uppercase tracking-tight leading-none mb-1">{zs.zoneName}</span>
+                      <div className="flex justify-between items-end">
+                        <span className="text-[8px] text-slate-400 font-bold uppercase">{zs.warehouseName}</span>
+                        <span className="text-xl font-black text-slate-900 font-mono tracking-tighter leading-none">{Number(zs.stock).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedStockItem?.manageBy !== 'N' && (
+              <div className="space-y-3">
+                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                   <Tag size={12} className="text-indigo-500" />
+                   Trazabilidad por Lote/Serie e Ubicación
+                 </h4>
+                 <div className="rounded-2xl border border-slate-100 shadow-sm bg-white overflow-y-auto max-h-[350px]">
+                   <table className="w-full text-left border-collapse">
+                      <thead className="bg-slate-50/80 border-b border-slate-100 text-[9px] font-black text-slate-500 uppercase tracking-wider">
+                        <tr>
+                          <th className="px-5 py-4">Lote / Serie</th>
+                          <th className="px-5 py-4">Ubicación</th>
+                          <th className="px-5 py-4 text-center">Cant.</th>
+                          <th className="px-5 py-4 text-right">Caducidad</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {stockDetail?.batches?.filter((b: any) => Number(b.quantity) > 0).map((b: any) => (
+                          <tr key={b.id} className="hover:bg-blue-50/30 transition-colors group">
+                            <td className="px-5 py-3">
+                              <Badge variant="neutral" className="bg-slate-100 text-slate-700 border-slate-200 font-mono text-[10px] font-black py-0 px-2">{b.batchNum}</Badge>
+                            </td>
+                             <td className="px-5 py-3">
+                               <div className="flex flex-col">
+                                 <span className="text-xs font-bold text-slate-600 leading-none">
+                                   {b.zoneName || 'Stock General'}
+                                 </span>
+                                 <span className="text-[9px] text-slate-400 font-black uppercase tracking-tighter mt-1">
+                                   {b.warehouseName || stockDetail?.warehouseStock?.[0]?.warehouseName || 'Almacén Principal'}
+                                 </span>
+                               </div>
+                             </td>
+                            <td className="px-5 py-3 text-center">
+                              <span className="font-mono font-black text-sm text-slate-900 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">{Number(b.quantity).toFixed(2)}</span>
+                            </td>
+                            <td className="px-5 py-3 text-right">
+                              <span className="text-[10px] font-bold text-slate-400 font-mono italic">{b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : 'N/A'}</span>
+                            </td>
+                          </tr>
+                        ))}
+                        {(!stockDetail?.batches || stockDetail.batches.filter((b: any) => Number(b.quantity) > 0).length === 0) && (
+                           <tr>
+                             <td colSpan={4} className="px-5 py-10 text-center text-slate-300 italic text-xs font-medium bg-slate-50/20">
+                                No hay lotes o series con existencias disponibles en este momento.
+                             </td>
+                           </tr>
+                        )}
+                      </tbody>
+                   </table>
+                 </div>
+              </div>
+            )}
             
-            <div className="flex gap-3 justify-end pt-6 border-t border-slate-100">
-              <Button variant="secondary" onClick={resetForm}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting} className="px-8 flex items-center gap-2">
-                {isSubmitting && <Loader size="sm" variant="white" />}
-                {editingItem ? 'Actualizar Producto' : 'Guardar Producto'}
+            <div className="flex justify-end pt-4 border-t">
+              <Button onClick={() => setSelectedStockItem(null)}>Cerrar</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={showItemModal || !!selectedItem}
+        onClose={() => { setShowItemModal(false); setSelectedItem(null); }}
+        title={selectedItem ? "Editar Maestro" : "Nuevo Artículo"}
+        subtitle="Define las propiedades base del producto."
+        maxWidth="lg"
+      >
+        <div className="pt-2">
+          {/* Tabs del Artículo */}
+          <div className="flex border-b border-slate-100 mb-6">
+            <button 
+              onClick={() => setActiveTab('generales')}
+              className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'generales' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+            >
+              Gral
+            </button>
+            <button 
+              onClick={() => setActiveTab('logistica')}
+              className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'logistica' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+            >
+              Logística
+            </button>
+            <button 
+              onClick={() => setActiveTab('unidades')}
+              className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'unidades' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+            >
+              Unidades
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {activeTab === 'generales' && (
+              <div className="space-y-4 animate-in slide-in-from-left-2 duration-200">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <Input 
+                      label="Código" 
+                      placeholder={categories.find(c => c.id === categoryId)?.codePrefix ? `Auto (Ej: ${categories.find(c => c.id === categoryId)?.codePrefix}-000001)` : "ART-001"} 
+                      value={categories.find(c => c.id === categoryId)?.codePrefix && !selectedItem ? '' : code} 
+                      disabled={!!selectedItem || !!categories.find(c => c.id === categoryId)?.codePrefix}
+                      onChange={(e) => setCode(e.target.value)} 
+                    />
+                  </div>
+                  <div className="flex-[2]">
+                    <Input label="Nombre del Producto" placeholder="Ej: Laptop Pro" value={name} onChange={(e) => setName(e.target.value)} required />
+                  </div>
+                </div>
+                
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Categoría (Define Prefijo)</label>
+                  <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-500/20">
+                    <option value="">-- Sin Categoría --</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name} {c.codePrefix ? `(${c.codePrefix}-)` : ''}</option>)}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Unidad Base</label>
+                  <select value={uomId} onChange={(e) => setUomId(e.target.value)} required className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-500/20">
+                    <option value="">-- Seleccionar --</option>
+                    {uoms.map(u => <option key={u.id} value={u.id}>{u.name} ({u.code})</option>)}
+                  </select>
+                </div>
+
+
+                <Input label="Precio Base (€)" type="number" step="0.01" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} />
+              </div>
+            )}
+
+            {activeTab === 'logistica' && (
+              <div className="space-y-6 animate-in slide-in-from-right-2 duration-200">
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/50">
+                  <label className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-4 block">Trazabilidad Obligatoria</label>
+                  <div className="space-y-2">
+                    {[
+                      { id: 'N', label: 'Gestión Estándar', desc: 'Sin control de lotes ni series.' },
+                      { id: 'B', label: 'Control por Lotes', desc: 'Obligatorio en cada movimiento.' },
+                      { id: 'S', label: 'Control por Series', desc: 'Identificación única del producto.' }
+                    ].map(opt => (
+                      <div 
+                        key={opt.id}
+                        onClick={() => setManageBy(opt.id)}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${manageBy === opt.id ? 'bg-blue-600 border-blue-700 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-400'}`}
+                      >
+                        <p className="text-xs font-bold leading-none">{opt.label}</p>
+                        <p className={`text-[10px] mt-1 ${manageBy === opt.id ? 'text-blue-100' : 'text-slate-400 font-medium'}`}>{opt.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'unidades' && (
+              <div className="flex flex-col items-center justify-center p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 animate-in zoom-in-95 duration-200">
+                <Scale className="text-slate-300 mb-2" size={32} />
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                  Las unidades alternativas se configuran una vez creado el maestro básico.
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-6 mt-4 border-t border-slate-100">
+              <Button 
+                type="button" 
+                variant="secondary" 
+                onClick={() => { setShowItemModal(false); setSelectedItem(null); }}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? <Loader size="sm" variant="white" /> : (selectedItem ? "Guardar Cambios" : "Crear Artículo Maestro")}
               </Button>
             </div>
           </form>
-        </Card>
-      )}
-
-      <Card className="overflow-hidden border-slate-100 shadow-xl">
-        <Table columns={columns} data={filteredItems} isLoading={loading} />
-        {!loading && filteredItems.length === 0 && (
-          <div className="p-12 text-center text-slate-500">
-            {searchTerm ? 'No se encontraron artículos con ese nombre.' : 'Aún no tienes artículos en tu catálogo.'}
-          </div>
-        )}
-      </Card>
+        </div>
+      </Modal>
     </div>
   );
 };

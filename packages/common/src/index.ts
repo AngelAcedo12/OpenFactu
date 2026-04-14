@@ -34,3 +34,6 @@ export interface PluginConfig {
   version: string;
   description: string;
 }
+
+export * from './hooks/useDocument';
+export * from './hooks/useDataTable';

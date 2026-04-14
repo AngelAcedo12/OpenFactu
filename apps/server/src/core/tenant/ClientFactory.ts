@@ -42,11 +42,12 @@ export class ClientFactory {
 
     const baseDbUrl = this.getBaseUrl();
     
-    // Crear Pool con search_path forzado
+    // Inyectar el esquema directamente en la URL de conexión (Postgres-native way)
+    // Esto asegura que cada conexión física del Pool nazca ya en el esquema correcto
+    const tenantDbUrl = `${baseDbUrl}${baseDbUrl.includes('?') ? '&' : '?'}options=-csearch_path%3D${schemaName}%2Cpublic`;
+
     const pool = new Pool({ 
-      connectionString: baseDbUrl,
-      // Esta es la clave: le decimos a PG que este pool vive en este esquema
-      options: `-c search_path="${schemaName}",public`
+      connectionString: tenantDbUrl
     });
 
     // En Drizzle no hay motor binario, solo pasamos el pool
