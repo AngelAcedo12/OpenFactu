@@ -11,60 +11,76 @@ import * as schema from '../../db/schema';
 export class SchemaManager {
   
   /**
-   * Crea una nueva empresa: Esquema físico + Registro en Global
+   * Crea una nueva empresa: Esquema físico + Registro en Global.
+   * Si las migraciones o el seed fallan, revierte el Tenant recién creado y
+   * el esquema físico para no dejar estado inconsistente.
    */
   public static async createTenantSchema(name: string, schemaName: string, config: any = {}) {
     const publicDb = ClientFactory.getClient('public');
-    
+
     console.log(`[SchemaManager] Iniciando provisión de empresa: ${name} (${schemaName})`);
 
+    // 1. Verificar si ya existe (update-in-place) para no crear duplicados
+    const [existing] = await publicDb.select()
+      .from(schema.tenants)
+      .where(
+        or(
+          eq(schema.tenants.name, name),
+          eq(schema.tenants.schemaName, schemaName)
+        )
+      );
+
+    let tenantId: string;
+    const isNewTenant = !existing;
+
+    if (existing) {
+      console.log(`[SchemaManager] Empresa existente detectada (${existing.id}). Actualizando datos...`);
+      tenantId = existing.id;
+      await publicDb.update(schema.tenants)
+        .set({
+          name,
+          schemaName,
+          config: JSON.stringify({ ...JSON.parse(existing.config || '{}'), ...config, updatedAt: new Date() }),
+          updatedAt: new Date()
+        })
+        .where(eq(schema.tenants.id, tenantId));
+    } else {
+      tenantId = crypto.randomUUID();
+      await publicDb.insert(schema.tenants)
+        .values({
+          id: tenantId,
+          name,
+          schemaName,
+          config: JSON.stringify({ ...config, createdAt: new Date() }),
+          updatedAt: new Date()
+        });
+    }
+
     try {
-      // 1. Verificar si ya existe un tenant con ese nombre o esquema para evitar conflictos de UNIQUE
-      const [existing] = await publicDb.select()
-        .from(schema.tenants)
-        .where(
-          or(
-            eq(schema.tenants.name, name),
-            eq(schema.tenants.schemaName, schemaName)
-          )
-        );
-
-      let tenantId: string;
-
-      if (existing) {
-        console.log(`[SchemaManager] Empresa existente detectada (${existing.id}). Actualizando datos...`);
-        tenantId = existing.id;
-        await publicDb.update(schema.tenants)
-          .set({
-            name,
-            schemaName,
-            config: JSON.stringify({ ...JSON.parse(existing.config || '{}'), ...config, updatedAt: new Date() }),
-            updatedAt: new Date()
-          })
-          .where(eq(schema.tenants.id, tenantId));
-      } else {
-        // 2. Registrar nuevo Tenant
-        tenantId = crypto.randomUUID();
-        await publicDb.insert(schema.tenants)
-          .values({
-            id: tenantId,
-            name,
-            schemaName,
-            config: JSON.stringify({ ...config, createdAt: new Date() }),
-            updatedAt: new Date()
-          });
-      }
-
-      // 3. Crear esquema físico si no existe
+      // 2. Crear esquema físico si no existe
       await publicDb.execute(sql.raw(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`));
 
-      // 4. Ejecutar migraciones iniciales sobre el nuevo esquema
+      // 3. Ejecutar migraciones iniciales sobre el nuevo esquema
       await MigrationManager.syncTenant(schemaName);
 
       console.log(`[SchemaManager] ✅ Empresa ${name} lista para operar.`);
       return tenantId;
     } catch (error: any) {
       console.error(`[SchemaManager] Error en la provisión del tenant:`, error.message);
+
+      // Rollback: solo cuando el tenant era nuevo (no queremos borrar una empresa existente por un retry fallido)
+      if (isNewTenant) {
+        try {
+          await publicDb.execute(sql.raw(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`));
+          await publicDb.delete(schema.auditLogs).where(eq(schema.auditLogs.tenantId, tenantId));
+          await publicDb.delete(schema.userTenantMemberships).where(eq(schema.userTenantMemberships.tenantId, tenantId));
+          await publicDb.delete(schema.tenants).where(eq(schema.tenants.id, tenantId));
+          console.log(`[SchemaManager] Rollback completado para ${schemaName}`);
+        } catch (cleanupErr: any) {
+          console.error(`[SchemaManager] Error durante rollback de ${schemaName}:`, cleanupErr.message);
+        }
+      }
+
       throw error;
     }
   }

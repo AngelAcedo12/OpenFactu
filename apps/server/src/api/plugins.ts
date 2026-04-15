@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { activePlugins, activePluginManifests } from '../plugins/loader';
 import { transpilePluginFile } from '../plugins/transpiler';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
 
@@ -34,7 +35,7 @@ router.post('/register-field', async (req, res) => {
       pluginId,
       tableName,
       fieldName,
-      fieldType,
+      type: fieldType,
       label
     });
 
@@ -44,11 +45,36 @@ router.post('/register-field', async (req, res) => {
   }
 });
 
+router.get('/fields', async (req: any, res) => {
+  try {
+    const results = await req.tenantClient.select().from(schema.pluginFields);
+    res.json(results);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/tables', async (req: any, res) => {
+  try {
+    const results = await req.tenantClient.select().from(schema.pluginTables);
+    res.json(results);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 /**
- * GET /api/plugins/fields
+ * GET /api/plugins/fields/:tableName?
  */
-router.get('/fields', async (req, res) => {
+router.get('/fields/:tableName?', async (req, res) => {
+  const { tableName } = req.params;
   const publicClient = ClientFactory.getClient('public');
+  
+  if (tableName) {
+    const fields = await publicClient.select().from(schema.pluginFields).where(eq(schema.pluginFields.tableName, tableName));
+    return res.json(fields);
+  }
+
   const fields = await publicClient.select().from(schema.pluginFields);
   res.json(fields);
 });
@@ -104,7 +130,8 @@ router.get('/sdk/*', (req, res) => {
     'react-dom': 'window.ReactDOM',
     'lucide-react': 'window.Lucide',
     '@openfactu/ui': 'window.OpenFactuUI',
-    'react-router-dom': 'window.ReactRouterDOM'
+    'react-router-dom': 'window.ReactRouterDOM',
+    '@openfactu/common': 'window.OpenFactuCommon'
   };
 
   const globalVar = pkgMap[pkg];
@@ -120,6 +147,7 @@ router.get('/sdk/*', (req, res) => {
     'lucide-react': 'Star, Plus, Minus, Zap, Puzzle, X, Check, ChevronRight, ChevronDown, ChevronLeft, Search, Settings, Eye, EyeOff, Loader2, AlertCircle, Info, Bell, LayoutDashboard, Box, ExternalLink, RefreshCw, List, Trash2, Edit, Save, ArrowLeft, ArrowRight, UserPlus, Mail, Building, Shield, CheckCircle, AlertTriangle, Package, Globe, Users, FileText',
     '@openfactu/ui': 'Button, Card, Table, Badge, Input, NavItem, Loader, Toast, ToastProvider, useToast',
     'react-router-dom': 'Link, useNavigate, useParams, useLocation, NavLink, Outlet',
+    '@openfactu/common': 'useDocument, useDataTable'
   };
 
   const namedExports = namedExportsMap[pkg] || '';

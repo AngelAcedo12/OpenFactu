@@ -2,12 +2,31 @@ import { Router } from 'express';
 import { eq, asc } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import crypto from 'crypto';
+import { logAudit } from '../utils/audit';
+import { ClientFactory } from '../core/tenant/ClientFactory';
+import { validateTaxId } from '@openfactu/common';
 
 const router = Router();
 
 /**
+ * Valida un NIF contra el regex del país. Si el país no está seed o no tiene
+ * countryCode, no valida (permisivo). Devuelve null si es válido o string con error.
+ */
+async function checkTaxId(nif: string | null | undefined, countryCode: string | null | undefined): Promise<string | null> {
+  if (!nif || !countryCode) return null;
+  try {
+    const publicDb = ClientFactory.getClient('public');
+    const [country] = await publicDb.select().from(schema.countries).where(eq(schema.countries.code, countryCode.toUpperCase()));
+    if (!country) return null;
+    if (!validateTaxId(nif, country as any)) {
+      return `El ${country.taxIdLabel || 'NIF'} no cumple el formato de ${country.name}. Ejemplo: ${country.taxIdExample}`;
+    }
+  } catch { /* ignorar errores de lookup */ }
+  return null;
+}
+
+/**
  * GET /api/partners
- * Lista todos los socios de negocio del tenant.
  */
 router.get('/', async (req: any, res) => {
   try {
@@ -16,7 +35,6 @@ router.get('/', async (req: any, res) => {
       .from(schema.businessPartners)
       .orderBy(asc(schema.businessPartners.name));
       
-    // Anidar direcciones
     const result = partners.map((p: any) => ({
        ...p,
        addresses: addresses.filter((a: any) => a.partnerId === p.id)
@@ -30,34 +48,29 @@ router.get('/', async (req: any, res) => {
 
 /**
  * POST /api/partners
- * Crea un nuevo socio de negocio.
  */
 router.post('/', async (req: any, res) => {
   try {
     const { groupId, code, addresses, ...restBody } = req.body;
+
+    // Validación de NIF según país
+    const taxErr = await checkTaxId(restBody.nif, restBody.countryCode);
+    if (taxErr) return res.status(400).json({ error: taxErr });
+
     let finalCode = code;
 
-    // Autogeneración usando el prefijo del grupo
     if (groupId) {
       const { like } = await import('drizzle-orm');
-      const [group] = await req.tenantClient.select()
-        .from(schema.partnerGroups)
-        .where(eq(schema.partnerGroups.id, groupId));
-
+      const [group] = await req.tenantClient.select().from(schema.partnerGroups).where(eq(schema.partnerGroups.id, groupId));
       if (group && group.codePrefix) {
         const prefix = group.codePrefix;
-        const existingPartners = await req.tenantClient.select({ code: schema.businessPartners.code })
-          .from(schema.businessPartners)
-          .where(like(schema.businessPartners.code, `${prefix}-%`));
-
+        const existingPartners = await req.tenantClient.select({ code: schema.businessPartners.code }).from(schema.businessPartners).where(like(schema.businessPartners.code, `${prefix}-%`));
         let maxSeq = 0;
         for (const p of existingPartners) {
           const parts = p.code.split('-');
           if (parts.length > 1) {
             const num = parseInt(parts[parts.length - 1], 10);
-            if (!isNaN(num) && num > maxSeq) {
-              maxSeq = num;
-            }
+            if (!isNaN(num) && num > maxSeq) maxSeq = num;
           }
         }
         finalCode = `${prefix}-${String(maxSeq + 1).padStart(5, '0')}`;
@@ -65,13 +78,13 @@ router.post('/', async (req: any, res) => {
     }
 
     const id = crypto.randomUUID();
+    const sanitizedBody = Object.keys(restBody).reduce((acc: any, key) => {
+      acc[key] = restBody[key] === "" ? null : restBody[key];
+      return acc;
+    }, {});
+
     const [partner] = await req.tenantClient.insert(schema.businessPartners)
-      .values({
-        ...restBody,
-        code: finalCode,
-        groupId,
-        id
-      })
+      .values({ ...sanitizedBody, code: finalCode, groupId: groupId === "" ? null : groupId, id })
       .returning();
       
     if (addresses && addresses.length > 0) {
@@ -83,6 +96,17 @@ router.post('/', async (req: any, res) => {
     }
     
     res.json(partner);
+
+    // Auditoría
+    logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.headers['x-tenant-id'] || '',
+      userId: req.user?.id,
+      entityType: 'BusinessPartner',
+      entityId: id,
+      action: 'CREATE',
+      newValue: partner
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -94,22 +118,32 @@ router.post('/', async (req: any, res) => {
 router.patch('/:id', async (req: any, res) => {
   const { id } = req.params;
   try {
-    const { addresses, ...restBody } = req.body;
+    // Capturar estado anterior
+    const [oldPartner] = await req.tenantClient.select().from(schema.businessPartners).where(eq(schema.businessPartners.id, id));
+
+    const { addresses, groupId, ...restBody } = req.body;
+
+    // Validación de NIF según país (si cambian ambos o si se actualiza el nif)
+    const effectiveCountry = restBody.countryCode || oldPartner?.countryCode;
+    const effectiveNif = restBody.nif !== undefined ? restBody.nif : oldPartner?.nif;
+    const taxErr = await checkTaxId(effectiveNif, effectiveCountry);
+    if (taxErr) return res.status(400).json({ error: taxErr });
+    const sanitizedBody = Object.keys(restBody).reduce((acc: any, key) => {
+      acc[key] = restBody[key] === "" ? null : restBody[key];
+      return acc;
+    }, {});
     
+    if (groupId !== undefined) sanitizedBody.groupId = groupId === "" ? null : groupId;
+
     const [partner] = await req.tenantClient.update(schema.businessPartners)
-      .set(restBody)
+      .set(sanitizedBody)
       .where(eq(schema.businessPartners.id, id))
       .returning();
       
-    // Si mandamos addresses, reemplazamos todas las del socio (Simple update)
     if (addresses) {
       await req.tenantClient.delete(schema.partnerAddresses).where(eq(schema.partnerAddresses.partnerId, id));
       if (addresses.length > 0) {
-        const inserts = addresses.map((a: any) => ({ 
-           ...a, 
-           id: a.id || crypto.randomUUID(), 
-           partnerId: id 
-        }));
+        const inserts = addresses.map((a: any) => ({ ...a, id: a.id || crypto.randomUUID(), partnerId: id }));
         await req.tenantClient.insert(schema.partnerAddresses).values(inserts);
         partner.addresses = inserts;
       } else {
@@ -118,6 +152,18 @@ router.patch('/:id', async (req: any, res) => {
     }
     
     res.json(partner);
+
+    // Auditoría
+    logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.headers['x-tenant-id'] || '',
+      userId: req.user?.id,
+      entityType: 'BusinessPartner',
+      entityId: id,
+      action: 'UPDATE',
+      oldValue: oldPartner,
+      newValue: partner
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -129,12 +175,26 @@ router.patch('/:id', async (req: any, res) => {
 router.delete('/:id', async (req: any, res) => {
   const { id } = req.params;
   try {
-    await req.tenantClient.delete(schema.businessPartners)
-      .where(eq(schema.businessPartners.id, id));
+    const [oldPartner] = await req.tenantClient.select().from(schema.businessPartners).where(eq(schema.businessPartners.id, id));
+
+    await req.tenantClient.delete(schema.businessPartners).where(eq(schema.businessPartners.id, id));
     res.json({ success: true });
+
+    if (oldPartner) {
+      logAudit({
+        tenantClient: req.tenantClient,
+        tenantId: req.headers['x-tenant-id'] || '',
+        userId: req.user?.id,
+        entityType: 'BusinessPartner',
+        entityId: id,
+        action: 'DELETE',
+        oldValue: oldPartner
+      });
+    }
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
 export default router;
+ 

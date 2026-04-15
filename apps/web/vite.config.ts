@@ -17,6 +17,7 @@ export default defineConfig({
     alias: {
       '@openfactu/common': path.resolve(__dirname, '../../packages/common/src/index.ts'),
       '@openfactu/ui': path.resolve(__dirname, '../../packages/ui/src/index.ts'),
+      '@openfactu/pdf/browser': path.resolve(__dirname, '../../packages/pdf/src/browser.ts'),
     }
   }
 })

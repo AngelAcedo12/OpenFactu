@@ -26,25 +26,25 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className={cn("flex flex-col gap-1.5 w-full", containerClassName)}>
       {label && (
-        <label 
-          htmlFor={inputId} 
-          className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1"
+        <label
+          htmlFor={inputId}
+          className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1"
         >
           {label}
         </label>
       )}
       <div className="relative group">
         {leftIcon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-primary transition-colors">
             {leftIcon}
           </div>
         )}
         <input
           id={inputId}
           className={cn(
-            "flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-all",
+            "flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 px-3 py-1 text-sm shadow-sm transition-all",
             "file:border-0 file:bg-transparent file:text-sm file:font-medium",
-            "placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500",
+            "placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary",
             "disabled:cursor-not-allowed disabled:opacity-50",
             leftIcon && "pl-10",
             rightIcon && "pr-10",
@@ -54,7 +54,7 @@ export const Input: React.FC<InputProps> = ({
           {...props}
         />
         {rightIcon && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-primary transition-colors">
             {rightIcon}
           </div>
         )}
@@ -65,7 +65,7 @@ export const Input: React.FC<InputProps> = ({
         </p>
       )}
       {helperText && !error && (
-        <p className="text-[10px] font-medium text-slate-400 ml-1 mt-0.5">
+        <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 ml-1 mt-0.5">
           {helperText}
         </p>
       )}

@@ -6,7 +6,7 @@ import {
   doublePrecision, 
   integer,
   boolean,
-  unique
+  unique, jsonb
 } from 'drizzle-orm/pg-core';
 
 /**
@@ -28,9 +28,20 @@ export const globalUsers = pgTable('GlobalUser', {
   password: text('password').notNull(),
   role: text('role').default('USER').notNull(),
   tenantId: text('tenantId').references(() => tenants.id),
+  permissions: text('permissions'), // Almacena JSON de permisos granulares
   createdAt: timestamp('createdAt').defaultNow().notNull(),
   updatedAt: timestamp('updatedAt').defaultNow().notNull(),
 });
+
+export const userTenantMemberships = pgTable('UserTenantMembership', {
+  id: text('id').primaryKey(),
+  userId: text('userId').notNull().references(() => globalUsers.id, { onDelete: 'cascade' }),
+  tenantId: text('tenantId').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  role: text('role').default('USER').notNull(),
+  permissions: text('permissions'),
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+}, (t) => ({ unq: unique().on(t.userId, t.tenantId) }));
 
 export const pluginFields = pgTable('PluginField', {
   id: text('id').primaryKey(),
@@ -42,6 +53,60 @@ export const pluginFields = pgTable('PluginField', {
   isManaged: boolean('isManaged').default(true).notNull(),
   createdAt: timestamp('createdAt').defaultNow().notNull(),
 });
+
+export const pluginTables = pgTable('PluginTable', {
+  id: text('id').primaryKey(),
+  pluginId: text('pluginId').notNull(),
+  tableName: text('tableName').notNull(), // Nombre con prefijo pt_
+  definition: text('definition').notNull(), // JSON con la estructura de columnas
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+});
+
+/**
+ * DATOS GEOGRÁFICOS GENÉRICOS (public, compartidos entre tenants)
+ * Soporta multi-país con jerarquía flexible:
+ *   Country → Region (opcional) → SubRegion → Locality
+ * Las tablas de tenant no usan FKs físicas a estas, solo guardan el id como text.
+ */
+export const countries = pgTable('Country', {
+  code:            text('code').primaryKey(),       // 'ES' ISO 3166-1 alpha-2
+  name:            text('name').notNull(),          // 'España'
+  nameEn:          text('nameEn').notNull(),        // 'Spain'
+  phonePrefix:     text('phonePrefix').notNull(),   // '+34'
+  currency:        text('currency').notNull(),      // 'EUR'
+  localeDefault:   text('localeDefault').notNull(), // 'es-ES'
+  taxIdRegex:      text('taxIdRegex').notNull(),
+  taxIdLabel:      text('taxIdLabel').notNull(),    // 'NIF/CIF'
+  taxIdExample:    text('taxIdExample').notNull(),  // 'B12345678'
+  postalCodeRegex: text('postalCodeRegex').notNull(),
+  postalCodeLabel: text('postalCodeLabel').notNull(),
+  regionLabel:     text('regionLabel'),             // null si no hay nivel region
+  subRegionLabel:  text('subRegionLabel').notNull(),
+  localityLabel:   text('localityLabel').notNull(),
+});
+
+export const regions = pgTable('Region', {
+  id:          text('id').primaryKey(),
+  countryCode: text('countryCode').notNull().references(() => countries.code),
+  code:        text('code').notNull(),
+  name:        text('name').notNull(),
+}, (t) => ({ unq: unique().on(t.countryCode, t.code) }));
+
+export const subRegions = pgTable('SubRegion', {
+  id:          text('id').primaryKey(),
+  countryCode: text('countryCode').notNull().references(() => countries.code),
+  regionId:    text('regionId').references((): any => regions.id),
+  code:        text('code').notNull(),
+  name:        text('name').notNull(),
+}, (t) => ({ unq: unique().on(t.countryCode, t.code) }));
+
+export const localities = pgTable('Locality', {
+  id:          text('id').primaryKey(),
+  countryCode: text('countryCode').notNull().references(() => countries.code),
+  subRegionId: text('subRegionId').notNull().references((): any => subRegions.id),
+  code:        text('code').notNull(),
+  name:        text('name').notNull(),
+}, (t) => ({ unq: unique().on(t.countryCode, t.code) }));
 
 /**
  * ESQUEMA DE NEGOCIO (Multi-tenant)
@@ -77,6 +142,7 @@ export const businessPartners = pgTable('BusinessPartner', {
   website: text('website'),
   groupId: text('groupId').references(() => partnerGroups.id),
   priceListId: text('priceListId').references(() => priceLists.id),
+  countryCode: text('countryCode'),
 });
 
 export const partnerAddresses = pgTable('PartnerAddress', {
@@ -88,6 +154,9 @@ export const partnerAddresses = pgTable('PartnerAddress', {
   state: text('state'),
   zipCode: text('zipCode'),
   country: text('country'),
+  countryCode: text('countryCode'),
+  subRegionId: text('subRegionId'),
+  localityId: text('localityId'),
   type: text('type').default('B').notNull(),
   isDefault: boolean('isDefault').default(false).notNull(),
 });
@@ -472,5 +541,27 @@ export const purchaseInvoiceLineBatches = pgTable('PurchaseInvoiceLineBatch', {
   batchNum: text('batchNum').notNull(),
   quantity: doublePrecision('quantity').default(1).notNull(),
   expiryDate: timestamp('expiryDate'),
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+});
+
+export const documentTemplates = pgTable('DocumentTemplate', {
+  id: text('id').primaryKey(),
+  docType: text('docType').notNull(),
+  name: text('name').notNull(),
+  html: text('html').notNull(),
+  isDefault: boolean('isDefault').default(false).notNull(),
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+});
+
+export const auditLogs = pgTable('AuditLog', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenantId').notNull().references(() => tenants.id),
+  entityType: text('entityType').notNull(),
+  entityId: text('entityId').notNull(),
+  action: text('action').notNull(),
+  userId: text('userId').references(() => globalUsers.id),
+  oldValue: jsonb('oldValue'),
+  newValue: jsonb('newValue'),
   createdAt: timestamp('createdAt').defaultNow().notNull(),
 });

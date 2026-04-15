@@ -8,6 +8,6 @@ export default defineConfig({
     url: process.env.DATABASE_URL!,
   },
   schemaFilter: ["public"],
-  tablesFilter: ["Tenant", "GlobalUser", "PluginField"],
+  tablesFilter: ["Tenant", "GlobalUser", "PluginField", "AuditLog", "UserTenantMembership"],
   strict: false,
 });

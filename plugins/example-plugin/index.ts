@@ -13,7 +13,7 @@ export const init = async ({ app, migration }: PluginContext) => {
       pluginId: 'example-plugin',
       tableName: 'BusinessPartner',
       fieldName: 'internal_notes',
-      fieldType: 'TEXT',
+      type: 'TEXT',
       label: 'Notas Internas (Plugin)'
     });
   } catch (err) {

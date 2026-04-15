@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ClientFactory } from '../core/tenant/ClientFactory';
 import { SchemaManager } from '../core/tenant/SchemaManager';
 import { AuthService } from '../core/auth/AuthService';
+import { setCompanyConfig } from '../core/config/companyConfig';
 import * as schema from '../db/schema';
 import { eq } from 'drizzle-orm';
 import fs from 'fs';
@@ -66,9 +67,49 @@ router.post('/init', async (req, res) => {
         }
       });
 
+    // Resolver id real del admin (para el upsert puede no ser el generado arriba)
+    const [adminRow] = await publicDb
+      .select({ id: schema.globalUsers.id })
+      .from(schema.globalUsers)
+      .where(eq(schema.globalUsers.username, adminUsername));
+    const effectiveAdminId = adminRow?.id || adminId;
+
     // 2. Provisión de Empresa (SchemaManager se encarga de todo: esquema + registro)
     const schemaName = `tenant_${company.name.toLowerCase().replace(/\s+/g, '_')}`;
     const tenantId = await SchemaManager.createTenantSchema(company.name, schemaName, { nif: company.nif });
+
+    // 2a. Vincular al admin con la nueva empresa como ADMIN (idempotente)
+    try {
+      await publicDb.insert(schema.userTenantMemberships).values({
+        id: crypto.randomUUID(),
+        userId: effectiveAdminId,
+        tenantId,
+        role: 'ADMIN',
+        updatedAt: new Date(),
+      }).onConflictDoNothing();
+    } catch (err: any) {
+      console.warn('[Setup] No se pudo crear membership del admin:', err.message);
+    }
+
+    // 2b. Sembrar datos de empresa en SystemConfig del nuevo tenant
+    try {
+      const tenantDb = ClientFactory.getClient(schemaName);
+      await setCompanyConfig(tenantDb, {
+        name:            company.name,
+        taxId:           company.nif || '',
+        address:         company.address || '',
+        city:            company.city || '',
+        zipCode:         company.zipCode || '',
+        country:         company.country || 'ES',
+        email:           company.email || '',
+        phone:           company.phone || '',
+        website:         company.website || '',
+        currency:        company.currency || 'EUR',
+        fiscalYearStart: company.fiscalYearStart || '01-01',
+      });
+    } catch (err: any) {
+      console.warn('[Setup] No se pudieron sembrar datos de empresa en SystemConfig:', err.message);
+    }
 
     // 3. Guardar configuración en archivo persistente
     const configPath = path.join(__dirname, '../../../../storage/config/config.json');

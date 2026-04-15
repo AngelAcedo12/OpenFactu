@@ -2,6 +2,10 @@ import { Router } from 'express';
 import { eq, sql, desc } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import crypto from 'crypto';
+import { renderDocumentPdf } from '../core/documents/renderDocumentPdf';
+import { getConfigSection } from '../core/config/systemConfigSection';
+import { FLAGS_DEFAULTS } from '../core/config/appConfig';
+import { logAudit } from '../utils/audit';
 
 const router = Router();
 
@@ -17,9 +21,12 @@ router.get('/', async (req: any, res) => {
       partnerId: schema.salesDeliveryNotes.partnerId,
       total: schema.salesDeliveryNotes.total,
       status: schema.salesDeliveryNotes.status,
-      orderId: schema.salesDeliveryNotes.orderId
+      orderId: schema.salesDeliveryNotes.orderId,
+      orderDocNum: schema.salesOrders.docNum,
+      orderPrefix: sql`(SELECT "prefix" FROM "DocumentSeries" WHERE id = ${schema.salesOrders.seriesId})`
     })
       .from(schema.salesDeliveryNotes)
+      .leftJoin(schema.salesOrders, eq(schema.salesDeliveryNotes.orderId, schema.salesOrders.id))
       .leftJoin(schema.documentSeries, eq(schema.salesDeliveryNotes.seriesId, schema.documentSeries.id))
       .leftJoin(schema.accountingPeriods, eq(schema.salesDeliveryNotes.periodId, schema.accountingPeriods.id))
       .orderBy(desc(schema.salesDeliveryNotes.date));
@@ -35,13 +42,16 @@ router.get('/:id', async (req: any, res) => {
     const [header] = await req.tenantClient.select({
       header: schema.salesDeliveryNotes,
       seriesPrefix: schema.documentSeries.prefix,
-      periodCode: schema.accountingPeriods.code
+      periodCode: schema.accountingPeriods.code,
+      orderDocNum: schema.salesOrders.docNum,
+      orderPrefix: sql`(SELECT "prefix" FROM "DocumentSeries" WHERE id = ${schema.salesOrders.seriesId})`
     })
       .from(schema.salesDeliveryNotes)
+      .leftJoin(schema.salesOrders, eq(schema.salesDeliveryNotes.orderId, schema.salesOrders.id))
       .leftJoin(schema.documentSeries, eq(schema.salesDeliveryNotes.seriesId, schema.documentSeries.id))
       .leftJoin(schema.accountingPeriods, eq(schema.salesDeliveryNotes.periodId, schema.accountingPeriods.id))
       .where(eq(schema.salesDeliveryNotes.id, req.params.id));
-    
+
     if (!header) return res.status(404).json({ error: 'No encontrado' });
 
     const lines = await req.tenantClient.select()
@@ -62,8 +72,25 @@ router.get('/:id', async (req: any, res) => {
       };
     }));
 
-    res.json({ ...header.header, seriesPrefix: header.seriesPrefix, periodCode: header.periodCode, lines: linesWithBatches });
+    res.json({
+      ...header.header,
+      seriesPrefix: header.seriesPrefix,
+      periodCode: header.periodCode,
+      orderDocNum: header.orderDocNum,
+      orderPrefix: header.orderPrefix,
+      lines: linesWithBatches
+    });
   } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /:id/pdf
+router.get('/:id/pdf', async (req: any, res) => {
+  try {
+    await renderDocumentPdf('SDN', req.params.id, req.query.templateId as string | undefined, req.tenantClient, res);
+  } catch (error: any) {
+    console.error('[SalesDeliveryNote PDF] Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -73,6 +100,8 @@ router.post('/', async (req: any, res) => {
   const { seriesId, periodId, partnerId, orderId, date, lines, warehouseId } = req.body;
 
   try {
+    const flags = await getConfigSection(req.tenantClient, 'flags', FLAGS_DEFAULTS);
+
     const result = await req.tenantClient.transaction(async (tx: any) => {
       // 1. Numeración
       const [series] = await tx.select().from(schema.documentSeries).where(eq(schema.documentSeries.id, seriesId));
@@ -115,8 +144,8 @@ router.post('/', async (req: any, res) => {
         const [itemInfo] = await tx.select().from(schema.items).where(eq(schema.items.id, line.itemId));
         if (!itemInfo) throw new Error(`Artículo ${line.itemId} no encontrado`);
 
-        // VALIDACIÓN STOCK
-        if (Number(itemInfo.stock) < Number(line.quantity)) {
+        // VALIDACIÓN STOCK (si allowNegativeStock está desactivado)
+        if (!flags.allowNegativeStock && Number(itemInfo.stock) < Number(line.quantity)) {
            throw new Error(`Stock insuficiente para el artículo ${itemInfo.name}. Disponible: ${itemInfo.stock}, Requerido: ${line.quantity}`);
         }
 
@@ -169,12 +198,14 @@ router.post('/', async (req: any, res) => {
         }
 
         // D. Gestionar LOTES / SERIES (Salida)
-        if (line.batchDetails && Array.isArray(line.batchDetails)) {
+        const hasManualBatches = line.batchDetails && Array.isArray(line.batchDetails) && line.batchDetails.length > 0;
+
+        if (hasManualBatches) {
           for (const bd of line.batchDetails) {
             // Validar que el lote existe y tiene stock
             const [existingBatch] = await tx.select().from(schema.itemBatches)
               .where(sql`${schema.itemBatches.itemId} = ${line.itemId} AND ${schema.itemBatches.batchNum} = ${bd.batchNum}`);
-            
+
             if (!existingBatch || Number(existingBatch.quantity) < Number(bd.quantity)) {
                throw new Error(`Stock insuficiente en el lote ${bd.batchNum} para el artículo ${itemInfo.name}. Disponible: ${existingBatch?.quantity || 0}`);
             }
@@ -191,7 +222,40 @@ router.post('/', async (req: any, res) => {
               .where(eq(schema.itemBatches.id, existingBatch.id));
           }
         } else if (itemInfo.manageBy !== 'N') {
-          throw new Error(`El artículo ${itemInfo.name} requiere selección de lote/serie.`);
+          // Sin lotes manuales: auto-asignar FIFO si el flag está activo
+          if (!flags.autoConfirmBatches) {
+            throw new Error(`El artículo ${itemInfo.name} requiere selección de lote/serie.`);
+          }
+
+          // Buscar lotes disponibles ordenados por caducidad (más próximos primero, nulls al final)
+          const availableBatches = await tx.select()
+            .from(schema.itemBatches)
+            .where(sql`${schema.itemBatches.itemId} = ${line.itemId} AND ${schema.itemBatches.quantity} > 0`)
+            .orderBy(sql`${schema.itemBatches.expiryDate} ASC NULLS LAST`);
+
+          let remaining = Number(line.quantity);
+          for (const batch of availableBatches) {
+            if (remaining <= 0) break;
+            const take = Math.min(Number(batch.quantity), remaining);
+            if (take <= 0) continue;
+
+            await tx.insert(schema.salesDeliveryNoteLineBatches).values({
+              id: crypto.randomUUID(),
+              deliveryLineId: lineId,
+              batchNum: batch.batchNum,
+              quantity: take,
+            });
+
+            await tx.update(schema.itemBatches)
+              .set({ quantity: sql`${schema.itemBatches.quantity} - ${take}` })
+              .where(eq(schema.itemBatches.id, batch.id));
+
+            remaining -= take;
+          }
+
+          if (remaining > 0) {
+            throw new Error(`Stock de lotes insuficiente para el artículo ${itemInfo.name}. Faltan ${remaining} unidades.`);
+          }
         }
 
         // E. Lógica de Entrega Parcial en Pedido
@@ -228,6 +292,15 @@ router.post('/', async (req: any, res) => {
     });
 
     res.json(result);
+    logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.tenantId || '',
+      userId: req.user?.id,
+      entityType: 'SalesDeliveryNote',
+      entityId: result.id,
+      action: 'CREATE',
+      newValue: { docNum: result.docNum, partnerId: req.body.partnerId },
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

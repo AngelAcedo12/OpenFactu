@@ -8,7 +8,48 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
     <title>OpenFactu | ERP Core</title>
-    
+
+    <!-- CSS crítico inline: se aplica antes de que Vite inyecte los stylesheets -->
+    <style>
+      html { color-scheme: light; background: #f8fafc; }
+      html.dark { color-scheme: dark; background: #0b1120; }
+      body { margin: 0; background: inherit; color: #0f172a; }
+      html.dark body { color: #e2e8f0; }
+    </style>
+
+    <!-- Aplicar tema antes de montar React para evitar FOUC -->
+    <script>
+      (function () {
+        try {
+          var cached = localStorage.getItem('openfactu_theme');
+          if (cached) {
+            var parsed = JSON.parse(cached);
+            if (parsed && parsed.themeMode === 'dark') {
+              document.documentElement.classList.add('dark');
+            }
+            if (parsed && parsed.colorPrimaryRgb) {
+              document.documentElement.style.setProperty('--color-primary-rgb', parsed.colorPrimaryRgb);
+            }
+            if (parsed && parsed.colorPrimaryHoverRgb) {
+              document.documentElement.style.setProperty('--color-primary-hover-rgb', parsed.colorPrimaryHoverRgb);
+            }
+            if (parsed && parsed.colorPrimaryFgRgb) {
+              document.documentElement.style.setProperty('--color-primary-fg-rgb', parsed.colorPrimaryFgRgb);
+            }
+            if (parsed && parsed.colorAccentRgb) {
+              document.documentElement.style.setProperty('--color-accent-rgb', parsed.colorAccentRgb);
+            }
+            if (parsed && parsed.colorAccentFgRgb) {
+              document.documentElement.style.setProperty('--color-accent-fg-rgb', parsed.colorAccentFgRgb);
+            }
+            if (parsed && parsed.appName) {
+              document.title = parsed.appName;
+            }
+          }
+        } catch (e) { /* noop */ }
+      })();
+    </script>
+
     <!-- Import Map para Plugins Dinámicos -->
     <script type="importmap">
       {

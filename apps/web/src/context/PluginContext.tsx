@@ -3,11 +3,13 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 interface PluginManifest {
   id: string;
   name: string;
+  logo?: string; // Icono de Lucide o URL base64/path
   ui: {
     routes: Array<{
       path: string;
       title: string;
       type: 'table' | 'form' | 'custom';
+      icon?: string; // Icono específico para este menú
       config: any;
     }>;
     menuItems: Array<{

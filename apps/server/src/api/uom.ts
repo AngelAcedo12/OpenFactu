@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as schema from '../db/schema';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
+import { logAudit } from '../utils/audit';
 
 const router = Router();
 
@@ -44,17 +45,12 @@ router.post('/', async (req: any, res) => {
   }
 
   try {
+    const id = crypto.randomUUID();
     const [uom] = await req.tenantClient.insert(schema.unitsOfMeasure)
-      .values({ 
-        ...body,
-        code,
-        name,
-        baseValue: baseValue.toString(),
-        baseUomId,
-        id: crypto.randomUUID()
-      })
+      .values({ ...body, code, name, baseValue: baseValue.toString(), baseUomId, id })
       .returning();
     res.json(uom);
+    logAudit({ tenantClient: req.tenantClient, tenantId: req.tenantId || '', userId: req.user?.id, entityType: 'UnitOfMeasure', entityId: id, action: 'CREATE', newValue: uom });
   } catch (error: any) {
     console.error('[UoM] Error creating:', error);
     res.status(500).json({ error: error.message });
@@ -67,11 +63,13 @@ router.post('/', async (req: any, res) => {
 router.patch('/:id', async (req: any, res) => {
   const { id } = req.params;
   try {
+    const [old] = await req.tenantClient.select().from(schema.unitsOfMeasure).where(eq(schema.unitsOfMeasure.id, id));
     const [uom] = await req.tenantClient.update(schema.unitsOfMeasure)
       .set(req.body)
       .where(eq(schema.unitsOfMeasure.id, id))
       .returning();
     res.json(uom);
+    logAudit({ tenantClient: req.tenantClient, tenantId: req.tenantId || '', userId: req.user?.id, entityType: 'UnitOfMeasure', entityId: id, action: 'UPDATE', oldValue: old, newValue: uom });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -83,9 +81,10 @@ router.patch('/:id', async (req: any, res) => {
 router.delete('/:id', async (req: any, res) => {
   const { id } = req.params;
   try {
-    await req.tenantClient.delete(schema.unitsOfMeasure)
-      .where(eq(schema.unitsOfMeasure.id, id));
+    const [old] = await req.tenantClient.select().from(schema.unitsOfMeasure).where(eq(schema.unitsOfMeasure.id, id));
+    await req.tenantClient.delete(schema.unitsOfMeasure).where(eq(schema.unitsOfMeasure.id, id));
     res.json({ success: true });
+    if (old) logAudit({ tenantClient: req.tenantClient, tenantId: req.tenantId || '', userId: req.user?.id, entityType: 'UnitOfMeasure', entityId: id, action: 'DELETE', oldValue: old });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -1,0 +1,88 @@
+import { eq, and } from 'drizzle-orm';
+import { Response } from 'express';
+import * as schema from '../../db/schema';
+import {
+  PdfRenderer,
+  extractMetaFromHtml,
+  buildVisualTemplate,
+  DEFAULT_VISUAL_OPTIONS,
+  type DocType,
+  type VisualOptions,
+} from '@openfactu/pdf';
+import { PdfPayloadBuilder } from './PdfPayloadBuilder';
+import { getConfigSection } from '../config/systemConfigSection';
+import { FLAGS_DEFAULTS } from '../config/appConfig';
+
+/**
+ * Helper reutilizable para el endpoint `GET /:id/pdf` de todos los tipos de documento.
+ * Resuelve la plantilla (query ?templateId o default), construye el payload, renderiza el PDF
+ * y lo escribe en la response.
+ */
+export async function renderDocumentPdf(
+  docType: DocType,
+  documentId: string,
+  templateId: string | undefined,
+  tenantClient: any,
+  res: Response
+): Promise<void> {
+  // 1. Resolver la plantilla
+  let template: any = null;
+  if (templateId) {
+    const [row] = await tenantClient.select()
+      .from(schema.documentTemplates)
+      .where(eq(schema.documentTemplates.id, templateId));
+    template = row;
+  }
+  if (!template) {
+    const [row] = await tenantClient.select()
+      .from(schema.documentTemplates)
+      .where(and(
+        eq(schema.documentTemplates.docType, docType),
+        eq(schema.documentTemplates.isDefault, true)
+      ));
+    template = row;
+  }
+  if (!template) {
+    res.status(404).json({ error: `No hay plantilla default para ${docType}` });
+    return;
+  }
+
+  // 2. Construir payload
+  const payload = await PdfPayloadBuilder.build(docType, documentId, tenantClient);
+
+  // 3. Extraer opciones del meta del HTML
+  const meta = extractMetaFromHtml(template.html);
+  const baseOpts: VisualOptions = meta || DEFAULT_VISUAL_OPTIONS;
+
+  // 4. Flags: si watermarkDraft está activo Y el documento está en estado abierto,
+  //    forzamos la marca de agua "BORRADOR" sobreescribiendo las opciones visuales
+  //    y regenerando el HTML del template.
+  let finalHtml = template.html;
+  let finalOpts: VisualOptions = baseOpts;
+  try {
+    const flags = await getConfigSection(tenantClient, 'flags', FLAGS_DEFAULTS);
+    if (flags.watermarkDraft && payload.doc.status === 'O') {
+      finalOpts = {
+        ...baseOpts,
+        watermark: {
+          ...baseOpts.watermark,
+          enabled: true,
+          text: baseOpts.watermark?.text || 'BORRADOR',
+        },
+      };
+      finalHtml = buildVisualTemplate(docType, finalOpts);
+    }
+  } catch (err: any) {
+    console.warn('[renderDocumentPdf] No se pudo leer flags, usando template tal cual:', err.message);
+  }
+
+  // 5. Renderizar
+  const renderOptions = PdfRenderer.renderOptionsFromVisual(finalOpts);
+  const buffer = await PdfRenderer.render(finalHtml, payload, renderOptions);
+
+  // 4. Responder
+  const filename = `${payload.doc.docCode || documentId}.pdf`;
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.end(buffer);
+}

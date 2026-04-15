@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as schema from '../db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import crypto from 'crypto';
+import { logAudit } from '../utils/audit';
 
 const router = Router();
 
@@ -23,20 +24,13 @@ router.get('/', async (req: any, res) => {
 router.post('/', async (req: any, res) => {
   try {
     const { isDefault } = req.body;
-
-    // Si es por defecto, desmarcar otros
-    if (isDefault) {
-      await req.tenantClient.update(schema.warehouses)
-        .set({ isDefault: false });
-    }
-
+    if (isDefault) await req.tenantClient.update(schema.warehouses).set({ isDefault: false });
+    const id = crypto.randomUUID();
     const [warehouse] = await req.tenantClient.insert(schema.warehouses)
-      .values({ 
-        ...req.body,
-        id: crypto.randomUUID()
-      })
+      .values({ ...req.body, id })
       .returning();
     res.json(warehouse);
+    logAudit({ tenantClient: req.tenantClient, tenantId: req.tenantId || '', userId: req.user?.id, entityType: 'Warehouse', entityId: id, action: 'CREATE', newValue: warehouse });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -49,17 +43,14 @@ router.patch('/:id', async (req: any, res) => {
   const { id } = req.params;
   try {
     const { isDefault } = req.body;
-    
-    if (isDefault) {
-      await req.tenantClient.update(schema.warehouses)
-        .set({ isDefault: false });
-    }
-
+    if (isDefault) await req.tenantClient.update(schema.warehouses).set({ isDefault: false });
+    const [old] = await req.tenantClient.select().from(schema.warehouses).where(eq(schema.warehouses.id, id));
     const [warehouse] = await req.tenantClient.update(schema.warehouses)
       .set(req.body)
       .where(eq(schema.warehouses.id, id))
       .returning();
     res.json(warehouse);
+    logAudit({ tenantClient: req.tenantClient, tenantId: req.tenantId || '', userId: req.user?.id, entityType: 'Warehouse', entityId: id, action: 'UPDATE', oldValue: old, newValue: warehouse });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -71,8 +62,10 @@ router.patch('/:id', async (req: any, res) => {
 router.delete('/:id', async (req: any, res) => {
   const { id } = req.params;
   try {
+    const [old] = await req.tenantClient.select().from(schema.warehouses).where(eq(schema.warehouses.id, id));
     await req.tenantClient.delete(schema.warehouses).where(eq(schema.warehouses.id, id));
     res.json({ success: true });
+    if (old) logAudit({ tenantClient: req.tenantClient, tenantId: req.tenantId || '', userId: req.user?.id, entityType: 'Warehouse', entityId: id, action: 'DELETE', oldValue: old });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

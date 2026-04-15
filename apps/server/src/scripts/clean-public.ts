@@ -13,10 +13,26 @@ export async function cleanPublicSchema() {
 
   // Tablas que NO deben estar en public según el diseño multi-tenant
   const tablesToDrop = [
-    'OrderLine', 'OrderHeader', 'DeliveryLine', 'DeliveryHeader', 'InvoiceLine', 'InvoiceHeader',
-    'ItemBatch', 'ItemSerial', 'DocumentLineDist', 'Item',
-    'BusinessPartner', 'UnitOfMeasure', 'PriceList', 'ItemPrice', 'TaxGroup', 'Category',
-    'Warehouse', 'ItemWarehouseStock'
+    // Artículos e inventario
+    'Item', 'ItemBatch', 'ItemSerial', 'ItemAlternativeUom', 'ItemWarehouseStock', 'ItemZoneStock',
+    // Catálogos
+    'Category', 'UnitOfMeasure', 'TaxGroup', 'PriceList', 'ItemPrice',
+    // Almacenes
+    'Warehouse', 'WarehouseZone',
+    // Interlocutores
+    'BusinessPartner', 'PartnerGroup', 'PartnerAddress',
+    // Documentos de compras
+    'PurchaseOrder', 'PurchaseOrderLine',
+    'PurchaseDeliveryNote', 'PurchaseDeliveryNoteLine', 'PurchaseDeliveryNoteLineBatch',
+    'PurchaseInvoice', 'PurchaseInvoiceLine', 'PurchaseInvoiceLineBatch',
+    // Documentos de ventas
+    'SalesOrder', 'SalesOrderLine',
+    'SalesDeliveryNote', 'SalesDeliveryNoteLine', 'SalesDeliveryNoteLineBatch',
+    'SalesInvoice', 'SalesInvoiceLine', 'SalesInvoiceLineBatch',
+    // Configuración de tenant
+    'AccountingPeriod', 'DocumentSeries',
+    // Legacy
+    'OrderLine', 'OrderHeader', 'DeliveryLine', 'DeliveryHeader', 'InvoiceLine', 'InvoiceHeader', 'DocumentLineDist',
   ];
 
   for (const table of tablesToDrop) {
@@ -29,7 +45,7 @@ export async function cleanPublicSchema() {
     }
   }
 
-  console.log('--- Limpieza completada. Solo quedan las tablas Core (Tenant, GlobalUser, PluginField) en PUBLIC ---');
+  console.log('--- Limpieza completada. Solo quedan las tablas Core (Tenant, GlobalUser, PluginField, AuditLog) en PUBLIC ---');
 }
 
 // Si se ejecuta directamente (como script independiente)

@@ -2,8 +2,20 @@ import { Router } from 'express';
 import { eq, desc } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import crypto from 'crypto';
+import { renderDocumentPdf } from '../core/documents/renderDocumentPdf';
+import { logAudit } from '../utils/audit';
 
 const router = Router();
+
+// GET /:id/pdf — montado antes que /:id para evitar que lo capture el route genérico
+router.get('/:id/pdf', async (req: any, res) => {
+  try {
+    await renderDocumentPdf('SO', req.params.id, req.query.templateId as string | undefined, req.tenantClient, res);
+  } catch (error: any) {
+    console.error('[SalesOrder PDF] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // GET all orders
 router.get('/', async (req: any, res) => {
@@ -112,6 +124,15 @@ router.post('/', async (req: any, res) => {
     });
 
     res.json(result);
+    logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.tenantId || '',
+      userId: req.user?.id,
+      entityType: 'SalesOrder',
+      entityId: result.header?.id,
+      action: 'CREATE',
+      newValue: { docNum: result.assignedDocNum, partnerId },
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -7,6 +7,7 @@ interface User {
   role: string;
   tenantId?: string;
   tenantName?: string;
+  permissions?: Record<string, { read: boolean; write: boolean; delete: boolean }>;
 }
 
 interface AuthContextType {
@@ -16,6 +17,7 @@ interface AuthContextType {
   loading: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+  switchTenant: (tenantId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,14 +69,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const switchTenant = async (tenantId: string) => {
+    if (!token) throw new Error('No autenticado');
+    const res = await fetch('/api/auth/switch-tenant', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ tenantId }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Error al cambiar de empresa' }));
+      throw new Error(err.error || 'Error al cambiar de empresa');
+    }
+    const data = await res.json();
+    localStorage.setItem('openfactu_token', data.token);
+    setToken(data.token);
+    setUser(data.user);
+  };
+
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      token, 
-      isAuthenticated: !!token && !!user, 
-      loading, 
-      login, 
-      logout 
+    <AuthContext.Provider value={{
+      user,
+      token,
+      isAuthenticated: !!token && !!user,
+      loading,
+      login,
+      logout,
+      switchTenant,
     }}>
       {children}
     </AuthContext.Provider>

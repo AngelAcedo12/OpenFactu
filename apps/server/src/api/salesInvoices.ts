@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { eq, sql, desc } from 'drizzle-orm';
 import * as schema from '../db/schema';
-import crypto from 'crypto';
+import { DocumentEngine } from '../core/documents/DocumentEngine';
+import { renderDocumentPdf } from '../core/documents/renderDocumentPdf';
+import { logAudit } from '../utils/audit';
 
 const router = Router();
 
@@ -17,7 +19,17 @@ router.get('/', async (req: any, res) => {
       partnerId: schema.salesInvoices.partnerId,
       total: schema.salesInvoices.total,
       status: schema.salesInvoices.status,
-      baseDocNum: sql`(SELECT "docNum" FROM "SalesDeliveryNote" WHERE id IN (SELECT "baseId" FROM "SalesInvoiceLine" WHERE "invoiceId" = ${schema.salesInvoices.id} AND "baseType" = 'SDN') LIMIT 1)`
+      baseDocCode: sql<string | null>`(
+        SELECT COALESCE(ds."prefix", '') || '-' || COALESCE(ap."code", '') || '-' || LPAD(sdn."docNum"::text, 6, '0')
+        FROM "SalesDeliveryNote" sdn
+        LEFT JOIN "DocumentSeries" ds ON sdn."seriesId" = ds."id"
+        LEFT JOIN "AccountingPeriod" ap ON sdn."periodId" = ap."id"
+        WHERE sdn."id" IN (
+          SELECT "baseId" FROM "SalesInvoiceLine"
+          WHERE "invoiceId" = ${schema.salesInvoices.id} AND "baseType" = 'SDN'
+        )
+        LIMIT 1
+      )`
     })
       .from(schema.salesInvoices)
       .leftJoin(schema.documentSeries, eq(schema.salesInvoices.seriesId, schema.documentSeries.id))
@@ -63,129 +75,73 @@ router.get('/:id', async (req: any, res) => {
   }
 });
 
+// GET /:id/pdf — Descarga el PDF de la factura
+router.get('/:id/pdf', async (req: any, res) => {
+  try {
+    await renderDocumentPdf('SINV', req.params.id, req.query.templateId as string | undefined, req.tenantClient, res);
+  } catch (error: any) {
+    console.error('[SalesInvoice PDF] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST new sales invoice
 router.post('/', async (req: any, res) => {
-  const { seriesId, periodId, partnerId, date, lines } = req.body;
-
   try {
-    const result = await req.tenantClient.transaction(async (tx: any) => {
-      const [series] = await tx.select().from(schema.documentSeries).where(eq(schema.documentSeries.id, seriesId));
-      if (!series) throw new Error('Serie no encontrada');
-      const docNum = series.nextNumber;
-      await tx.update(schema.documentSeries).set({ nextNumber: docNum + 1 }).where(eq(schema.documentSeries.id, seriesId));
-
-      const invoiceId = crypto.randomUUID();
-      let calculatedSubtotal = 0;
-      let calculatedTaxTotal = 0;
-      const breakdownMap: Record<string, { base: number, tax: number }> = {};
-
-      const allTaxGroups = await tx.select().from(schema.taxGroups);
-      const taxRateMap = allTaxGroups.reduce((acc: any, curr: any) => {
-        acc[curr.id] = Number(curr.rate);
-        return acc;
-      }, {});
-
-      await tx.insert(schema.salesInvoices).values({
-        id: invoiceId,
-        seriesId,
-        docNum,
-        periodId,
-        partnerId,
-        date: new Date(date),
-        status: 'O',
-        billToAddress: req.body.billToAddress || null,
-        shipToAddress: req.body.shipToAddress || null,
-        subtotal: '0',
-        taxTotal: '0',
-        total: '0',
-        taxBreakdown: '{}'
-      });
-
-      for (const line of lines) {
-        const [itemInfo] = await tx.select().from(schema.items).where(eq(schema.items.id, line.itemId));
-        if (!itemInfo) throw new Error(`Artículo ${line.itemId} no encontrado`);
-
-        const lineSubtotal = Number(line.quantity) * Number(line.price);
-        const taxRate = taxRateMap[line.taxGroupId] || 0;
-        const lineTax = lineSubtotal * (taxRate / 100);
-        
-        calculatedSubtotal += lineSubtotal;
-        calculatedTaxTotal += lineTax;
-
-        const rateKey = String(taxRate);
-        if (!breakdownMap[rateKey]) breakdownMap[rateKey] = { base: 0, tax: 0 };
-        breakdownMap[rateKey].base += lineSubtotal;
-        breakdownMap[rateKey].tax += lineTax;
-
-        const lineId = crypto.randomUUID();
-        await tx.insert(schema.salesInvoiceLines).values({
-          id: lineId,
-          invoiceId,
-          lineNum: (lines.indexOf(line) + 1),
-          itemId: line.itemId,
-          warehouseId: line.warehouseId || null,
-          zoneId: line.zoneId || null,
-          quantity: String(line.quantity),
-          price: String(line.price),
-          taxGroupId: line.taxGroupId || null,
-          lineTotal: String(lineSubtotal + lineTax),
-          baseType: line.baseType || null,
-          baseId: line.baseId || null,
-          baseLine: line.baseLine || null
-        });
-
-        if (line.batchDetails && Array.isArray(line.batchDetails)) {
-          for (const bd of line.batchDetails) {
-            await tx.insert(schema.salesInvoiceLineBatches).values({
-              id: crypto.randomUUID(),
-              invoiceLineId: lineId,
-              batchNum: bd.batchNum,
-              quantity: bd.quantity
-            });
-
-            // Si es factura directa, reducir stock de lotes
-            if (!line.baseId) {
-               const [existingBatch] = await tx.select().from(schema.itemBatches)
-                 .where(sql`${schema.itemBatches.itemId} = ${line.itemId} AND ${schema.itemBatches.batchNum} = ${bd.batchNum}`);
-               
-               if (!existingBatch || Number(existingBatch.quantity) < Number(bd.quantity)) {
-                 throw new Error(`Stock insuficiente en el lote ${bd.batchNum}`);
-               }
-
-               await tx.update(schema.itemBatches)
-                 .set({ quantity: sql`${schema.itemBatches.quantity} - ${Number(bd.quantity)}` })
-                 .where(eq(schema.itemBatches.id, existingBatch.id));
-            }
-          }
-        }
-
-        // Si es factura directa, reducir stock global
-        if (!line.baseId) {
-           if (Number(itemInfo.stock) < Number(line.quantity)) throw new Error('Stock insuficiente');
-           await tx.update(schema.items)
-             .set({ stock: sql`${schema.items.stock} - ${Number(line.quantity)}` })
-             .where(eq(schema.items.id, line.itemId));
-        }
-      }
-
-      const finalTotal = calculatedSubtotal + calculatedTaxTotal;
-      await tx.update(schema.salesInvoices).set({ 
-        subtotal: String(calculatedSubtotal.toFixed(4)),
-        taxTotal: String(calculatedTaxTotal.toFixed(4)),
-        total: String(finalTotal.toFixed(4)),
-        taxBreakdown: JSON.stringify(breakdownMap)
-      }).where(eq(schema.salesInvoices.id, invoiceId));
-
-      // Cerrar albaranes base
-      const baseIds = [...new Set(lines.filter((line: any) => line.baseType === 'SDN' && line.baseId).map((line: any) => line.baseId))];
-      for (const bId of baseIds) {
-        await tx.update(schema.salesDeliveryNotes).set({ status: 'C' }).where(eq(schema.salesDeliveryNotes.id, bId as string));
-      }
-      
-      return { id: invoiceId, docNum };
-    });
+    const result = await DocumentEngine.create(
+      req.tenantId,
+      req.tenantClient,
+      req.user,
+      {
+        tableName: 'salesInvoices',
+        schemaTable: schema.salesInvoices,
+        lineSchemaTable: schema.salesInvoiceLines,
+        batchSchemaTable: schema.salesInvoiceLineBatches,
+        eventPrefix: 'salesInvoice',
+        stockAction: 'OUT',
+        closeBaseDocuments: true
+      },
+      req.body
+    );
 
     res.json(result);
+    logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.tenantId || '',
+      userId: req.user?.id,
+      entityType: 'SalesInvoice',
+      entityId: result.id,
+      action: 'CREATE',
+      newValue: { docNum: result.docNum, total: req.body.total, partnerId: req.body.partnerId },
+    });
+  } catch (error: any) {
+    console.error('[SalesInvoice API] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// CANCEL (Void logic) - TODO: Migrar a DocumentEngine.cancel
+router.delete('/:id', async (req: any, res) => {
+  try {
+    const [old] = await req.tenantClient.select().from(schema.salesInvoices).where(eq(schema.salesInvoices.id, req.params.id));
+    const result = await req.tenantClient.transaction(async (tx: any) => {
+      const [header] = await tx.select().from(schema.salesInvoices).where(eq(schema.salesInvoices.id, req.params.id));
+      if (!header) throw new Error('No encontrado');
+      if (header.status === 'X') throw new Error('Ya está cancelado');
+
+      await tx.update(schema.salesInvoices).set({ status: 'X' }).where(eq(schema.salesInvoices.id, req.params.id));
+      return { success: true };
+    });
+    res.json(result);
+    if (old) logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.tenantId || '',
+      userId: req.user?.id,
+      entityType: 'SalesInvoice',
+      entityId: req.params.id,
+      action: 'DELETE',
+      oldValue: old,
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

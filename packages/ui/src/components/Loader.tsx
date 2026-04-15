@@ -23,9 +23,9 @@ export const Loader = React.forwardRef<HTMLDivElement, LoaderProps>(
     };
 
     const variantClasses = {
-      primary: 'text-blue-600',
+      primary: 'text-primary',
       white: 'text-white',
-      neutral: 'text-slate-400'
+      neutral: 'text-slate-400 dark:text-slate-500'
     };
 
     const loaderContent = (
@@ -38,14 +38,14 @@ export const Loader = React.forwardRef<HTMLDivElement, LoaderProps>(
             <Loader2 className={cn('animate-spin', sizeClasses[size], variantClasses[variant])} />
             {size === 'xl' && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
+                    <div className="w-2 h-2 bg-primary rounded-full animate-ping" />
                 </div>
             )}
         </div>
         {label && (
             <span className={cn(
                 "text-sm font-bold tracking-tight animate-pulse",
-                variant === 'white' ? 'text-white' : 'text-slate-600'
+                variant === 'white' ? 'text-white' : 'text-slate-600 dark:text-slate-300'
             )}>
                 {label}
             </span>
@@ -55,7 +55,7 @@ export const Loader = React.forwardRef<HTMLDivElement, LoaderProps>(
 
     if (overlay) {
       return (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-[2px] rounded-inherit transition-all duration-300">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 dark:bg-slate-900/70 backdrop-blur-[2px] rounded-inherit transition-all duration-300">
           {loaderContent}
         </div>
       );

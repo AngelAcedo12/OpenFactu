@@ -1,8 +1,11 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { ClientFactory } from './ClientFactory';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 import * as schema from '../../db/schema';
+import { getDefaultTemplate, DEFAULT_TEMPLATE_NAMES, ALL_DOC_TYPES } from '@openfactu/pdf';
+import { seedDefaults } from './seedDefaults';
 
 /**
  * MigrationManager lee archivos .sql de la carpeta /migrations 
@@ -40,7 +43,7 @@ export class MigrationManager {
 
     for (const file of files) {
       const migrationId = file.replace('.sql', '');
-      
+
       // Verificar si ya se aplicó
       const result: any = await db.execute(sql.raw(
         `SELECT id FROM "${schemaName}"."_MigrationHistory" WHERE id = '${migrationId}'`
@@ -48,12 +51,12 @@ export class MigrationManager {
 
       if (result.rows.length === 0) {
         console.log(`[MigrationManager] Aplicando migración: ${file}`);
-        
+
         try {
           const filePath = path.join(this.MIGRATIONS_DIR, file);
           let rawSql = fs.readFileSync(filePath, 'utf8');
           const processedSql = rawSql.replace(/{{schema}}/g, schemaName);
-          
+
           // Dividir por punto y coma, ignorando aquellos dentro de bloques $$ (PL/pgSQL)
           const statements = processedSql
             .split(/;(?=(?:[^$]*\$\$[^$]*\$\$)*[^$]*$)/)
@@ -63,18 +66,54 @@ export class MigrationManager {
           for (const statement of statements) {
             await db.execute(sql.raw(statement));
           }
-          
+
           // Registrar éxito
           await db.execute(sql.raw(
             `INSERT INTO "${schemaName}"."_MigrationHistory" (id, description) VALUES ('${migrationId}', 'Aplicado desde ${file}')`
           ));
-          
+
           console.log(`   ✅ Sincronizado correctamente.`);
         } catch (error: any) {
           console.error(`   ❌ Error en ${file}:`, error); // Log full error object
-          throw error; 
+          throw error;
         }
       }
+    }
+
+    // 3. Seed de datos maestros por defecto (impuestos, UoMs, series, etc.)
+    try {
+      await seedDefaults(schemaName);
+    } catch (err: any) {
+      console.warn(`[MigrationManager] No se pudieron sembrar defaults en ${schemaName}: ${err.message}`);
+    }
+
+    // 4. Seed de plantillas de documento por defecto (si no existen)
+    await this.seedDefaultTemplates(schemaName);
+  }
+
+  /**
+   * Inserta una plantilla por defecto para cada tipo de documento que aún no tenga ninguna.
+   */
+  private static async seedDefaultTemplates(schemaName: string) {
+    const db = ClientFactory.getClient(schemaName);
+    try {
+      for (const docType of ALL_DOC_TYPES) {
+        const existing = await db.select({ id: schema.documentTemplates.id })
+          .from(schema.documentTemplates)
+          .where(eq(schema.documentTemplates.docType, docType));
+        if (existing.length > 0) continue;
+
+        await db.insert(schema.documentTemplates).values({
+          id: crypto.randomUUID(),
+          docType,
+          name: DEFAULT_TEMPLATE_NAMES[docType],
+          html: getDefaultTemplate(docType),
+          isDefault: true
+        });
+        console.log(`[Templates] Seeded default template for ${docType} in ${schemaName}`);
+      }
+    } catch (err: any) {
+      console.warn(`[Templates] No se pudo sembrar plantillas en ${schemaName}: ${err.message}`);
     }
   }
 

@@ -11,6 +11,7 @@
     "db:push:public": "ts-node src/scripts/push-public.ts"
   },
   "dependencies": {
+    "@openfactu/pdf": "*",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

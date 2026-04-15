@@ -24,20 +24,20 @@ export const Card = ({
 }: CardProps) => {
   return (
     <div className={cn(
-      "bg-white border border-slate-200/60 shadow-sm rounded-xl overflow-hidden",
-      "ring-1 ring-slate-900/5",
+      "bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 shadow-sm dark:shadow-none rounded-xl overflow-hidden",
+      "ring-1 ring-slate-900/5 dark:ring-0",
       className
     )}>
       {(title || subtitle || headerAction) && (
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4 bg-slate-50/30">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 bg-slate-50/30 dark:bg-slate-950/30">
           <div>
             {title && (
-              <h3 className="text-sm font-bold text-slate-900 font-display tracking-tight">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 font-display tracking-tight">
                 {title}
               </h3>
             )}
             {subtitle && (
-              <p className="text-[11px] font-medium text-slate-500 mt-0.5 leading-relaxed">
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
                 {subtitle}
               </p>
             )}
@@ -49,7 +49,7 @@ export const Card = ({
           )}
         </div>
       )}
-      
+
       <div className={cn(
         !noPadding && "p-6",
         bodyClassName
@@ -58,7 +58,7 @@ export const Card = ({
       </div>
 
       {footer && (
-        <div className="px-6 py-3 bg-slate-50/50 border-t border-slate-100 mt-auto">
+        <div className="px-6 py-3 bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 mt-auto">
           {footer}
         </div>
       )}

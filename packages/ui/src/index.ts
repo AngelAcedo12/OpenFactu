@@ -6,6 +6,7 @@ export * from './components/Badge';
 export * from './components/NavItem';
 export * from './components/NavGroup';
 export * from './components/Loader';
+export * from './components/Skeleton';
 export * from './components/Toast';
 export * from './components/Modal';
 export * from './components/GlobalLoader';

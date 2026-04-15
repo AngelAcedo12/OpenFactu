@@ -60,9 +60,13 @@ async function ensureCoreTables() {
         "password" TEXT NOT NULL,
         "role" TEXT NOT NULL DEFAULT 'USER',
         "tenantId" TEXT REFERENCES "Tenant"("id"),
+        "permissions" TEXT,
         "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
+      
+      -- Asegurar columna si la tabla ya existía
+      ALTER TABLE "GlobalUser" ADD COLUMN IF NOT EXISTS "permissions" TEXT;
       
       CREATE TABLE IF NOT EXISTS "PluginField" (
         "id" TEXT PRIMARY KEY,
@@ -72,6 +76,29 @@ async function ensureCoreTables() {
         "fieldType" TEXT NOT NULL,
         "label" TEXT NOT NULL,
         "isManaged" BOOLEAN NOT NULL DEFAULT TRUE,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS "UserTenantMembership" (
+        "id" TEXT PRIMARY KEY,
+        "userId" TEXT NOT NULL REFERENCES "GlobalUser"("id") ON DELETE CASCADE,
+        "tenantId" TEXT NOT NULL REFERENCES "Tenant"("id") ON DELETE CASCADE,
+        "role" TEXT NOT NULL DEFAULT 'USER',
+        "permissions" TEXT,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE ("userId", "tenantId")
+      );
+
+      CREATE TABLE IF NOT EXISTS "AuditLog" (
+        "id" TEXT PRIMARY KEY,
+        "tenantId" TEXT NOT NULL REFERENCES "Tenant"("id"),
+        "entityType" TEXT NOT NULL,
+        "entityId" TEXT NOT NULL,
+        "action" TEXT NOT NULL,
+        "userId" TEXT REFERENCES "GlobalUser"("id"),
+        "oldValue" JSONB,
+        "newValue" JSONB,
         "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     `));

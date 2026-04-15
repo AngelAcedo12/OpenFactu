@@ -2,9 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  color-scheme: light;
+  background: #f8fafc;
+}
+html.dark {
+  color-scheme: dark;
+  background: #0b1120;
+}
+
+:root {
+  /* Colores en formato RGB (space-separated) para que Tailwind aplique /alpha */
+  --color-primary-rgb:       37 99 235;    /* #2563eb */
+  --color-primary-hover-rgb: 29 78 216;    /* #1d4ed8 */
+  --color-primary-fg-rgb:    255 255 255;
+  --color-accent-rgb:        16 185 129;   /* #10b981 */
+  --color-accent-fg-rgb:     255 255 255;
+
+  /* Alias hex (útiles fuera de Tailwind: inline styles, SVG stroke, etc.) */
+  --color-primary:       rgb(var(--color-primary-rgb));
+  --color-primary-hover: rgb(var(--color-primary-hover-rgb));
+  --color-primary-fg:    rgb(var(--color-primary-fg-rgb));
+  --color-accent:        rgb(var(--color-accent-rgb));
+  --color-accent-fg:     rgb(var(--color-accent-fg-rgb));
+
+  --font-sans: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  --bg-app:        #f8fafc;
+  --bg-card:       #ffffff;
+  --bg-sidebar:    #0f172a;
+  --fg-default:    #0f172a;
+  --fg-muted:      #64748b;
+  --border-default:#e2e8f0;
+}
+
+html.dark {
+  --bg-app:        #0b1120;
+  --bg-card:       #0f172a;
+  --bg-sidebar:    #020617;
+  --fg-default:    #e2e8f0;
+  --fg-muted:      #94a3b8;
+  --border-default:#1e293b;
+}
+
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    background: var(--bg-app);
+    color: var(--fg-default);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 }
 
@@ -19,16 +65,24 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1; /* slate-300 */
+  background: #cbd5e1;
   border-radius: 10px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8; /* slate-400 */
+  background: #94a3b8;
   border: 2px solid transparent;
   background-clip: padding-box;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* Clase utility para contenedores específicos */
@@ -38,15 +92,16 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f8fafc; /* slate-50 */
+  background: #f8fafc;
   border-radius: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #93c5fd; /* blue-300 */
+  background: var(--color-primary);
   border-radius: 8px;
+  opacity: 0.6;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #60a5fa; /* blue-400 */
+  background: var(--color-primary-hover);
 }

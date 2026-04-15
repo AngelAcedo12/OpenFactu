@@ -18,9 +18,10 @@ export interface UseDocumentProps {
   tenantId: string;
   docType: 'PO' | 'PDN' | 'PINV' | 'SO' | 'SDN' | 'SINV';
   apiEndpoint: string;
+  permissions?: { read: boolean; write: boolean; delete: boolean };
 }
 
-export function useDocument({ token, tenantId, docType, apiEndpoint }: UseDocumentProps) {
+export function useDocument({ token, tenantId, docType, apiEndpoint, permissions }: UseDocumentProps) {
   const [partnerId, setPartnerId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [seriesId, setSeriesId] = useState('');
@@ -38,6 +39,8 @@ export function useDocument({ token, tenantId, docType, apiEndpoint }: UseDocume
   const [taxGroups, setTaxGroups] = useState<any[]>([]);
   const [mappedPrices, setMappedPrices] = useState<Record<string, number>>({});
   const [seriesError, setSeriesError] = useState<string | null>(null);
+  const [mastersLoading, setMastersLoading] = useState(false);
+  const [mastersError, setMastersError] = useState<string | null>(null);
 
   const headers = { 
     'Authorization': `Bearer ${token}`, 
@@ -106,13 +109,21 @@ export function useDocument({ token, tenantId, docType, apiEndpoint }: UseDocume
       const defW = wList.find((x: any) => x.isDefault);
       if (defW) setWarehouseId(defW.id);
 
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error fetching masters:', e);
+      setMastersError(e.message || 'Error al cargar datos maestros');
+    } finally {
+      setMastersLoading(false);
     }
   }, [docType, token, tenantId]);
 
   useEffect(() => {
-    if (tenantId) fetchMasters();
+    if (tenantId) {
+      setMastersError(null);
+      fetchMasters();
+    } else {
+      setMastersError('Empresa no asignada. Contacte con un administrador.');
+    }
   }, [tenantId, fetchMasters]);
 
   // Pricing Logic
@@ -189,7 +200,20 @@ export function useDocument({ token, tenantId, docType, apiEndpoint }: UseDocume
 
   const total = subtotal + taxTotal;
 
+  const canRead = permissions?.read ?? true;
+  const canWrite = permissions?.write ?? true;
+  const canDelete = permissions?.delete ?? true;
+
+  const [pluginData, setPluginData] = useState<Record<string, any>>({});
+
+  const setPluginField = (fieldName: string, value: any) => {
+    setPluginData(prev => ({ ...prev, [fieldName]: value }));
+  };
+
+  // ... (headers etc) ...
+
   const submitDocument = async (extraBody: any = {}) => {
+    if (!canWrite) throw new Error('No tienes permisos suficientes para realizar esta acción (Escritura denegada).');
     if (!seriesId) throw new Error('Debes seleccionar una serie de numeración operativa.');
     if (!periodId) throw new Error('Debes seleccionar un periodo contable válido.');
     if (lines.length === 0) throw new Error('El documento no tiene líneas.');
@@ -211,7 +235,9 @@ export function useDocument({ token, tenantId, docType, apiEndpoint }: UseDocume
         headers,
         body: JSON.stringify({
           seriesId, periodId, partnerId, date, warehouseId,
-          lines, ...extraBody
+          lines, 
+          ...pluginData,
+          ...extraBody
         })
       });
       
@@ -227,8 +253,8 @@ export function useDocument({ token, tenantId, docType, apiEndpoint }: UseDocume
   };
 
   return {
-    state: { partnerId, warehouseId, seriesId, periodId, date, lines, isSubmitting, seriesError },
-    setState: { setPartnerId, setWarehouseId, setSeriesId, setPeriodId, setDate, setLines },
+    state: { partnerId, warehouseId, seriesId, periodId, date, lines, isSubmitting, seriesError, mastersLoading, mastersError, canRead, canWrite, canDelete, pluginData },
+    setState: { setPartnerId, setWarehouseId, setSeriesId, setPeriodId, setDate, setLines, setPluginField, setPluginData },
     masters: { partners, items, warehouses, series, periods, taxGroups },
     actions: { addLine, updateLine, removeLine, submitDocument },
     computations: { subtotal, taxTotal, total }

@@ -1,190 +1,317 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Slot } from '../components/Slot';
-import { usePlugins } from '../context/PluginContext';
-import { Card, Badge } from '@openfactu/ui';
-import { 
-  TrendingUp, 
-  Package, 
-  Users, 
-  AlertTriangle, 
-  Clock, 
-  ArrowUpRight,
-  ShoppingCart,
-  Zap,
-  ChevronRight
+import { Card, Badge, DashboardSkeleton } from '@openfactu/ui';
+import { useAuth } from '../context/AuthContext';
+import { useFormat } from '../hooks/useFormat';
+import {
+ TrendingUp,
+ TrendingDown,
+ Package,
+ AlertTriangle,
+ Clock,
+ ArrowDownLeft,
+ ArrowUpRight,
+ ShoppingCart,
+ ChevronRight,
+ CalendarDays,
+ Users,
+ Truck,
+ FileText,
 } from 'lucide-react';
 
-export const Dashboard: React.FC = () => {
-  const { manifests } = usePlugins();
+interface DashboardSummary {
+ period: { id: string; code: string; name: string; startDate: string; endDate: string } | null;
+ sales: { total: number; count: number; prevTotal: number; prevCount: number };
+ purchases: { total: number; count: number; prevTotal: number; prevCount: number };
+ receivables: { open: number; openCount: number };
+ payables: { open: number; openCount: number };
+ stockAlerts: {
+ lowStock: { id: string; code: string; name: string; stock: number; minStock: number }[];
+ expiringBatches: { id: string; batchNum: string; itemName: string; expiryDate: string; quantity: number }[];
+ };
+ recentDocs: {
+ type: string; route: string; id: string; code: string;
+ date: string; total: number; partnerName: string; createdAt: string;
+ }[];
+ topPartners: {
+ customers: { id: string; name: string; total: number }[];
+ suppliers: { id: string; name: string; total: number }[];
+ };
+}
 
-  const metrics = [
-    { 
-      label: 'Ventas del Día', 
-      value: '14,250.00 €', 
-      trend: '+12.5%', 
-      icon: TrendingUp, 
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50'
-    },
-    { 
-      label: 'Artículos en Stock', 
-      value: '1,245', 
-      trend: '+3 nuevos', 
-      icon: Package, 
-      color: 'text-blue-600',
-      bg: 'bg-blue-50'
-    },
-    { 
-      label: 'Clientes Activos', 
-      value: '48', 
-      trend: '6 pendientes', 
-      icon: Users, 
-      color: 'text-indigo-600',
-      bg: 'bg-indigo-50'
-    },
-    { 
-      label: 'Alertas Sistema', 
-      value: '2', 
-      trend: 'Criticas', 
-      icon: AlertTriangle, 
-      color: 'text-rose-600',
-      bg: 'bg-rose-50'
-    }
-  ];
-
-  return (
-    <div className="p-8 max-w-7xl mx-auto w-full space-y-10 animate-in fade-in duration-700">
-      {/* Header Corporativo */}
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter font-display">
-            Business Overview
-          </h1>
-          <p className="text-slate-500 font-medium text-sm flex items-center gap-2">
-            <Clock size={14} className="text-slate-400" />
-            Lunes, 13 de Abril de 2026 · <span className="text-blue-600">Periodo Contable Abierto</span>
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Badge variant="success" className="px-3 py-1 text-[10px] font-black uppercase">Sistema Sincronizado</Badge>
-          <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white shadow-sm" />
-        </div>
-      </header>
-
-      {/* Grid de Métricas de Alta Densidad */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {metrics.map((m, i) => (
-          <Card key={i} className="relative group transition-all hover:shadow-xl hover:shadow-slate-200/50">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none mb-2">{m.label}</p>
-                <p className="text-2xl font-black text-slate-900 tracking-tighter">{m.value}</p>
-                <p className={`text-[11px] font-bold mt-2 flex items-center gap-1 ${m.color}`}>
-                  <ArrowUpRight size={12} /> {m.trend}
-                </p>
-              </div>
-              <div className={`p-3 rounded-xl ${m.bg} ${m.color} shadow-inner`}>
-                <m.icon size={20} />
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Panel Principal: Transacciones */}
-        <div className="lg:col-span-8 space-y-8">
-          <Card 
-            title="Actividad Reciente de Almacén" 
-            subtitle="Últimos movimientos y asignaciones de bins generados masivamente."
-            headerAction={<Button variant="secondary" size="sm">Ver todo</Button>}
-            noPadding
-          >
-            <div className="p-12 text-center space-y-4">
-              <div className="mx-auto w-16 h-16 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center text-slate-300">
-                <ShoppingCart size={32} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-800 tracking-tight">Cero transacciones en el periodo actual</p>
-                <p className="text-xs text-slate-400 font-medium">Empieza registrando una compra o ajustando el stock de apertura.</p>
-              </div>
-              <Button size="sm" className="mt-4">Registrar Movimiento</Button>
-            </div>
-          </Card>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             <Card title="Alertas de Trazabilidad" subtitle="Artículos gestionados por serie con irregularidades.">
-                <div className="flex items-center gap-4 p-3 bg-rose-50 border border-rose-100 rounded-xl">
-                  <div className="p-2 bg-rose-600 text-white rounded-lg shadow-md">
-                    <Zap size={16} />
-                  </div>
-                  <p className="text-xs font-bold text-rose-700">Auditando consistencia de lotes...</p>
-                </div>
-             </Card>
-             <Card title="Capacidad de Bodega" subtitle="Ocupación por zonas logísticas activas.">
-                <div className="space-y-3">
-                   <div className="flex items-center justify-between text-[11px] font-bold uppercase text-slate-500">
-                      <span>Almacén Central</span>
-                      <span>12%</span>
-                   </div>
-                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 w-[12%] rounded-full shadow-inner" />
-                   </div>
-                </div>
-             </Card>
-          </div>
-        </div>
-
-        {/* Barra Lateral: Estado de Extensiones */}
-        <aside className="lg:col-span-4 space-y-8">
-          <Card 
-            title="Ecosistema de Plugins" 
-            subtitle="Estado de los servicios inyectados en el core."
-            className="border-slate-100 bg-slate-50/50"
-          >
-             <div className="space-y-4">
-               {manifests.length > 0 ? manifests.map(p => (
-                 <div key={p.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 shadow-sm transition-transform hover:scale-[1.02]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <p className="text-xs font-bold text-slate-800">{p.name}</p>
-                    </div>
-                    <ChevronRight size={14} className="text-slate-300" />
-                 </div>
-               )) : (
-                 <p className="text-xs text-slate-400 italic">No hay plugins activos</p>
-               )}
-             </div>
-          </Card>
-
-          <Card title="Recursos Directos" className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white border-none shadow-blue-900/40">
-            <div className="space-y-3">
-               <p className="text-xs font-medium opacity-80">Documentación y Soporte Premium habilitado para este tenant.</p>
-               <button className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold transition-all border border-white/10">
-                  Acceder a Base de Conocimiento
-               </button>
-            </div>
-          </Card>
-        </aside>
-      </div>
-
-      {/* Slots para extensibilidad total */}
-      <Slot name="dashboard:main:bottom" />
-    </div>
-  );
+const computeDelta = (current: number, previous: number) => {
+ if (!previous) return null;
+ const pct = ((current - previous) / previous) * 100;
+ return Math.round(pct * 10) / 10;
 };
 
-// Componente simple de botón para el Dashboard (puede ser movido a packages/ui después)
-const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary', size?: 'sm' | 'md' }> = ({ children, className, variant = 'primary', size = 'md', ...props }) => (
-   <button 
-     className={`
-       ${variant === 'primary' ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}
-       ${size === 'sm' ? 'px-3 py-1.5 text-[11px]' : 'px-4 py-2 text-sm'}
-       font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50
-       ${className}
-     `}
-     {...props}
-   >
-     {children}
-   </button>
+const DOC_TYPE_LABELS: Record<string, string> = {
+ salesInvoice: 'Factura venta',
+ purchaseInvoice: 'Factura compra',
+ salesDeliveryNote: 'Albarán venta',
+ purchaseDeliveryNote:'Albarán compra',
+};
+
+const DOC_TYPE_ICONS: Record<string, any> = {
+ salesInvoice: FileText,
+ purchaseInvoice: FileText,
+ salesDeliveryNote: Truck,
+ purchaseDeliveryNote: Truck,
+};
+
+export const Dashboard: React.FC = () => {
+ const { token, user } = useAuth();
+ const fmt = useFormat();
+ const navigate = useNavigate();
+ const [data, setData] = useState<DashboardSummary | null>(null);
+ const [loading, setLoading] = useState(true);
+ const [error, setError] = useState<string | null>(null);
+
+ useEffect(() => {
+ if (!user?.tenantId) return;
+ const load = async () => {
+ setLoading(true);
+ try {
+ const res = await fetch('/api/dashboard/summary', {
+ headers: { Authorization: `Bearer ${token}`, 'x-tenant-id': user?.tenantId || '' },
+ });
+ if (!res.ok) throw new Error('http');
+ const json = await res.json();
+ setData(json);
+ setError(null);
+ } catch {
+ setError('No se pudo cargar el resumen');
+ } finally {
+ setLoading(false);
+ }
+ };
+ load();
+ }, [user?.tenantId, token]);
+
+ if (loading) {
+ return <DashboardSkeleton />;
+ }
+
+ if (error || !data) {
+ return (
+ <div className="p-12 text-center text-slate-500 dark:text-slate-400 dark:text-slate-500">
+ {error || 'Sin datos disponibles'}
+ </div>
+ );
+ }
+
+ const salesDelta = computeDelta(data.sales.total, data.sales.prevTotal);
+ const purchasesDelta = computeDelta(data.purchases.total, data.purchases.prevTotal);
+
+ const periodLabel = data.period
+ ? `${data.period.name} · ${fmt.date(data.period.startDate)} – ${fmt.date(data.period.endDate)}`
+ : 'Sin periodo activo';
+
+ return (
+ <div className="p-8 max-w-7xl mx-auto w-full space-y-8 duration-500">
+ <header className="flex items-center justify-between">
+ <div>
+ <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tighter font-display">
+ Business Overview
+ </h1>
+ <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium text-sm flex items-center gap-2">
+ <CalendarDays size={14} className="text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500"/>
+ {periodLabel}
+ </p>
+ </div>
+ <Badge variant="success"className="px-3 py-1 text-[10px] font-black uppercase">
+ Sistema Sincronizado
+ </Badge>
+ </header>
+
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+ <KpiCard
+ label="Ventas del periodo" value={fmt.money(data.sales.total)}
+ subtitle={`${data.sales.count} facturas`}
+ delta={salesDelta}
+ icon={TrendingUp}
+ color="text-emerald-600 dark:text-emerald-300" bg="bg-emerald-50 dark:bg-emerald-500/10" />
+ <KpiCard
+ label="Compras del periodo" value={fmt.money(data.purchases.total)}
+ subtitle={`${data.purchases.count} facturas`}
+ delta={purchasesDelta}
+ icon={TrendingDown}
+ color="text-blue-600 dark:text-blue-300" bg="bg-blue-50 dark:bg-blue-500/10" />
+ <KpiCard
+ label="Cobros pendientes" value={fmt.money(data.receivables.open)}
+ subtitle={`${data.receivables.openCount} facturas abiertas`}
+ icon={ArrowDownLeft}
+ color="text-indigo-600 dark:text-indigo-300" bg="bg-indigo-50 dark:bg-indigo-500/10" />
+ <KpiCard
+ label="Pagos pendientes" value={fmt.money(data.payables.open)}
+ subtitle={`${data.payables.openCount} facturas abiertas`}
+ icon={ArrowUpRight}
+ color="text-rose-600 dark:text-rose-300" bg="bg-rose-50 dark:bg-rose-500/10" />
+ </div>
+
+ <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+ <div className="lg:col-span-8 space-y-6">
+ <Card title="Documentos recientes"subtitle="Últimas facturas y albaranes registrados.">
+ {data.recentDocs.length === 0 ? (
+ <EmptyState
+ icon={ShoppingCart}
+ title="Sin documentos" hint="Crea una factura o un albarán para verlo aquí." />
+ ) : (
+ <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+ {data.recentDocs.map((d) => {
+ const Icon = DOC_TYPE_ICONS[d.type] || FileText;
+ return (
+ <li key={`${d.type}-${d.id}`}>
+ <button
+ onClick={() => navigate(d.route)}
+ className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800/50 rounded-lg px-2 transition-colors text-left" >
+ <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 dark:text-slate-600">
+ <Icon size={16} />
+ </div>
+ <div className="flex-1 min-w-0">
+ <p className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide">
+ {DOC_TYPE_LABELS[d.type] || d.type}
+ </p>
+ <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{d.code}</p>
+ <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 truncate">{d.partnerName || '—'}</p>
+ </div>
+ <div className="text-right">
+ <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{fmt.money(d.total)}</p>
+ <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">{fmt.date(d.date)}</p>
+ </div>
+ <ChevronRight size={14} className="text-slate-300 dark:text-slate-600 dark:text-slate-300 dark:text-slate-600"/>
+ </button>
+ </li>
+ );
+ })}
+ </ul>
+ )}
+ </Card>
+
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+ <Card title="Stock crítico"subtitle="Artículos por debajo del mínimo.">
+ {data.stockAlerts.lowStock.length === 0 ? (
+ <EmptyState icon={Package} title="Sin alertas"hint="Todos los stocks están en orden."/>
+ ) : (
+ <ul className="space-y-2">
+ {data.stockAlerts.lowStock.map((it) => (
+ <li key={it.id} className="flex items-center justify-between text-sm">
+ <div className="min-w-0">
+ <p className="font-bold text-slate-800 dark:text-slate-100 truncate">{it.name}</p>
+ <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">{it.code}</p>
+ </div>
+ <div className="text-right">
+ <p className="font-bold text-rose-600 dark:text-rose-300">{Number(it.stock).toFixed(2)}</p>
+ <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">min {Number(it.minStock).toFixed(2)}</p>
+ </div>
+ </li>
+ ))}
+ </ul>
+ )}
+ </Card>
+
+ <Card title="Lotes próximos a caducar"subtitle="Próximos 30 días.">
+ {data.stockAlerts.expiringBatches.length === 0 ? (
+ <EmptyState icon={AlertTriangle} title="Sin caducidades"hint="Ningún lote a punto de caducar."/>
+ ) : (
+ <ul className="space-y-2">
+ {data.stockAlerts.expiringBatches.map((b) => (
+ <li key={b.id} className="flex items-center justify-between text-sm">
+ <div className="min-w-0">
+ <p className="font-bold text-slate-800 dark:text-slate-100 truncate">{b.itemName}</p>
+ <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">Lote {b.batchNum}</p>
+ </div>
+ <div className="text-right">
+ <p className="font-bold text-amber-600 dark:text-amber-300">{fmt.date(b.expiryDate)}</p>
+ <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">{Number(b.quantity).toFixed(2)} ud</p>
+ </div>
+ </li>
+ ))}
+ </ul>
+ )}
+ </Card>
+ </div>
+ </div>
+
+ <aside className="lg:col-span-4 space-y-6">
+ <Card title="Top clientes"subtitle="Mayor facturación del periodo.">
+ <PartnerRanking items={data.topPartners.customers} accent="text-emerald-600 dark:text-emerald-300"/>
+ </Card>
+ <Card title="Top proveedores"subtitle="Mayor compra del periodo.">
+ <PartnerRanking items={data.topPartners.suppliers} accent="text-blue-600 dark:text-blue-300"/>
+ </Card>
+ </aside>
+ </div>
+
+ <Slot name="dashboard:main:bottom"/>
+ </div>
+ );
+};
+
+interface KpiCardProps {
+ label: string;
+ value: string;
+ subtitle: string;
+ delta?: number | null;
+ icon: any;
+ color: string;
+ bg: string;
+}
+
+const KpiCard: React.FC<KpiCardProps> = ({ label, value, subtitle, delta, icon: Icon, color, bg }) => {
+ const deltaColor = delta == null ? 'text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500' : delta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+ const DeltaIcon = delta == null ? Clock : delta >= 0 ? ArrowUpRight : ArrowDownLeft;
+ return (
+ <Card className="relative group transition-all hover: hover:">
+ <div className="flex items-start justify-between">
+ <div className="min-w-0">
+ <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 tracking-widest leading-none mb-2">
+ {label}
+ </p>
+ <p className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tighter truncate">{value}</p>
+ <p className="text-[11px] text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">{subtitle}</p>
+ <p className={`text-[11px] font-bold mt-2 flex items-center gap-1 ${deltaColor}`}>
+ <DeltaIcon size={12} />
+ {delta == null ? 'sin comparativa' : `${delta > 0 ? '+' : ''}${delta}% vs anterior`}
+ </p>
+ </div>
+ <div className={`p-3 rounded-xl ${bg} ${color} shadow-inner`}>
+ <Icon size={20} />
+ </div>
+ </div>
+ </Card>
+ );
+};
+
+const PartnerRanking: React.FC<{ items: { id: string; name: string; total: number }[]; accent: string }> = ({ items, accent }) => {
+ const fmt = useFormat();
+ if (items.length === 0) {
+ return <p className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 italic">Sin datos en el periodo</p>;
+ }
+ return (
+ <ul className="space-y-3">
+ {items.map((p, idx) => (
+ <li key={p.id} className="flex items-center gap-3">
+ <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold text-[11px] flex items-center justify-center">
+ {idx + 1}
+ </div>
+ <div className="flex-1 min-w-0">
+ <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{p.name}</p>
+ </div>
+ <p className={`text-sm font-bold ${accent}`}>{fmt.money(p.total)}</p>
+ </li>
+ ))}
+ </ul>
+ );
+};
+
+const EmptyState: React.FC<{ icon: any; title: string; hint: string }> = ({ icon: Icon, title, hint }) => (
+ <div className="py-8 text-center space-y-2">
+ <div className="mx-auto w-12 h-12 bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-center text-slate-300 dark:text-slate-600 dark:text-slate-300 dark:text-slate-600">
+ <Icon size={20} />
+ </div>
+ <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{title}</p>
+ <p className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">{hint}</p>
+ </div>
 );

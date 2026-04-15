@@ -37,3 +37,5 @@ export interface PluginConfig {
 
 export * from './hooks/useDocument';
 export * from './hooks/useDataTable';
+export * from './format';
+export * from './geoValidation';

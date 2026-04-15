@@ -2,8 +2,20 @@ import { Router } from 'express';
 import { eq, desc } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import crypto from 'crypto';
+import { renderDocumentPdf } from '../core/documents/renderDocumentPdf';
+import { logAudit } from '../utils/audit';
 
 const router = Router();
+
+// GET /orders/:id/pdf
+router.get('/orders/:id/pdf', async (req: any, res) => {
+  try {
+    await renderDocumentPdf('PO', req.params.id, req.query.templateId as string | undefined, req.tenantClient, res);
+  } catch (error: any) {
+    console.error('[PurchaseOrder PDF] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // GET all orders
 router.get('/orders', async (req: any, res) => {
@@ -127,6 +139,15 @@ router.post('/orders', async (req: any, res) => {
     });
 
     res.json(result);
+    logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.tenantId || '',
+      userId: req.user?.id,
+      entityType: 'PurchaseOrder',
+      entityId: result.header?.id,
+      action: 'CREATE',
+      newValue: { docNum: result.assignedDocNum, partnerId: req.body.partnerId },
+    });
   } catch (error: any) {
     console.error('Error al crear Pedido:', error);
     res.status(500).json({ error: error.message });
@@ -162,11 +183,22 @@ router.get('/orders/:id', async (req: any, res) => {
 router.patch('/orders/:id/status', async (req: any, res) => {
   const { status } = req.body;
   try {
+    const [old] = await req.tenantClient.select().from(schema.purchaseOrders).where(eq(schema.purchaseOrders.id, req.params.id));
     const [updated] = await req.tenantClient.update(schema.purchaseOrders)
       .set({ status })
       .where(eq(schema.purchaseOrders.id, req.params.id))
       .returning();
     res.json(updated);
+    if (old) logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.tenantId || '',
+      userId: req.user?.id,
+      entityType: 'PurchaseOrder',
+      entityId: req.params.id,
+      action: 'UPDATE',
+      oldValue: { status: old.status },
+      newValue: { status },
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

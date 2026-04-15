@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { MigrationEngine } from '../core/plugins/MigrationEngine';
 import { PluginContext } from './types';
+import { HookManager } from '../core/plugins/HookManager';
 
 // Almacén en memoria de plugins cargados
 export const activePlugins: string[] = [];
@@ -57,7 +58,23 @@ export const loadPlugins = async (app: Express) => {
         if (typeof initFn === 'function') {
             const context: PluginContext = {
                 app,
-                migration: MigrationEngine
+                migration: {
+                    addCustomField: MigrationEngine.addCustomField.bind(MigrationEngine),
+                    createTable: MigrationEngine.createPluginTable.bind(MigrationEngine)
+                },
+                hooks: {
+                    register: HookManager.register.bind(HookManager)
+                },
+                documents: {
+                    onBeforeCreate: (tableName: string, handler: any) => {
+                        const event = `${tableName.charAt(0).toLowerCase() + tableName.slice(1)}.beforeCreate`;
+                        HookManager.register(event, handler);
+                    },
+                    onAfterCreate: (tableName: string, handler: any) => {
+                        const event = `${tableName.charAt(0).toLowerCase() + tableName.slice(1)}.afterCreate`;
+                        HookManager.register(event, handler);
+                    }
+                }
             };
 
             await initFn(context);

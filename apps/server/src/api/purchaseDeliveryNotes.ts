@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { eq, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import crypto from 'crypto';
+import { renderDocumentPdf } from '../core/documents/renderDocumentPdf';
+import { logAudit } from '../utils/audit';
 
 const router = Router();
 
@@ -85,6 +87,16 @@ router.get('/:id', async (req: any, res) => {
   }
 });
 
+// GET /:id/pdf
+router.get('/:id/pdf', async (req: any, res) => {
+  try {
+    await renderDocumentPdf('PDN', req.params.id, req.query.templateId as string | undefined, req.tenantClient, res);
+  } catch (error: any) {
+    console.error('[PurchaseDeliveryNote PDF] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST new delivery note (Entry of Goods)
 router.post('/', async (req: any, res) => {
   const { seriesId, periodId, partnerId, orderId, date, lines, warehouseId } = req.body;
@@ -128,9 +140,10 @@ router.post('/', async (req: any, res) => {
         taxBreakdown: '{}'
       }).returning();
 
-      // 2.5 Consultar Configuración de Ubicaciones
-      const [configZones] = await tx.select().from(schema.systemConfigs).where(eq(schema.systemConfigs.key, 'enforceWarehouseZones'));
-      const enforceZones = configZones && configZones.value === 'true';
+      // 2.5 Consultar flag de forzar zonas de almacén (nueva clave + fallback legacy)
+      const [cfgNew]    = await tx.select().from(schema.systemConfigs).where(eq(schema.systemConfigs.key, 'flags_enforce_warehouse_zones'));
+      const [cfgLegacy] = await tx.select().from(schema.systemConfigs).where(eq(schema.systemConfigs.key, 'enforceWarehouseZones'));
+      const enforceZones = (cfgNew?.value === 'true') || (cfgLegacy?.value === 'true');
 
       // 3. Procesar Líneas y Stock
       for (const line of lines) {
@@ -304,6 +317,15 @@ router.post('/', async (req: any, res) => {
     });
 
     res.json(result);
+    logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.tenantId || '',
+      userId: req.user?.id,
+      entityType: 'PurchaseDeliveryNote',
+      entityId: result.header?.id,
+      action: 'CREATE',
+      newValue: { docNum: result.docNum, partnerId: req.body.partnerId },
+    });
   } catch (error: any) {
     console.error('Error en Albarán de Compra:', error);
     res.status(500).json({ error: error.message });
@@ -376,6 +398,14 @@ router.delete('/:id', async (req: any, res) => {
     });
 
     res.json(result);
+    logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.tenantId || '',
+      userId: req.user?.id,
+      entityType: 'PurchaseDeliveryNote',
+      entityId: req.params.id,
+      action: 'DELETE',
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

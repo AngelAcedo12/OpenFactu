@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { eq } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import crypto from 'crypto';
+import { logAudit } from '../utils/audit';
 
 const router = Router();
 
@@ -33,14 +34,12 @@ router.get('/:id', async (req: any, res) => {
 router.post('/', async (req: any, res) => {
   const { code, rate } = req.body;
   try {
+    const id = crypto.randomUUID();
     const [inserted] = await req.tenantClient.insert(schema.taxGroups)
-      .values({
-        id: crypto.randomUUID(),
-        code,
-        rate: String(rate)
-      })
+      .values({ id, code, rate: String(rate) })
       .returning();
     res.json(inserted);
+    logAudit({ tenantClient: req.tenantClient, tenantId: req.tenantId || '', userId: req.user?.id, entityType: 'TaxGroup', entityId: id, action: 'CREATE', newValue: inserted });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -49,15 +48,15 @@ router.post('/', async (req: any, res) => {
 // PATCH update tax group
 router.patch('/:id', async (req: any, res) => {
   const { code, rate } = req.body;
+  const { id } = req.params;
   try {
+    const [old] = await req.tenantClient.select().from(schema.taxGroups).where(eq(schema.taxGroups.id, id));
     const [updated] = await req.tenantClient.update(schema.taxGroups)
-      .set({
-        ...(code && { code }),
-        ...(rate && { rate: String(rate) })
-      })
-      .where(eq(schema.taxGroups.id, req.params.id))
+      .set({ ...(code && { code }), ...(rate && { rate: String(rate) }) })
+      .where(eq(schema.taxGroups.id, id))
       .returning();
     res.json(updated);
+    logAudit({ tenantClient: req.tenantClient, tenantId: req.tenantId || '', userId: req.user?.id, entityType: 'TaxGroup', entityId: id, action: 'UPDATE', oldValue: old, newValue: updated });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -65,10 +64,12 @@ router.patch('/:id', async (req: any, res) => {
 
 // DELETE tax group
 router.delete('/:id', async (req: any, res) => {
+  const { id } = req.params;
   try {
-    await req.tenantClient.delete(schema.taxGroups)
-      .where(eq(schema.taxGroups.id, req.params.id));
+    const [old] = await req.tenantClient.select().from(schema.taxGroups).where(eq(schema.taxGroups.id, id));
+    await req.tenantClient.delete(schema.taxGroups).where(eq(schema.taxGroups.id, id));
     res.json({ success: true });
+    if (old) logAudit({ tenantClient: req.tenantClient, tenantId: req.tenantId || '', userId: req.user?.id, entityType: 'TaxGroup', entityId: id, action: 'DELETE', oldValue: old });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

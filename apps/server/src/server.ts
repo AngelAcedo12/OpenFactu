@@ -23,10 +23,21 @@ import salesOrdersRouter from './api/salesOrders';
 import salesDeliveryNotesRouter from './api/salesDeliveryNotes';
 import salesInvoicesRouter from './api/salesInvoices';
 import taxesRouter from './api/taxes';
+import auditLogsRouter from './api/auditLogs';
+import membershipsRouter from './api/memberships';
+import documentTemplatesRouter from './api/documentTemplates';
+import companyRouter from './api/company';
+import dashboardRouter from './api/dashboard';
+import tenantsRouter from './api/tenants';
+import configRouter from './api/config';
+import searchRouter from './api/search';
+import geoRouter from './api/geo';
 import { tenantContextMiddleware } from './api/middleware/tenantContext';
 import { MigrationManager } from './core/tenant/MigrationManager';
 import { bootstrapAdmin } from './core/auth/bootstrap';
 import { ClientFactory } from './core/tenant/ClientFactory';
+import { seedGeo } from './core/geo/seedGeo';
+import { PdfRenderer } from '@openfactu/pdf';
 import { sql } from 'drizzle-orm';
 
 dotenv.config();
@@ -61,10 +72,19 @@ app.use('/api/series', seriesRouter);
 app.use('/api/purchases', purchasesRouter);
 app.use('/api/purchases/delivery-notes', purchaseDeliveryNotesRouter);
 app.use('/api/purchases/invoices', purchaseInvoicesRouter);
-app.use('/api/sales', salesOrdersRouter);
 app.use('/api/sales/delivery-notes', salesDeliveryNotesRouter);
 app.use('/api/sales/invoices', salesInvoicesRouter);
+app.use('/api/sales', salesOrdersRouter);
 app.use('/api/taxes', taxesRouter);
+app.use('/api/audit-logs', auditLogsRouter);
+app.use('/api/memberships', membershipsRouter);
+app.use('/api/document-templates', documentTemplatesRouter);
+app.use('/api/company', companyRouter);
+app.use('/api/dashboard', dashboardRouter);
+app.use('/api/tenants', tenantsRouter);
+app.use('/api/config', configRouter);
+app.use('/api/search', searchRouter);
+app.use('/api/geo', geoRouter);
 
 
 // Health check para el instalador y Docker
@@ -102,7 +122,14 @@ const start = async () => {
 
     await bootstrapAdmin();
     console.log('[Bootstrap] Administrador verificado.');
-    
+
+    // Seed de datos geográficos (países, provincias, municipios)
+    try {
+      await seedGeo(ClientFactory.getClient('public'));
+    } catch (err: any) {
+      console.warn('[Bootstrap] Seed geográfico falló:', err.message);
+    }
+
     // Sincronizar esquemas de todos los tenants
     console.log('[Bootstrap] Sincronizando esquemas de empresas...');
     await MigrationManager.syncAllTenants();
@@ -118,5 +145,14 @@ const start = async () => {
     process.exit(1);
   }
 };
+
+// Cerrar Puppeteer al recibir señal de apagado
+const shutdown = async () => {
+  console.log('[Server] Cerrando recursos...');
+  try { await PdfRenderer.shutdown(); } catch { /* noop */ }
+  process.exit(0);
+};
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 start();
