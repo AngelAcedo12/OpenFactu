@@ -1,26 +1,70 @@
 import React from 'react';
 
-/**
- * Manifiesto oficial para un plugin de OpenFactu.
- */
-export interface OpenFactuPluginManifest {
-  id: string;
+// ── Hook Context (lo que recibe un hook al ejecutarse) ──
+
+export interface HookContext {
+  tenantId: string;
+  db: any;
+  data: any;
+  user?: any;
+  [key: string]: any;
+}
+
+export type HookHandler = (ctx: HookContext) => Promise<void> | void;
+
+// ── Plugin Context (lo que recibe init()) ──
+
+export interface PluginContext {
+  app: any;
+  migration: {
+    addCustomField: (opts: {
+      pluginId: string;
+      tableName: CoreTableName | string;
+      fieldName: string;
+      type: 'TEXT' | 'INTEGER' | 'DECIMAL' | 'BOOLEAN' | 'JSONB';
+      label: string;
+    }) => Promise<void>;
+    createTable: (opts: {
+      pluginId: string;
+      tableName: string;
+      columns: Array<{
+        name: string;
+        type: 'TEXT' | 'INTEGER' | 'DECIMAL' | 'BOOLEAN' | 'JSONB' | 'UUID' | 'TIMESTAMP';
+        primaryKey?: boolean;
+        nullable?: boolean;
+        default?: string;
+      }>;
+    }) => Promise<void>;
+  };
+  hooks: {
+    register: (event: string, handler: HookHandler) => void;
+  };
+  documents: {
+    onBeforeCreate: (tableName: string, handler: HookHandler) => void;
+    onAfterCreate: (tableName: string, handler: HookHandler) => void;
+  };
+  factuApi: any;
+}
+
+export type PluginInit = (context: PluginContext) => void | Promise<void>;
+
+// ── Manifest ──
+
+export interface PluginManifest {
   name: string;
   version: string;
   description?: string;
+  author?: string;
+  logo?: string;
   ui?: {
     routes?: Array<{
       path: string;
       title: string;
       type: 'table' | 'form' | 'custom' | 'dashboard';
-      config: {
-        endpoint?: string;
-        component?: string;
-        props?: any;
-        columns?: any[];
-      };
+      icon?: string;
+      config?: any;
     }>;
-    menuItems: Array<{
+    menuItems?: Array<{
       label: string;
       path: string;
       icon: string;
@@ -28,77 +72,29 @@ export interface OpenFactuPluginManifest {
   };
 }
 
-/**
- * Contexto de inicialización del servidor ERP para plugins.
- */
-export interface PluginServerContext {
-  app: any; // Express app instance
-  migration: {
-    addCustomField: (field: any) => Promise<void>;
-  };
-}
+// ── Tablas del ERP ──
 
-/**
- * Definición de la función init() del plugin.
- */
-export type PluginInitFunction = (context: PluginServerContext) => void | Promise<void>;
+export type CoreTableName =
+  | 'SalesInvoice' | 'SalesOrder' | 'SalesDeliveryNote'
+  | 'PurchaseInvoice' | 'PurchaseOrder' | 'PurchaseDeliveryNote'
+  | 'SalesInvoiceLine' | 'SalesOrderLine' | 'SalesDeliveryNoteLine'
+  | 'PurchaseInvoiceLine' | 'PurchaseOrderLine' | 'PurchaseDeliveryNoteLine'
+  | 'BusinessPartner' | 'Item' | 'Warehouse' | 'WarehouseZone'
+  | 'Category' | 'UnitOfMeasure' | 'AccountingPeriod' | 'DocumentSeries';
 
-/**
- * Nota: El SDK no requiere que instales React localmente para funcionar en el ERP.
- * Sin embargo, lo usamos aquí para proveer tipos genéricos durante el desarrollo.
- */
+// ── Hooks disponibles ──
+
+export type DocumentType =
+  | 'salesInvoice' | 'purchaseInvoice'
+  | 'salesOrder' | 'purchaseOrder'
+  | 'salesDeliveryNote' | 'purchaseDeliveryNote';
+
+export type HookEvent = `${DocumentType}.${'beforeCreate' | 'afterCreate'}`;
+
+// ── UI Components (tipos para IntelliSense) ──
+
 export type OpenFactuComponent<P = {}> = React.FC<P>;
 
-/**
- * Nombres de las tablas del ERP disponibles para extensión vía plugins.
- * Cualquier tabla listada aquí puede recibir campos custom.
- */
-export type CoreTableName =
-  // Documentos — cabeceras
-  | 'SalesInvoice'
-  | 'SalesOrder'
-  | 'SalesDeliveryNote'
-  | 'PurchaseInvoice'
-  | 'PurchaseOrder'
-  | 'PurchaseDeliveryNote'
-  // Documentos — líneas
-  | 'SalesInvoiceLine'
-  | 'SalesOrderLine'
-  | 'SalesDeliveryNoteLine'
-  | 'PurchaseInvoiceLine'
-  | 'PurchaseOrderLine'
-  | 'PurchaseDeliveryNoteLine'
-  // Maestros
-  | 'BusinessPartner'
-  | 'Item'
-  | 'Warehouse'
-  | 'WarehouseZone'
-  | 'Category'
-  | 'UnitOfMeasure'
-  // Sistema
-  | 'AccountingPeriod'
-  | 'DocumentSeries';
-
-/**
- * Tipos de datos soportados para la extensión de tablas.
- */
-export type FieldType = 'TEXT' | 'INTEGER' | 'DECIMAL' | 'BOOLEAN' | 'DATE' | 'JSON';
-
-/**
- * Definición de un campo inyectado.
- */
-export interface InjectedField {
-  pluginId: string;
-  tableName: CoreTableName | string; // Permite tablas core o personalizadas
-  fieldName: string;
-  fieldType: FieldType;
-  label: string;
-}
-
-/**
- * Re-exportamos los tipos de los componentes principales de la UI
- * para que el desarrollador tenga IntelliSense.
- */
 export interface UIComponents {
   Button: React.FC<any>;
   Card: React.FC<any>;
@@ -106,12 +102,28 @@ export interface UIComponents {
   Badge: React.FC<any>;
   Input: React.FC<any>;
   Loader: React.FC<any>;
-  ToastProvider: React.FC<{ children: React.ReactNode }>;
-
+  Modal: React.FC<any>;
   useToast: () => {
     success: (msg: string) => void;
     error: (msg: string) => void;
     info: (msg: string) => void;
     warning: (msg: string) => void;
   };
+}
+
+// ── Re-exports para compatibilidad ──
+
+/** @deprecated Usa PluginContext */
+export type PluginServerContext = PluginContext;
+/** @deprecated Usa PluginInit */
+export type PluginInitFunction = PluginInit;
+/** @deprecated Usa PluginManifest */
+export type OpenFactuPluginManifest = PluginManifest;
+export type FieldType = 'TEXT' | 'INTEGER' | 'DECIMAL' | 'BOOLEAN' | 'JSONB';
+export interface InjectedField {
+  pluginId: string;
+  tableName: CoreTableName | string;
+  fieldName: string;
+  fieldType: FieldType;
+  label: string;
 }

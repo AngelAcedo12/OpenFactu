@@ -11,7 +11,28 @@ let _schema: any = null;
 
 function getSchema() {
   if (!_schema) {
-    _schema = require(path.join(getServerSrcDir(), 'db/schema'));
+    // Registrar ts-node si esta disponible (para leer .ts directamente)
+    try {
+      require('ts-node').register({ transpileOnly: true, compilerOptions: { module: 'commonjs', esModuleInterop: true } });
+    } catch {}
+
+    const srcPath = path.join(getServerSrcDir(), 'db/schema');
+    const distPath = path.join(getServerSrcDir(), '..', 'dist/db/schema');
+
+    try {
+      _schema = require(srcPath);
+    } catch {
+      try {
+        _schema = require(distPath);
+      } catch {
+        throw new Error(
+          `No se pudo cargar el schema de la BD.\n` +
+          `Intentado: ${srcPath}\n` +
+          `Intentado: ${distPath}\n` +
+          `Ejecuta 'npm install' en el directorio de OpenFactu.`
+        );
+      }
+    }
   }
   return _schema;
 }

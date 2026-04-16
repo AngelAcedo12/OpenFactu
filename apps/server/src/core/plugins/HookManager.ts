@@ -27,6 +27,17 @@ export class HookManager {
   }
 
   /**
+   * Elimina todos los hooks registrados por un plugin.
+   * Se usa para hot reload — limpiar antes de re-registrar.
+   */
+  public static unregisterPlugin(pluginId: string) {
+    for (const [event, entries] of this.hooks) {
+      this.hooks.set(event, entries.filter((e) => e.pluginId !== pluginId));
+    }
+    console.log(`[HookManager] Hooks de ${pluginId} eliminados`);
+  }
+
+  /**
    * Dispara los hooks registrados para un evento.
    * Filtra por activación del plugin en el tenant actual (context.tenantId).
    */

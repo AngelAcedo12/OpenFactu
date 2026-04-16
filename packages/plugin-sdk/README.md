@@ -1,67 +1,122 @@
 # @openfactu/plugin-sdk
 
-SDK oficial para el desarrollo de plugins en la plataforma **OpenFactu ERP**.
+SDK oficial para desarrollar plugins de [OpenFactu](https://github.com/AngelAcedo12/OpenFactu).
 
-Este paquete proporciona las definiciones de tipos, interfaces y herramientas necesarias para extender las capacidades de OpenFactu mediante plugins desacoplados.
-
-## 🚀 Instalación
-
-Para comenzar a desarrollar tu plugin, instala el SDK en tu proyecto:
+## Instalacion
 
 ```bash
-npm install @openfactu/plugin-sdk --save-dev
+npm install @openfactu/plugin-sdk
 ```
 
-## 🛠️ Uso
+## Inicio rapido
 
-### 1. Definir el Manifiesto
+```typescript
+import type { PluginContext, HookContext } from '@openfactu/plugin-sdk';
 
-Crea un archivo `manifest.json` en la raíz de tu plugin:
+const PLUGIN_ID = 'mi-plugin';
+
+export const init = async ({ hooks, migration, documents, app }: PluginContext) => {
+  // Añadir campo a una tabla
+  await migration.addCustomField({
+    pluginId: PLUGIN_ID,
+    tableName: 'BusinessPartner',
+    fieldName: 'loyalty_points',
+    type: 'INTEGER',
+    label: 'Puntos de fidelidad',
+  });
+
+  // Hook antes de crear factura
+  documents.onBeforeCreate('SalesInvoice', async (ctx: HookContext) => {
+    if (ctx.data.total > 10000) {
+      throw new Error('Limite excedido');
+    }
+  });
+
+  // Ruta API personalizada
+  app.get(`/api/plugins/${PLUGIN_ID}/status`, (req, res) => {
+    res.json({ status: 'active' });
+  });
+};
+```
+
+## Tipos disponibles
+
+| Tipo | Descripcion |
+|------|-------------|
+| `PluginContext` | Lo que recibe `init()`: app, migration, hooks, documents, factuApi |
+| `HookContext` | Lo que recibe un hook: tenantId, db, data, user |
+| `PluginInit` | Tipo de la funcion init |
+| `PluginManifest` | Estructura del manifest.json |
+| `CoreTableName` | Tablas del ERP que se pueden extender |
+| `DocumentType` | Tipos de documento (salesInvoice, purchaseInvoice, etc.) |
+| `HookEvent` | Eventos de hooks (salesInvoice.beforeCreate, etc.) |
+| `HookHandler` | Tipo del handler de un hook |
+
+## Componentes UI
+
+Los plugins pueden tener componentes React que se cargan en el ERP. Usa `@openfactu/ui` para los componentes:
+
+```tsx
+import React, { useState } from 'react';
+import { Card, Button, Table } from '@openfactu/ui';
+
+const Page = () => {
+  return (
+    <Card>
+      <h2>Mi Plugin</h2>
+      <Button onClick={() => alert('hola')}>Click</Button>
+    </Card>
+  );
+};
+
+export default Page;
+```
+
+## Manifest
 
 ```json
 {
-  "id": "mi-plugin-personalizado",
-  "name": "Mi Super Plugin",
+  "name": "Mi Plugin",
   "version": "1.0.0",
+  "description": "Descripcion",
+  "logo": "Puzzle",
   "ui": {
     "routes": [
       {
-        "path": "/mi-ruta",
-        "title": "Mi Vista",
+        "path": "/plugin/mi-plugin",
+        "title": "Mi Plugin",
         "type": "custom",
-        "config": {
-          "component": "ui/MiComponente.tsx"
-        }
+        "config": { "component": "ui/Page.tsx" }
       }
+    ],
+    "menuItems": [
+      { "label": "Mi Plugin", "path": "/plugin/mi-plugin", "icon": "Puzzle" }
     ]
   }
 }
 ```
 
-### 2. Crear Componentes UI
+## Desarrollo remoto
 
-Puedes usar React y `@openfactu/ui` (proporcionados por el ERP en ejecución):
+Sube tu plugin a un servidor OpenFactu sin necesidad de acceso SSH:
 
-```tsx
-import React from 'react';
-import { Button, Card } from '@openfactu/ui';
-import { Zap } from 'lucide-react';
+```bash
+# Subir una vez
+openfactu plugin push --server http://mi-servidor:3000 --client-id ofk_... --client-secret ofs_...
 
-export const MiComponente = () => {
-  return (
-    <Card className="p-6">
-      <h2 className="text-xl font-bold flex items-center gap-2">
-        <Zap className="text-blue-500" />
-        Hola desde mi Plugin
-      </h2>
-      <Button className="mt-4">Click de Prueba</Button>
-    </Card>
-  );
-};
-
-export default MiComponente;
+# Auto-sync al guardar
+openfactu plugin watch --server http://mi-servidor:3000 --client-id ofk_... --client-secret ofs_...
 ```
 
-## 📜 Licencia
+Las dev keys se generan desde la UI del ERP: Plugins > Desarrollo > Generar API Key.
 
-Propietario - OpenFactu ERP.
+## Links
+
+- [Documentacion](https://openfactuerp.org/plugins/crear-plugin/)
+- [Template](https://github.com/AngelAcedo12/openfactu-plugin-template)
+- [Marketplace](https://openfactuerp.org/marketplace/)
+- [GitHub](https://github.com/AngelAcedo12/OpenFactu)
+
+## Licencia
+
+MIT
