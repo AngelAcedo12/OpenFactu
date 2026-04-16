@@ -5,6 +5,8 @@ import { registerTenantCommand } from './commands/tenant';
 import { registerPluginCommand } from './commands/plugin';
 import { registerSetupCommand } from './commands/setup';
 import { registerUpdateCommand } from './commands/update';
+import { registerInstallCommand } from './commands/install';
+import { registerDeployCommand } from './commands/deploy';
 
 export function createCLI() {
   const program = new Command();
@@ -12,7 +14,7 @@ export function createCLI() {
   program
     .name('openfactu')
     .description('CLI para gestionar OpenFactu')
-    .version('0.1.0');
+    .version('0.0.3');
 
   registerVersionCommand(program);
   registerMigrateCommand(program);
@@ -20,6 +22,8 @@ export function createCLI() {
   registerPluginCommand(program);
   registerSetupCommand(program);
   registerUpdateCommand(program);
+  registerInstallCommand(program);
+  registerDeployCommand(program);
 
   return program;
 }

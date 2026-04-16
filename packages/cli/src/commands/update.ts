@@ -8,13 +8,13 @@ import path from 'path';
 import { log } from '../utils/logger';
 import { getProjectRoot } from '../utils/paths';
 
-const ROOT_DIR = getProjectRoot();
+function ROOT_DIR() { return getProjectRoot(); }
 const BACKUP_DIRS = ['storage', 'plugins', '.env'];
 const SAFE_DIRS = ['storage', 'plugins', 'node_modules', '.env', '.git'];
 
 function getCurrentVersion(): string {
   try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf-8'));
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT_DIR(), 'package.json'), 'utf-8'));
     return pkg.version || '0.0.0';
   } catch {
     return '0.0.0';
@@ -23,7 +23,7 @@ function getCurrentVersion(): string {
 
 function getCurrentBranch(): string {
   try {
-    return execSync('git rev-parse --abbrev-ref HEAD', { cwd: ROOT_DIR }).toString().trim();
+    return execSync('git rev-parse --abbrev-ref HEAD', { cwd: ROOT_DIR() }).toString().trim();
   } catch {
     return 'unknown';
   }
@@ -31,7 +31,7 @@ function getCurrentBranch(): string {
 
 function getCurrentCommit(): string {
   try {
-    return execSync('git rev-parse --short HEAD', { cwd: ROOT_DIR }).toString().trim();
+    return execSync('git rev-parse --short HEAD', { cwd: ROOT_DIR() }).toString().trim();
   } catch {
     return 'unknown';
   }
@@ -39,7 +39,7 @@ function getCurrentCommit(): string {
 
 function hasUncommittedChanges(): boolean {
   try {
-    const output = execSync('git status --porcelain', { cwd: ROOT_DIR }).toString().trim();
+    const output = execSync('git status --porcelain', { cwd: ROOT_DIR() }).toString().trim();
     return output.length > 0;
   } catch {
     return true;
@@ -48,8 +48,8 @@ function hasUncommittedChanges(): boolean {
 
 function getRemoteTags(): string[] {
   try {
-    execSync('git fetch --tags', { cwd: ROOT_DIR, stdio: 'pipe' });
-    const output = execSync('git tag --list "v*" --sort=-version:refname', { cwd: ROOT_DIR }).toString().trim();
+    execSync('git fetch --tags', { cwd: ROOT_DIR(), stdio: 'pipe' });
+    const output = execSync('git tag --list "v*" --sort=-version:refname', { cwd: ROOT_DIR() }).toString().trim();
     return output ? output.split('\n') : [];
   } catch {
     return [];
@@ -58,8 +58,8 @@ function getRemoteTags(): string[] {
 
 function getRemoteLatestCommit(branch: string): string {
   try {
-    execSync('git fetch origin', { cwd: ROOT_DIR, stdio: 'pipe' });
-    return execSync(`git rev-parse --short origin/${branch}`, { cwd: ROOT_DIR }).toString().trim();
+    execSync('git fetch origin', { cwd: ROOT_DIR(), stdio: 'pipe' });
+    return execSync(`git rev-parse --short origin/${branch}`, { cwd: ROOT_DIR() }).toString().trim();
   } catch {
     return 'unknown';
   }
@@ -111,7 +111,7 @@ export function registerUpdateCommand(program: Command) {
           // Guardar cambios locales
           const stashSpinner = ora('Guardando cambios locales (git stash)...').start();
           try {
-            execSync('git stash push -m "openfactu-cli-update-backup"', { cwd: ROOT_DIR, stdio: 'pipe' });
+            execSync('git stash push -m "openfactu-cli-update-backup"', { cwd: ROOT_DIR(), stdio: 'pipe' });
             stashSpinner.succeed('Cambios locales guardados en stash');
           } catch (err: any) {
             stashSpinner.warn('No se pudieron guardar cambios: ' + err.message);
@@ -121,7 +121,7 @@ export function registerUpdateCommand(program: Command) {
         // 2. Fetch remoto
         const fetchSpinner = ora('Descargando información del repositorio...').start();
         try {
-          execSync('git fetch --all --tags', { cwd: ROOT_DIR, stdio: 'pipe' });
+          execSync('git fetch --all --tags', { cwd: ROOT_DIR(), stdio: 'pipe' });
           fetchSpinner.succeed('Repositorio actualizado');
         } catch (err: any) {
           fetchSpinner.fail('No se pudo conectar al repositorio remoto: ' + err.message);
@@ -148,7 +148,7 @@ export function registerUpdateCommand(program: Command) {
           try {
             const behindCount = execSync(
               `git rev-list --count HEAD..origin/${branch}`,
-              { cwd: ROOT_DIR },
+              { cwd: ROOT_DIR() },
             ).toString().trim();
 
             log.info(`Commits nuevos disponibles: ${chalk.yellow(behindCount)}`);
@@ -156,7 +156,7 @@ export function registerUpdateCommand(program: Command) {
             // Mostrar resumen de cambios
             const changelog = execSync(
               `git log --oneline HEAD..origin/${branch} --max-count=10`,
-              { cwd: ROOT_DIR },
+              { cwd: ROOT_DIR() },
             ).toString().trim();
 
             if (changelog) {
@@ -193,7 +193,7 @@ export function registerUpdateCommand(program: Command) {
         const protectedFiles: string[] = [];
 
         for (const item of BACKUP_DIRS) {
-          const itemPath = path.join(ROOT_DIR, item);
+          const itemPath = path.join(ROOT_DIR(), item);
           if (fs.existsSync(itemPath)) {
             protectedFiles.push(item);
           }
@@ -205,10 +205,10 @@ export function registerUpdateCommand(program: Command) {
 
         try {
           if (opts.tag) {
-            execSync(`git checkout ${opts.tag}`, { cwd: ROOT_DIR, stdio: 'pipe' });
+            execSync(`git checkout ${opts.tag}`, { cwd: ROOT_DIR(), stdio: 'pipe' });
           } else {
             const branch = opts.branch || currentBranch || 'main';
-            execSync(`git pull origin ${branch} --ff-only`, { cwd: ROOT_DIR, stdio: 'pipe' });
+            execSync(`git pull origin ${branch} --ff-only`, { cwd: ROOT_DIR(), stdio: 'pipe' });
           }
           updateSpinner.succeed('Código actualizado');
         } catch (err: any) {
@@ -216,7 +216,7 @@ export function registerUpdateCommand(program: Command) {
           log.warn('Intentando merge...');
           try {
             const branch = opts.branch || currentBranch || 'main';
-            execSync(`git pull origin ${branch}`, { cwd: ROOT_DIR, stdio: 'pipe' });
+            execSync(`git pull origin ${branch}`, { cwd: ROOT_DIR(), stdio: 'pipe' });
             log.success('Merge completado');
           } catch (mergeErr: any) {
             log.error('Conflicto de merge. Resuelve manualmente con:');
@@ -229,7 +229,7 @@ export function registerUpdateCommand(program: Command) {
         // 7. Instalar dependencias
         const depsSpinner = ora('Instalando dependencias...').start();
         try {
-          execSync('npm install', { cwd: ROOT_DIR, stdio: 'pipe', timeout: 120000 });
+          execSync('npm install', { cwd: ROOT_DIR(), stdio: 'pipe', timeout: 120000 });
           depsSpinner.succeed('Dependencias instaladas');
         } catch (err: any) {
           depsSpinner.warn('Error instalando dependencias: ' + err.message);
@@ -267,7 +267,7 @@ export function registerUpdateCommand(program: Command) {
         const currentBranch = getCurrentBranch();
         const currentCommit = getCurrentCommit();
 
-        execSync('git fetch --all --tags', { cwd: ROOT_DIR, stdio: 'pipe' });
+        execSync('git fetch --all --tags', { cwd: ROOT_DIR(), stdio: 'pipe' });
 
         const remoteCommit = getRemoteLatestCommit(currentBranch);
         const tags = getRemoteTags();
@@ -282,7 +282,7 @@ export function registerUpdateCommand(program: Command) {
         } else {
           const behindCount = execSync(
             `git rev-list --count HEAD..origin/${currentBranch}`,
-            { cwd: ROOT_DIR },
+            { cwd: ROOT_DIR() },
           ).toString().trim();
 
           log.warn(`Hay ${chalk.yellow(behindCount)} commit(s) nuevos disponibles`);

@@ -4,7 +4,7 @@ import ora from 'ora';
 import Table from 'cli-table3';
 import inquirer from 'inquirer';
 import crypto from 'crypto';
-import { getPublicDb, getAllTenants, getTenantDb, disconnect, schema, sql, eq } from '../utils/db';
+import { getPublicDb, getAllTenants, getTenantDb, disconnect, schema as getSchema, sql, eq } from '../utils/db';
 import { log } from '../utils/logger';
 
 export function registerTenantCommand(program: Command) {
@@ -86,8 +86,8 @@ export function registerTenantCommand(program: Command) {
         // Verificar que no exista
         const [existing] = await publicDb
           .select()
-          .from(schema.tenants)
-          .where(eq(schema.tenants.name, tenantName!));
+          .from(getSchema().tenants)
+          .where(eq(getSchema().tenants.name, tenantName!));
 
         if (existing) {
           spinner.warn(`El tenant "${tenantName}" ya existe (${existing.id})`);
@@ -96,7 +96,7 @@ export function registerTenantCommand(program: Command) {
 
         // Crear registro en la tabla Tenant
         const tenantId = crypto.randomUUID();
-        await publicDb.insert(schema.tenants).values({
+        await publicDb.insert(getSchema().tenants).values({
           id: tenantId,
           name: tenantName!,
           schemaName,

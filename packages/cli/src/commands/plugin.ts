@@ -4,11 +4,9 @@ import ora from 'ora';
 import Table from 'cli-table3';
 import fs from 'fs';
 import path from 'path';
-import { getPublicDb, getAllTenants, disconnect, schema, eq } from '../utils/db';
+import { getPublicDb, getAllTenants, disconnect, schema as getSchema, eq } from '../utils/db';
 import { log } from '../utils/logger';
 import { getPluginsDir } from '../utils/paths';
-
-const PLUGINS_DIR = getPluginsDir();
 
 export function registerPluginCommand(program: Command) {
   const plugin = program
@@ -25,9 +23,9 @@ export function registerPluginCommand(program: Command) {
       try {
         // Leer plugins del filesystem
         const installed: string[] = [];
-        if (fs.existsSync(PLUGINS_DIR)) {
-          const dirs = fs.readdirSync(PLUGINS_DIR).filter((d) =>
-            fs.statSync(path.join(PLUGINS_DIR, d)).isDirectory(),
+        if (fs.existsSync(getPluginsDir())) {
+          const dirs = fs.readdirSync(getPluginsDir()).filter((d) =>
+            fs.statSync(path.join(getPluginsDir(), d)).isDirectory(),
           );
           installed.push(...dirs);
         }
@@ -41,7 +39,7 @@ export function registerPluginCommand(program: Command) {
         const publicDb = getPublicDb();
         let tenantPlugins: any[] = [];
         try {
-          tenantPlugins = await publicDb.select().from(schema.tenantPlugins);
+          tenantPlugins = await publicDb.select().from(getSchema().tenantPlugins);
         } catch {
           // Tabla puede no existir aún
         }
@@ -61,7 +59,7 @@ export function registerPluginCommand(program: Command) {
         });
 
         for (const pluginId of installed) {
-          const manifestPath = path.join(PLUGINS_DIR, pluginId, 'manifest.json');
+          const manifestPath = path.join(getPluginsDir(), pluginId, 'manifest.json');
           const hasManifest = fs.existsSync(manifestPath);
 
           let manifest: any = null;

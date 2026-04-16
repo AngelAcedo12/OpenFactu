@@ -4,7 +4,7 @@ import ora from 'ora';
 import inquirer from 'inquirer';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import { getPublicDb, testConnection, disconnect, schema, sql, eq } from '../utils/db';
+import { getPublicDb, testConnection, disconnect, schema as getSchema, sql, eq } from '../utils/db';
 import { log } from '../utils/logger';
 
 export function registerSetupCommand(program: Command) {
@@ -50,8 +50,8 @@ export function registerSetupCommand(program: Command) {
         const adminSpinner = ora('Verificando usuario administrador...').start();
         const [existingAdmin] = await publicDb
           .select()
-          .from(schema.globalUsers)
-          .where(eq(schema.globalUsers.username, 'admin'));
+          .from(getSchema().globalUsers)
+          .where(eq(getSchema().globalUsers.username, 'admin'));
 
         if (existingAdmin) {
           adminSpinner.succeed('Usuario admin ya existe');
@@ -69,7 +69,7 @@ export function registerSetupCommand(program: Command) {
           ]);
 
           const hashedPassword = await bcrypt.hash(adminPassword, 10);
-          await publicDb.insert(schema.globalUsers).values({
+          await publicDb.insert(getSchema().globalUsers).values({
             id: crypto.randomUUID(),
             email: 'admin@openfactu.com',
             username: 'admin',
@@ -81,7 +81,7 @@ export function registerSetupCommand(program: Command) {
         }
 
         // 4. Verificar/crear primer tenant
-        const tenants = await publicDb.select().from(schema.tenants);
+        const tenants = await publicDb.select().from(getSchema().tenants);
 
         if (tenants.length > 0) {
           log.success(`${tenants.length} tenant(s) ya existen`);
@@ -114,7 +114,7 @@ export function registerSetupCommand(program: Command) {
             const tenantSpinner = ora(`Creando empresa "${tenantName}"...`).start();
 
             const tenantId = crypto.randomUUID();
-            await publicDb.insert(schema.tenants).values({
+            await publicDb.insert(getSchema().tenants).values({
               id: tenantId,
               name: tenantName,
               schemaName,
@@ -128,11 +128,11 @@ export function registerSetupCommand(program: Command) {
             // Asignar admin al tenant
             const [admin] = await publicDb
               .select()
-              .from(schema.globalUsers)
-              .where(eq(schema.globalUsers.username, 'admin'));
+              .from(getSchema().globalUsers)
+              .where(eq(getSchema().globalUsers.username, 'admin'));
 
             if (admin) {
-              await publicDb.insert(schema.userTenantMemberships).values({
+              await publicDb.insert(getSchema().userTenantMemberships).values({
                 id: crypto.randomUUID(),
                 userId: admin.id,
                 tenantId,

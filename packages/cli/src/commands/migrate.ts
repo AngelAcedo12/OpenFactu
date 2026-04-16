@@ -4,14 +4,16 @@ import ora from 'ora';
 import Table from 'cli-table3';
 import path from 'path';
 import fs from 'fs';
-import { getPublicDb, getTenantDb, getAllTenants, getTenantByName, disconnect, schema, sql } from '../utils/db';
+import { getPublicDb, getTenantDb, getAllTenants, getTenantByName, disconnect, sql } from '../utils/db';
 import { log } from '../utils/logger';
 
-const MIGRATIONS_DIR = require('../utils/paths').getMigrationsDir();
+import { getMigrationsDir } from '../utils/paths';
+
+function getMigrDir() { return getMigrationsDir(); }
 
 function getMigrationFiles(): string[] {
-  if (!fs.existsSync(MIGRATIONS_DIR)) return [];
-  return fs.readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
+  if (!fs.existsSync(getMigrDir())) return [];
+  return fs.readdirSync(getMigrDir()).filter((f) => f.endsWith('.sql')).sort();
 }
 
 async function getAppliedMigrations(tenantDb: any, schemaName: string): Promise<string[]> {
@@ -27,7 +29,7 @@ async function getAppliedMigrations(tenantDb: any, schemaName: string): Promise<
 
 async function applyMigration(tenantDb: any, schemaName: string, file: string): Promise<void> {
   const migrationId = file.replace('.sql', '');
-  const filePath = path.join(MIGRATIONS_DIR, file);
+  const filePath = path.join(getMigrDir(), file);
   let rawSql = fs.readFileSync(filePath, 'utf8');
   const processedSql = rawSql.replace(/{{schema}}/g, schemaName);
 
