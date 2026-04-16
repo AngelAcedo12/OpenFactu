@@ -127,19 +127,31 @@ export const TabsProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state.tabs, state.activeTabId]);
 
   const openTab = useCallback<TabsContextValue['openTab']>((path, opts = {}) => {
-    // NO dedupe: cada llamada crea una tab nueva. El usuario puede cerrar duplicados
-    // manualmente desde el TabBar. `opts.focusExisting` se acepta en el tipo por
-    // compatibilidad pero se ignora deliberadamente.
+    const focusExisting = opts.focusExisting ?? true;
     const newPathname = pathnameOf(path);
     const meta = resolveRouteMeta(newPathname);
     const title = opts.title ?? meta?.title ?? newPathname;
     const iconName = opts.iconName ?? meta?.iconName;
-    const id = genId();
-    setState((prev) => ({
-      tabs: [...prev.tabs, { id, path, title, iconName }],
-      activeTabId: id,
-    }));
-    return id;
+
+    let resultId = '';
+    setState((prev) => {
+      if (focusExisting) {
+        const existing = prev.tabs.find((t) => pathnameOf(t.path) === newPathname);
+        if (existing) {
+          resultId = existing.id;
+          const nextTabs =
+            existing.path === path
+              ? prev.tabs
+              : prev.tabs.map((t) => (t.id === existing.id ? { ...t, path } : t));
+          return { tabs: nextTabs, activeTabId: existing.id };
+        }
+      }
+      const id = genId();
+      resultId = id;
+      const newTab: Tab = { id, path, title, iconName };
+      return { tabs: [...prev.tabs, newTab], activeTabId: id };
+    });
+    return resultId;
   }, []);
 
   const closeTab = useCallback((id: string) => {
@@ -175,12 +187,17 @@ export const TabsProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const tab = prev.tabs.find((t) => t.id === id);
       if (!tab || tab.path === newPath) return prev;
       const meta = resolveRouteMeta(pathnameOf(newPath));
-      // Preservamos el título actual (puede ser custom, p.ej. "Albarán ← PO-...");
-      // sólo actualizamos el icono desde el registry.
       return {
         ...prev,
         tabs: prev.tabs.map((t) =>
-          t.id === id ? { ...t, path: newPath, iconName: meta?.iconName ?? t.iconName } : t,
+          t.id === id
+            ? {
+                ...t,
+                path: newPath,
+                title: meta?.title ?? t.title,
+                iconName: meta?.iconName ?? t.iconName,
+              }
+            : t,
         ),
       };
     });
