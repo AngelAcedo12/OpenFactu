@@ -598,6 +598,10 @@ export function registerPluginCommand(program: Command) {
 
       // Funcion para subir un archivo al servidor
       const pushFile = async (filePath: string) => {
+        // Ignorar archivos temporales del editor
+        if (filePath.includes('.tmp') || filePath.endsWith('~') || filePath.includes('.swp') || filePath.includes('.swx')) return;
+        if (!fs.existsSync(filePath)) return;
+
         const relativePath = path.relative(sourcePath, filePath);
         const content = fs.readFileSync(filePath).toString('base64');
 
