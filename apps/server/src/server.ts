@@ -140,9 +140,21 @@ const start = async () => {
 
     await loadPlugins(app);
 
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`[Server] OpenFactu escuchando en puerto ${PORT}`);
     });
+
+    // Hot reload de plugins en desarrollo
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        const { startDevSocket } = require('./plugins/devSocket');
+        const { startPluginWatcher } = require('./plugins/watcher');
+        startDevSocket(server);
+        startPluginWatcher();
+      } catch (err: any) {
+        console.warn('[DevMode] No se pudo activar hot reload:', err.message);
+      }
+    }
   } catch (err) {
     console.error('[Bootstrap] Error al iniciar el servidor:', err);
     process.exit(1);
