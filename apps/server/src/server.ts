@@ -41,7 +41,6 @@ import { bootstrapAdmin } from './core/auth/bootstrap';
 import { ClientFactory } from './core/tenant/ClientFactory';
 import { seedGeo } from './core/geo/seedGeo';
 import { PdfRenderer } from '@openfactu/pdf';
-import { sql } from 'drizzle-orm';
 
 dotenv.config();
 
