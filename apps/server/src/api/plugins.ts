@@ -11,6 +11,7 @@ import { activePlugins, activePluginManifests, pluginsDir } from '../plugins/loa
 import { transpilePluginFile } from '../plugins/transpiler';
 import { eq } from 'drizzle-orm';
 import { adminMiddleware } from './middleware/adminAuth';
+import { devKeyOrAdmin } from './middleware/devKeyAuth';
 
 const upload = multer({ dest: '/tmp/openfactu-uploads/', limits: { fileSize: 50 * 1024 * 1024 } });
 
@@ -207,7 +208,7 @@ router.post('/:pluginId/deactivate', async (req: any, res) => {
  * Sube un plugin como archivo ZIP y lo instala/actualiza.
  * Body: multipart/form-data con campo 'plugin' (archivo .zip)
  */
-router.post('/upload', adminMiddleware, upload.single('plugin'), async (req: any, res) => {
+router.post('/upload', devKeyOrAdmin('plugin:push'), upload.single('plugin'), async (req: any, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No se recibio ningun archivo' });
   }
@@ -273,7 +274,7 @@ router.post('/upload', adminMiddleware, upload.single('plugin'), async (req: any
  * Recibe archivos individuales de un plugin (para sync incremental).
  * Body JSON: { files: [{ path: "relative/path.ts", content: "base64..." }] }
  */
-router.post('/:pluginId/push', adminMiddleware, async (req: any, res) => {
+router.post('/:pluginId/push', devKeyOrAdmin('plugin:push'), async (req: any, res) => {
   const { pluginId } = req.params;
   const { files } = req.body;
 
@@ -331,7 +332,7 @@ router.post('/:pluginId/push', adminMiddleware, async (req: any, res) => {
  * POST /api/plugins/:pluginId/reload
  * Recarga un plugin en caliente (hot reload).
  */
-router.post('/:pluginId/reload', adminMiddleware, async (req: any, res) => {
+router.post('/:pluginId/reload', devKeyOrAdmin('plugin:reload'), async (req: any, res) => {
   const { pluginId } = req.params;
 
   if (!activePlugins.includes(pluginId)) {

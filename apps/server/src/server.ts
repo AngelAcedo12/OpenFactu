@@ -4,6 +4,7 @@ import cors from 'cors';
 import { loadPlugins } from './plugins/loader';
 import setupRouter from './api/setup';
 import pluginsRouter from './api/plugins';
+import devKeysRouter from './api/devKeys';
 import authRouter from './api/auth';
 import usersRouter from './api/users';
 import itemsRouter from './api/items';
@@ -56,8 +57,9 @@ app.use('/api/auth', authRouter);
 // 2. Middleware de Contexto (Inyecta Prisma Tenant en req)
 app.use('/api', tenantContextMiddleware);
 
-// 3. Rutas de Plugins y Negocio
+// 3. Rutas de Plugins, Dev Keys y Negocio
 app.use('/api/plugins', pluginsRouter);
+app.use('/api/dev-keys', devKeysRouter);
 // 4. Rustas de creación y gestion de usarios
 app.use('/api/users', usersRouter);
 app.use('/api/items', itemsRouter);

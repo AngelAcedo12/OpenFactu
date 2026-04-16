@@ -457,8 +457,17 @@ export function registerPluginCommand(program: Command) {
     .command('push [dir]')
     .description('Sube un plugin a un servidor OpenFactu remoto')
     .requiredOption('-s, --server <url>', 'URL del servidor (ej: http://192.168.1.100:3000)')
-    .requiredOption('-t, --token <token>', 'Token JWT de admin')
+    .option('-t, --token <token>', 'Token JWT de admin')
+    .option('--client-id <id>', 'Client ID de la dev key (ej: ofk_...)')
+    .option('--client-secret <secret>', 'Client Secret de la dev key (ej: ofs_...)')
     .action(async (dir: string | undefined, opts: any) => {
+      // Validar autenticacion
+      if (!opts.token && (!opts.clientId || !opts.clientSecret)) {
+        log.error('Necesitas autenticarte con --token o --client-id + --client-secret');
+        log.dim('  Genera una dev key desde la UI: Plugins → Desarrollo → Generar API Key');
+        return;
+      }
+
       const sourcePath = path.resolve(dir || process.cwd());
 
       if (!fs.existsSync(sourcePath)) {
@@ -519,7 +528,10 @@ export function registerPluginCommand(program: Command) {
             headers: {
               'Content-Type': 'application/json',
               'Content-Length': Buffer.byteLength(data),
-              'Authorization': `Bearer ${opts.token}`,
+              ...(opts.token
+                ? { 'Authorization': `Bearer ${opts.token}` }
+                : { 'X-Client-Id': opts.clientId, 'X-Client-Secret': opts.clientSecret }
+              ),
             },
           }, (res: any) => {
             let body = '';

@@ -80,6 +80,24 @@ export class MigrationEngine {
       )
     `),
     );
+
+    // 4. Asegurar DevApiKey
+    await db.execute(
+      sql.raw(`
+      CREATE TABLE IF NOT EXISTS "DevApiKey" (
+        "id" TEXT PRIMARY KEY,
+        "clientId" TEXT NOT NULL UNIQUE,
+        "clientSecret" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "createdBy" TEXT NOT NULL REFERENCES "GlobalUser"("id"),
+        "tenantId" TEXT REFERENCES "Tenant"("id"),
+        "permissions" TEXT DEFAULT 'plugin:push,plugin:reload',
+        "isActive" BOOLEAN DEFAULT true NOT NULL,
+        "lastUsedAt" TIMESTAMP,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+      )
+    `),
+    );
   }
 
   /**

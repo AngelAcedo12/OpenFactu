@@ -87,6 +87,19 @@ export const tenantPlugins = pgTable(
   (t) => ({ unq: unique().on(t.tenantId, t.pluginId) }),
 );
 
+export const devApiKeys = pgTable('DevApiKey', {
+  id: text('id').primaryKey(),
+  clientId: text('clientId').notNull().unique(),
+  clientSecret: text('clientSecret').notNull(),
+  name: text('name').notNull(),
+  createdBy: text('createdBy').notNull().references(() => globalUsers.id),
+  tenantId: text('tenantId').references(() => tenants.id),
+  permissions: text('permissions').default('plugin:push,plugin:reload'),
+  isActive: boolean('isActive').default(true).notNull(),
+  lastUsedAt: timestamp('lastUsedAt'),
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+});
+
 /**
  * DATOS GEOGRÁFICOS GENÉRICOS (public, compartidos entre tenants)
  * Soporta multi-país con jerarquía flexible:
