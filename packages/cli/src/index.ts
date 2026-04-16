@@ -14,7 +14,7 @@ export function createCLI() {
   program
     .name('openfactu')
     .description('CLI para gestionar OpenFactu')
-    .version('0.0.3');
+    .version('0.0.4');
 
   registerVersionCommand(program);
   registerMigrateCommand(program);
