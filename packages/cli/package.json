@@ -1,6 +1,6 @@
 {
   "name": "@openfactu/cli",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "CLI para gestionar OpenFactu: migraciones, tenants, plugins y setup",
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",

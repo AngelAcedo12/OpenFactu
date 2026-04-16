@@ -2,19 +2,20 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# 1. Copiar archivos de configuración del monorepo y del server
+# 1. Copiar todo el monorepo (packages + server)
 COPY package*.json ./
 COPY packages ./packages
-COPY apps/server/package*.json ./apps/server/
+COPY apps/server ./apps/server
 
 # 2. Instalar dependencias
 RUN npm install
 
-# 3. Copiar el resto del código fuente del server
-# (Incluye src/db/schema.ts y drizzle.config.ts)
-COPY apps/server ./apps/server
+# 3. Compilar paquetes compartidos
+RUN cd packages/pdf && npm run build || true
+RUN cd packages/common && npm run build || true
+RUN cd packages/ui && npm run build || true
 
-# 4. Compilar el código
+# 4. Compilar el servidor
 WORKDIR /app/apps/server
 RUN npm run build
 

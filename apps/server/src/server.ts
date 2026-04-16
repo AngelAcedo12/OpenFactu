@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
+import { sql } from 'drizzle-orm';
 import { loadPlugins } from './plugins/loader';
 import setupRouter from './api/setup';
 import pluginsRouter from './api/plugins';
@@ -124,6 +125,42 @@ const start = async () => {
   try {
     console.log('[Server] Iniciando OpenFactu...');
     await waitForDatabase();
+
+    // Asegurar tablas del schema publico antes de cualquier operacion
+    try {
+      const publicDb = ClientFactory.getClient('public');
+      await publicDb.execute(sql.raw(`
+        CREATE TABLE IF NOT EXISTS "Tenant" (
+          "id" TEXT PRIMARY KEY, "name" TEXT UNIQUE NOT NULL, "schemaName" TEXT UNIQUE NOT NULL,
+          "config" TEXT, "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS "GlobalUser" (
+          "id" TEXT PRIMARY KEY, "email" TEXT UNIQUE NOT NULL, "username" TEXT UNIQUE NOT NULL,
+          "password" TEXT NOT NULL, "role" TEXT NOT NULL DEFAULT 'USER',
+          "tenantId" TEXT REFERENCES "Tenant"("id"), "permissions" TEXT,
+          "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS "UserTenantMembership" (
+          "id" TEXT PRIMARY KEY, "userId" TEXT NOT NULL REFERENCES "GlobalUser"("id") ON DELETE CASCADE,
+          "tenantId" TEXT NOT NULL REFERENCES "Tenant"("id") ON DELETE CASCADE,
+          "role" TEXT NOT NULL DEFAULT 'USER', "permissions" TEXT,
+          "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE ("userId", "tenantId")
+        );
+        CREATE TABLE IF NOT EXISTS "AuditLog" (
+          "id" TEXT PRIMARY KEY, "tenantId" TEXT NOT NULL REFERENCES "Tenant"("id"),
+          "entityType" TEXT NOT NULL, "entityId" TEXT NOT NULL, "action" TEXT NOT NULL,
+          "userId" TEXT REFERENCES "GlobalUser"("id"), "oldValue" JSONB, "newValue" JSONB,
+          "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `));
+      console.log('[Bootstrap] Tablas del schema publico verificadas.');
+    } catch (err: any) {
+      console.warn('[Bootstrap] No se pudieron verificar tablas publicas:', err.message);
+    }
 
     await bootstrapAdmin();
     console.log('[Bootstrap] Administrador verificado.');

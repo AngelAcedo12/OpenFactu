@@ -1,6 +1,6 @@
 # @openfactu/cli
 
-CLI oficial para instalar, gestionar y desplegar [OpenFactu](https://github.com/AngelAcedo12/OpenFactu) -- ERP de facturación open source.
+CLI oficial para instalar, gestionar y desplegar [OpenFactu](https://github.com/AngelAcedo12/OpenFactu) — ERP de facturacion open source.
 
 ## Instalacion
 
@@ -11,17 +11,9 @@ npm i -g @openfactu/cli
 ## Inicio rapido
 
 ```bash
-# Descargar e instalar OpenFactu (te deja elegir version)
-openfactu install
-
-# Configurar base de datos y usuario admin
-openfactu setup
-
-# Aplicar migraciones
-openfactu migrate
-
-# Desplegar en red local o internet
-openfactu deploy
+openfactu install        # Descarga e instala OpenFactu
+openfactu deploy         # Configura acceso externo
+openfactu setup          # Configuracion inicial de BD
 ```
 
 ## Comandos
@@ -30,81 +22,76 @@ openfactu deploy
 
 | Comando | Descripcion |
 |---------|-------------|
-| `openfactu install [dir]` | Descarga e instala OpenFactu. Muestra las releases de GitHub para elegir version. Soporta Docker en Windows/Mac/Linux. |
-| `openfactu update` | Actualiza a la ultima version desde GitHub sin perder datos (plugins, storage, .env se preservan). |
-| `openfactu update:check` | Comprueba si hay versiones nuevas disponibles. |
-
-```bash
-# Instalar una release especifica
-openfactu install ./mi-erp --tag v1.2.0
-
-# Instalar desde una branch
-openfactu install ./mi-erp --branch develop
-
-# Actualizar la instalacion actual
-openfactu update
-```
+| `openfactu install [dir]` | Descarga desde releases de GitHub con Docker |
+| `openfactu update` | Actualiza sin perder datos |
+| `openfactu update:check` | Comprueba si hay versiones nuevas |
 
 ### Despliegue
 
 | Comando | Descripcion |
 |---------|-------------|
-| `openfactu deploy` | Wizard para configurar acceso externo: red local, dominio publico o localhost. Genera `docker-compose.prod.yml`. |
-| `openfactu deploy:status` | Muestra el estado de los contenedores Docker y las URLs de acceso. |
-
-```bash
-# Configurar para que sea accesible en la red
-openfactu deploy
-
-# Ver estado de los servicios
-openfactu deploy:status
-```
+| `openfactu deploy` | Wizard para configurar acceso externo (LAN/internet) |
+| `openfactu deploy:status` | Estado de los contenedores Docker |
+| `openfactu rebuild` | Reconstruye y reinicia contenedores |
+| `openfactu logs` | Muestra logs de los servicios |
+| `openfactu stop` | Para todos los servicios |
+| `openfactu restart` | Reinicia sin rebuild |
 
 ### Base de datos
 
 | Comando | Descripcion |
 |---------|-------------|
-| `openfactu setup` | Configuracion inicial: verifica BD, crea admin, primer tenant. |
-| `openfactu migrate` | Ejecuta migraciones pendientes en todos los tenants. |
-| `openfactu migrate:status` | Muestra tabla con estado de migraciones por tenant. |
-
-```bash
-# Migrar solo un tenant especifico
-openfactu migrate --tenant "Mi Empresa"
-
-# Ver que migraciones faltan
-openfactu migrate:status
-```
+| `openfactu setup` | Configuracion inicial: BD, admin, primer tenant |
+| `openfactu migrate` | Ejecuta migraciones pendientes |
+| `openfactu migrate:status` | Estado de migraciones por tenant |
 
 ### Tenants (empresas)
 
 | Comando | Descripcion |
 |---------|-------------|
-| `openfactu tenant list` | Lista todas las empresas. |
-| `openfactu tenant create [nombre]` | Crea una empresa nueva con schema y migraciones. |
-| `openfactu tenant sync [nombre]` | Sincroniza migraciones de un tenant o todos. |
+| `openfactu tenant list` | Lista empresas |
+| `openfactu tenant create` | Crea una empresa nueva |
+| `openfactu tenant sync` | Sincroniza migraciones |
 
 ### Plugins
 
 | Comando | Descripcion |
 |---------|-------------|
-| `openfactu plugin list` | Lista plugins instalados con su estado por tenant. |
+| `openfactu plugin list` | Lista plugins instalados con estado por tenant |
+| `openfactu plugin search` | Busca en el marketplace (interactivo) |
+| `openfactu plugin install <nombre>` | Descarga e instala del marketplace |
+| `openfactu plugin update [nombre]` | Actualiza uno o todos |
+| `openfactu plugin remove <nombre>` | Elimina un plugin |
+| `openfactu plugin link [dir]` | Enlaza un plugin externo (symlink) |
+| `openfactu plugin unlink <nombre>` | Quita el enlace |
+| `openfactu plugin push [dir]` | Sube un plugin a un servidor remoto |
+| `openfactu plugin watch [dir]` | Auto-sync al guardar (desarrollo remoto) |
+| `openfactu plugin dev [nombre]` | Servidor en modo desarrollo con hot reload |
 
 ### Otros
 
 | Comando | Descripcion |
 |---------|-------------|
-| `openfactu version` | Muestra versiones del CLI, server, web y Node. |
+| `openfactu version` | Versiones del sistema |
+
+## Desarrollo remoto de plugins
+
+```bash
+# Desde otro ordenador, sube tu plugin automaticamente al guardar
+openfactu plugin watch \
+  --server http://mi-servidor:3000 \
+  --client-id ofk_... \
+  --client-secret ofs_...
+```
+
+Las dev keys se generan desde la UI del ERP: Plugins > Desarrollo > Generar API Key.
 
 ## Uso desde cualquier directorio
 
-El CLI detecta automaticamente la instalacion de OpenFactu. Si no estas dentro del proyecto:
-
 ```bash
-# Opcion 1: flag --path
 openfactu --path /ruta/a/openfactu migrate
 
-# Opcion 2: variable de entorno
+# o con variable de entorno
 export OPENFACTU_HOME=/ruta/a/openfactu
 openfactu migrate
 ```
@@ -113,9 +100,11 @@ openfactu migrate
 
 - Node.js >= 18
 - Docker Desktop (para instalar y desplegar)
-- Git (para descargar releases)
+- Git
 
 ## Links
 
 - [GitHub](https://github.com/AngelAcedo12/OpenFactu)
-- [Reportar un problema](https://github.com/AngelAcedo12/OpenFactu/issues)
+- [Documentacion](https://openfactuerp.org)
+- [Marketplace](https://openfactuerp.org/marketplace/)
+- [Reportar problema](https://github.com/AngelAcedo12/OpenFactu/issues)
