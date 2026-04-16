@@ -4,6 +4,7 @@ import ora from 'ora';
 import inquirer from 'inquirer';
 import { execSync } from 'child_process';
 import https from 'https';
+import os from 'os';
 import fs from 'fs';
 import path from 'path';
 import { log } from '../utils/logger';
@@ -174,7 +175,7 @@ export function registerInstallCommand(program: Command) {
               type: 'input',
               name: 'dir',
               message: 'Directorio de instalación:',
-              default: path.join(process.cwd(), 'openfactu'),
+              default: path.join(os.homedir(), 'openfactu'),
             },
           ]);
           targetDir = dir;
@@ -204,33 +205,43 @@ export function registerInstallCommand(program: Command) {
         log.info(`Directorio: ${chalk.dim(targetDir)}`);
         log.blank();
 
-        // 4. Clonar repositorio
+        // 4. Crear directorio si no existe (con sudo si hace falta)
+        if (!fs.existsSync(targetDir)) {
+          try {
+            fs.mkdirSync(targetDir, { recursive: true });
+          } catch (mkdirErr: any) {
+            if (mkdirErr.code === 'EACCES') {
+              log.warn('Sin permisos. Creando directorio con sudo...');
+              try {
+                const user = process.env.USER || process.env.USERNAME || 'root';
+                execSync(`sudo mkdir -p "${targetDir}" && sudo chown -R ${user}:${user} "${targetDir}"`, {
+                  stdio: 'inherit',
+                });
+              } catch {
+                log.error(`No se pudo crear ${targetDir}. Ejecuta con sudo o elige otro directorio.`);
+                return;
+              }
+            } else {
+              throw mkdirErr;
+            }
+          }
+        }
+
+        // 5. Clonar repositorio
         const cloneSpinner = ora('Descargando OpenFactu...').start();
 
         const isTag = releases.some((r) => r.tag_name === ref);
+        const cloneCmd = isTag
+          ? `git clone --depth 1 --branch ${ref} ${repoUrl} "${targetDir}"`
+          : `git clone --branch ${ref} ${repoUrl} "${targetDir}"`;
 
         try {
-          if (isTag) {
-            // Para tags: clonar y luego checkout al tag
-            execSync(
-              `git clone --depth 1 --branch ${ref} ${repoUrl} "${targetDir}"`,
-              { stdio: 'pipe', timeout: 120000 },
-            );
-          } else {
-            // Para branches: clonar la branch directamente
-            execSync(
-              `git clone --branch ${ref} ${repoUrl} "${targetDir}"`,
-              { stdio: 'pipe', timeout: 120000 },
-            );
-          }
+          execSync(cloneCmd, { stdio: 'pipe', timeout: 120000 });
           cloneSpinner.succeed('Código descargado');
         } catch (err: any) {
           // Fallback: clonar todo y checkout
           try {
             cloneSpinner.text = 'Descargando (método alternativo)...';
-            if (!fs.existsSync(targetDir)) {
-              fs.mkdirSync(targetDir, { recursive: true });
-            }
             execSync(`git clone ${repoUrl} "${targetDir}"`, { stdio: 'pipe', timeout: 180000 });
             execSync(`git checkout ${ref}`, { cwd: targetDir, stdio: 'pipe' });
             cloneSpinner.succeed('Código descargado');
@@ -240,7 +251,7 @@ export function registerInstallCommand(program: Command) {
           }
         }
 
-        // 5. Copiar .env.example a .env
+        // 6. Copiar .env.example a .env
         const envExample = path.join(targetDir, '.env.example');
         const envFile = path.join(targetDir, '.env');
         if (fs.existsSync(envExample) && !fs.existsSync(envFile)) {
@@ -248,7 +259,7 @@ export function registerInstallCommand(program: Command) {
           log.success('Archivo .env creado desde .env.example');
         }
 
-        // 6. Preguntar modo de instalación
+        // 7. Preguntar modo de instalación
         const hasDocker = checkDocker();
 
         if (!hasDocker) {
