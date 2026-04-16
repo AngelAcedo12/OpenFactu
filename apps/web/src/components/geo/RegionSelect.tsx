@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useGeo, GeoRow } from '../../hooks/useGeo';
+import { useGeo, type GeoRow } from '../../hooks/useGeo';
 
 interface Props {
   countryCode: string;
@@ -9,13 +9,22 @@ interface Props {
   disabled?: boolean;
 }
 
-export const RegionSelect: React.FC<Props> = ({ countryCode, value, onChange, label, disabled }) => {
+export const RegionSelect: React.FC<Props> = ({
+  countryCode,
+  value,
+  onChange,
+  label,
+  disabled,
+}) => {
   const { loadRegions, getCountry } = useGeo();
   const [regions, setRegions] = useState<GeoRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!countryCode) { setRegions([]); return; }
+    if (!countryCode) {
+      setRegions([]);
+      return;
+    }
     setLoading(true);
     loadRegions(countryCode)
       .then(setRegions)
@@ -24,12 +33,14 @@ export const RegionSelect: React.FC<Props> = ({ countryCode, value, onChange, la
   }, [countryCode, loadRegions]);
 
   const country = getCountry(countryCode);
-  if (!country?.regionLabel) return null;      // país sin nivel de regiones (PT/GB/US)
+  if (!country?.regionLabel) return null; // país sin nivel de regiones (PT/GB/US)
   if (!countryCode) return null;
 
   return (
     <div>
-      {label && <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">{label || country.regionLabel}</label>}
+      <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
+        {label || country.regionLabel}
+      </label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -38,7 +49,9 @@ export const RegionSelect: React.FC<Props> = ({ countryCode, value, onChange, la
       >
         <option value="">— {loading ? 'Cargando...' : country.regionLabel} —</option>
         {regions.map((r) => (
-          <option key={r.id} value={r.id}>{r.name}</option>
+          <option key={r.id} value={r.id}>
+            {r.name}
+          </option>
         ))}
       </select>
     </div>

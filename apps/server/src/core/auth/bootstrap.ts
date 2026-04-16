@@ -9,28 +9,29 @@ import crypto from 'crypto';
  */
 export async function bootstrapAdmin() {
   const db = ClientFactory.getClient('public');
-  
+
   console.log('[Bootstrap] Verificando integridad del sistema...');
 
   try {
     // 1. Buscar si ya existe el admin
-    const [admin] = await db.select()
+    const [admin] = await db
+      .select()
       .from(schema.globalUsers)
       .where(eq(schema.globalUsers.username, 'admin'));
 
     if (!admin) {
       console.log('[Bootstrap] ⚠️ No se encontró administrador. Creando uno por defecto...');
-      
+
       const hashedPassword = await AuthService.hashPassword('admin123');
-      
+
       await db.insert(schema.globalUsers).values({
         id: crypto.randomUUID(),
         email: 'admin@openfactu.com',
         username: 'admin',
         password: hashedPassword,
-        role: 'SUPERUSER'
+        role: 'SUPERUSER',
       });
-      
+
       console.log('[Bootstrap] ✅ Administrador creado: admin / admin123');
     } else {
       console.log('[Bootstrap] ℹ️ El usuario administrador ya existe.');

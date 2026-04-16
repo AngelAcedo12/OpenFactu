@@ -13,6 +13,7 @@ export interface DocumentLineData {
   lineTotal: number;
   category: string | null;
   batches?: Array<{ batchNum: string; quantity: number }>;
+  customFields?: Record<string, any>;
 }
 
 export interface TaxBreakdownEntry {
@@ -35,6 +36,7 @@ export interface DocumentHeaderData {
   billToAddress: string | null;
   shipToAddress: string | null;
   baseDocCode: string | null;
+  customFields?: Record<string, any>;
 }
 
 export interface PartnerAddressObject {

@@ -12,16 +12,24 @@ const router = Router();
  * Valida un NIF contra el regex del país. Si el país no está seed o no tiene
  * countryCode, no valida (permisivo). Devuelve null si es válido o string con error.
  */
-async function checkTaxId(nif: string | null | undefined, countryCode: string | null | undefined): Promise<string | null> {
+async function checkTaxId(
+  nif: string | null | undefined,
+  countryCode: string | null | undefined,
+): Promise<string | null> {
   if (!nif || !countryCode) return null;
   try {
     const publicDb = ClientFactory.getClient('public');
-    const [country] = await publicDb.select().from(schema.countries).where(eq(schema.countries.code, countryCode.toUpperCase()));
+    const [country] = await publicDb
+      .select()
+      .from(schema.countries)
+      .where(eq(schema.countries.code, countryCode.toUpperCase()));
     if (!country) return null;
     if (!validateTaxId(nif, country as any)) {
       return `El ${country.taxIdLabel || 'NIF'} no cumple el formato de ${country.name}. Ejemplo: ${country.taxIdExample}`;
     }
-  } catch { /* ignorar errores de lookup */ }
+  } catch {
+    /* ignorar errores de lookup */
+  }
   return null;
 }
 
@@ -31,15 +39,16 @@ async function checkTaxId(nif: string | null | undefined, countryCode: string | 
 router.get('/', async (req: any, res) => {
   try {
     const addresses = await req.tenantClient.select().from(schema.partnerAddresses);
-    const partners = await req.tenantClient.select()
+    const partners = await req.tenantClient
+      .select()
       .from(schema.businessPartners)
       .orderBy(asc(schema.businessPartners.name));
-      
+
     const result = partners.map((p: any) => ({
-       ...p,
-       addresses: addresses.filter((a: any) => a.partnerId === p.id)
+      ...p,
+      addresses: addresses.filter((a: any) => a.partnerId === p.id),
     }));
-    
+
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -61,10 +70,16 @@ router.post('/', async (req: any, res) => {
 
     if (groupId) {
       const { like } = await import('drizzle-orm');
-      const [group] = await req.tenantClient.select().from(schema.partnerGroups).where(eq(schema.partnerGroups.id, groupId));
+      const [group] = await req.tenantClient
+        .select()
+        .from(schema.partnerGroups)
+        .where(eq(schema.partnerGroups.id, groupId));
       if (group && group.codePrefix) {
         const prefix = group.codePrefix;
-        const existingPartners = await req.tenantClient.select({ code: schema.businessPartners.code }).from(schema.businessPartners).where(like(schema.businessPartners.code, `${prefix}-%`));
+        const existingPartners = await req.tenantClient
+          .select({ code: schema.businessPartners.code })
+          .from(schema.businessPartners)
+          .where(like(schema.businessPartners.code, `${prefix}-%`));
         let maxSeq = 0;
         for (const p of existingPartners) {
           const parts = p.code.split('-');
@@ -79,14 +94,15 @@ router.post('/', async (req: any, res) => {
 
     const id = crypto.randomUUID();
     const sanitizedBody = Object.keys(restBody).reduce((acc: any, key) => {
-      acc[key] = restBody[key] === "" ? null : restBody[key];
+      acc[key] = restBody[key] === '' ? null : restBody[key];
       return acc;
     }, {});
 
-    const [partner] = await req.tenantClient.insert(schema.businessPartners)
-      .values({ ...sanitizedBody, code: finalCode, groupId: groupId === "" ? null : groupId, id })
+    const [partner] = await req.tenantClient
+      .insert(schema.businessPartners)
+      .values({ ...sanitizedBody, code: finalCode, groupId: groupId === '' ? null : groupId, id })
       .returning();
-      
+
     if (addresses && addresses.length > 0) {
       const inserts = addresses.map((a: any) => ({ ...a, id: crypto.randomUUID(), partnerId: id }));
       await req.tenantClient.insert(schema.partnerAddresses).values(inserts);
@@ -94,7 +110,7 @@ router.post('/', async (req: any, res) => {
     } else {
       partner.addresses = [];
     }
-    
+
     res.json(partner);
 
     // Auditoría
@@ -105,7 +121,7 @@ router.post('/', async (req: any, res) => {
       entityType: 'BusinessPartner',
       entityId: id,
       action: 'CREATE',
-      newValue: partner
+      newValue: partner,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -119,7 +135,10 @@ router.patch('/:id', async (req: any, res) => {
   const { id } = req.params;
   try {
     // Capturar estado anterior
-    const [oldPartner] = await req.tenantClient.select().from(schema.businessPartners).where(eq(schema.businessPartners.id, id));
+    const [oldPartner] = await req.tenantClient
+      .select()
+      .from(schema.businessPartners)
+      .where(eq(schema.businessPartners.id, id));
 
     const { addresses, groupId, ...restBody } = req.body;
 
@@ -129,28 +148,35 @@ router.patch('/:id', async (req: any, res) => {
     const taxErr = await checkTaxId(effectiveNif, effectiveCountry);
     if (taxErr) return res.status(400).json({ error: taxErr });
     const sanitizedBody = Object.keys(restBody).reduce((acc: any, key) => {
-      acc[key] = restBody[key] === "" ? null : restBody[key];
+      acc[key] = restBody[key] === '' ? null : restBody[key];
       return acc;
     }, {});
-    
-    if (groupId !== undefined) sanitizedBody.groupId = groupId === "" ? null : groupId;
 
-    const [partner] = await req.tenantClient.update(schema.businessPartners)
+    if (groupId !== undefined) sanitizedBody.groupId = groupId === '' ? null : groupId;
+
+    const [partner] = await req.tenantClient
+      .update(schema.businessPartners)
       .set(sanitizedBody)
       .where(eq(schema.businessPartners.id, id))
       .returning();
-      
+
     if (addresses) {
-      await req.tenantClient.delete(schema.partnerAddresses).where(eq(schema.partnerAddresses.partnerId, id));
+      await req.tenantClient
+        .delete(schema.partnerAddresses)
+        .where(eq(schema.partnerAddresses.partnerId, id));
       if (addresses.length > 0) {
-        const inserts = addresses.map((a: any) => ({ ...a, id: a.id || crypto.randomUUID(), partnerId: id }));
+        const inserts = addresses.map((a: any) => ({
+          ...a,
+          id: a.id || crypto.randomUUID(),
+          partnerId: id,
+        }));
         await req.tenantClient.insert(schema.partnerAddresses).values(inserts);
         partner.addresses = inserts;
       } else {
         partner.addresses = [];
       }
     }
-    
+
     res.json(partner);
 
     // Auditoría
@@ -162,7 +188,7 @@ router.patch('/:id', async (req: any, res) => {
       entityId: id,
       action: 'UPDATE',
       oldValue: oldPartner,
-      newValue: partner
+      newValue: partner,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -175,9 +201,14 @@ router.patch('/:id', async (req: any, res) => {
 router.delete('/:id', async (req: any, res) => {
   const { id } = req.params;
   try {
-    const [oldPartner] = await req.tenantClient.select().from(schema.businessPartners).where(eq(schema.businessPartners.id, id));
+    const [oldPartner] = await req.tenantClient
+      .select()
+      .from(schema.businessPartners)
+      .where(eq(schema.businessPartners.id, id));
 
-    await req.tenantClient.delete(schema.businessPartners).where(eq(schema.businessPartners.id, id));
+    await req.tenantClient
+      .delete(schema.businessPartners)
+      .where(eq(schema.businessPartners.id, id));
     res.json({ success: true });
 
     if (oldPartner) {
@@ -188,7 +219,7 @@ router.delete('/:id', async (req: any, res) => {
         entityType: 'BusinessPartner',
         entityId: id,
         action: 'DELETE',
-        oldValue: oldPartner
+        oldValue: oldPartner,
       });
     }
   } catch (error: any) {
@@ -197,4 +228,3 @@ router.delete('/:id', async (req: any, res) => {
 });
 
 export default router;
- 

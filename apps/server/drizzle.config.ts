@@ -7,7 +7,7 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL!,
   },
-  schemaFilter: ["public"],
-  tablesFilter: ["Tenant", "GlobalUser", "PluginField", "AuditLog", "UserTenantMembership"],
+  schemaFilter: ['public'],
+  tablesFilter: ['Tenant', 'GlobalUser', 'PluginField', 'AuditLog', 'UserTenantMembership'],
   strict: false,
 });

@@ -24,10 +24,13 @@ export const Toast: React.FC<ToastProps> = ({ id, message, type = 'info', onClos
   };
 
   const borderClasses = {
-    success: 'border-emerald-200 dark:border-emerald-500/30 bg-white/90 dark:bg-slate-900/90 shadow-emerald-500/5',
-    error:   'border-rose-200 dark:border-rose-500/30 bg-white/90 dark:bg-slate-900/90 shadow-rose-500/5',
-    info:    'border-blue-200 dark:border-blue-500/30 bg-white/90 dark:bg-slate-900/90 shadow-blue-500/5',
-    warning: 'border-amber-200 dark:border-amber-500/30 bg-white/90 dark:bg-slate-900/90 shadow-amber-500/5',
+    success:
+      'border-emerald-200 dark:border-emerald-500/30 bg-white/90 dark:bg-slate-900/90 shadow-emerald-500/5',
+    error:
+      'border-rose-200 dark:border-rose-500/30 bg-white/90 dark:bg-slate-900/90 shadow-rose-500/5',
+    info: 'border-blue-200 dark:border-blue-500/30 bg-white/90 dark:bg-slate-900/90 shadow-blue-500/5',
+    warning:
+      'border-amber-200 dark:border-amber-500/30 bg-white/90 dark:bg-slate-900/90 shadow-amber-500/5',
   };
 
   React.useEffect(() => {
@@ -36,10 +39,12 @@ export const Toast: React.FC<ToastProps> = ({ id, message, type = 'info', onClos
   }, [id, onClose]);
 
   return (
-    <div className={cn(
-      "pointer-events-auto flex w-full max-w-sm items-center gap-4 rounded-2xl border p-4 shadow-xl backdrop-blur-md transition-all animate-in slide-in-from-right-8 fade-in-0 duration-500",
-      borderClasses[type]
-    )}>
+    <div
+      className={cn(
+        'pointer-events-auto flex w-full max-w-sm items-center gap-4 rounded-2xl border p-4 shadow-xl backdrop-blur-md transition-all animate-in slide-in-from-right-8 fade-in-0 duration-500',
+        borderClasses[type],
+      )}
+    >
       <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700 shadow-inner">
         {icons[type]}
       </div>

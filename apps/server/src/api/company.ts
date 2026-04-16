@@ -1,5 +1,9 @@
 import { Router } from 'express';
-import { getCompanyConfig, setCompanyConfig, type CompanyConfig } from '../core/config/companyConfig';
+import {
+  getCompanyConfig,
+  setCompanyConfig,
+  type CompanyConfig,
+} from '../core/config/companyConfig';
 import { logAudit } from '../utils/audit';
 
 const router = Router();

@@ -18,16 +18,8 @@ export interface AuditLogOptions {
  */
 export async function logAudit(options: AuditLogOptions) {
   try {
-    const { 
-      tenantClient, 
-      tenantId, 
-      userId, 
-      entityType, 
-      entityId, 
-      action, 
-      oldValue, 
-      newValue 
-    } = options;
+    const { tenantClient, tenantId, userId, entityType, entityId, action, oldValue, newValue } =
+      options;
 
     await tenantClient.insert(schema.auditLogs).values({
       id: crypto.randomUUID(),
@@ -38,11 +30,10 @@ export async function logAudit(options: AuditLogOptions) {
       action,
       oldValue: oldValue ? JSON.stringify(oldValue) : null,
       newValue: newValue ? JSON.stringify(newValue) : null,
-      createdAt: new Date()
+      createdAt: new Date(),
     });
   } catch (error) {
     console.error(`[AuditLogger] Error al grabar auditoría para ${options.entityType}:`, error);
     // No lanzamos el error para no bloquear la operación principal si falla el log
   }
 }
- 

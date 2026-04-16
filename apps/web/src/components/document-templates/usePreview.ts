@@ -11,7 +11,7 @@ export function usePreview(
   token: string,
   tenantId: string,
   onError: (msg: string) => void,
-  debounceMs: number = 600
+  debounceMs: number = 600,
 ) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
@@ -24,10 +24,10 @@ export function usePreview(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'x-tenant-id': tenantId
+          Authorization: `Bearer ${token}`,
+          'x-tenant-id': tenantId,
         },
-        body: JSON.stringify({ html, docType })
+        body: JSON.stringify({ html, docType }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Error al renderizar' }));
@@ -46,13 +46,17 @@ export function usePreview(
   };
 
   useEffect(() => {
-    const t = setTimeout(() => { generate(); }, debounceMs);
+    const t = setTimeout(() => {
+      generate();
+    }, debounceMs);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [html, docType]);
 
   useEffect(() => {
-    return () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current); };
+    return () => {
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    };
   }, []);
 
   return { previewUrl, previewing, refresh: generate };

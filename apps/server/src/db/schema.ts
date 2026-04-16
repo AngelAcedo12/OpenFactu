@@ -1,12 +1,13 @@
-import { 
-  pgTable, 
-  text, 
-  timestamp, 
-  decimal, 
-  doublePrecision, 
+import {
+  pgTable,
+  text,
+  timestamp,
+  decimal,
+  doublePrecision,
   integer,
   boolean,
-  unique, jsonb
+  unique,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 
 /**
@@ -33,15 +34,23 @@ export const globalUsers = pgTable('GlobalUser', {
   updatedAt: timestamp('updatedAt').defaultNow().notNull(),
 });
 
-export const userTenantMemberships = pgTable('UserTenantMembership', {
-  id: text('id').primaryKey(),
-  userId: text('userId').notNull().references(() => globalUsers.id, { onDelete: 'cascade' }),
-  tenantId: text('tenantId').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  role: text('role').default('USER').notNull(),
-  permissions: text('permissions'),
-  createdAt: timestamp('createdAt').defaultNow().notNull(),
-  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
-}, (t) => ({ unq: unique().on(t.userId, t.tenantId) }));
+export const userTenantMemberships = pgTable(
+  'UserTenantMembership',
+  {
+    id: text('id').primaryKey(),
+    userId: text('userId')
+      .notNull()
+      .references(() => globalUsers.id, { onDelete: 'cascade' }),
+    tenantId: text('tenantId')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    role: text('role').default('USER').notNull(),
+    permissions: text('permissions'),
+    createdAt: timestamp('createdAt').defaultNow().notNull(),
+    updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+  },
+  (t) => ({ unq: unique().on(t.userId, t.tenantId) }),
+);
 
 export const pluginFields = pgTable('PluginField', {
   id: text('id').primaryKey(),
@@ -62,6 +71,22 @@ export const pluginTables = pgTable('PluginTable', {
   createdAt: timestamp('createdAt').defaultNow().notNull(),
 });
 
+export const tenantPlugins = pgTable(
+  'TenantPlugin',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenantId')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    pluginId: text('pluginId').notNull(),
+    isActive: boolean('isActive').default(false).notNull(),
+    config: text('config'),
+    activatedAt: timestamp('activatedAt').defaultNow(),
+    deactivatedAt: timestamp('deactivatedAt'),
+  },
+  (t) => ({ unq: unique().on(t.tenantId, t.pluginId) }),
+);
+
 /**
  * DATOS GEOGRÁFICOS GENÉRICOS (public, compartidos entre tenants)
  * Soporta multi-país con jerarquía flexible:
@@ -69,44 +94,64 @@ export const pluginTables = pgTable('PluginTable', {
  * Las tablas de tenant no usan FKs físicas a estas, solo guardan el id como text.
  */
 export const countries = pgTable('Country', {
-  code:            text('code').primaryKey(),       // 'ES' ISO 3166-1 alpha-2
-  name:            text('name').notNull(),          // 'España'
-  nameEn:          text('nameEn').notNull(),        // 'Spain'
-  phonePrefix:     text('phonePrefix').notNull(),   // '+34'
-  currency:        text('currency').notNull(),      // 'EUR'
-  localeDefault:   text('localeDefault').notNull(), // 'es-ES'
-  taxIdRegex:      text('taxIdRegex').notNull(),
-  taxIdLabel:      text('taxIdLabel').notNull(),    // 'NIF/CIF'
-  taxIdExample:    text('taxIdExample').notNull(),  // 'B12345678'
+  code: text('code').primaryKey(), // 'ES' ISO 3166-1 alpha-2
+  name: text('name').notNull(), // 'España'
+  nameEn: text('nameEn').notNull(), // 'Spain'
+  phonePrefix: text('phonePrefix').notNull(), // '+34'
+  currency: text('currency').notNull(), // 'EUR'
+  localeDefault: text('localeDefault').notNull(), // 'es-ES'
+  taxIdRegex: text('taxIdRegex').notNull(),
+  taxIdLabel: text('taxIdLabel').notNull(), // 'NIF/CIF'
+  taxIdExample: text('taxIdExample').notNull(), // 'B12345678'
   postalCodeRegex: text('postalCodeRegex').notNull(),
   postalCodeLabel: text('postalCodeLabel').notNull(),
-  regionLabel:     text('regionLabel'),             // null si no hay nivel region
-  subRegionLabel:  text('subRegionLabel').notNull(),
-  localityLabel:   text('localityLabel').notNull(),
+  regionLabel: text('regionLabel'), // null si no hay nivel region
+  subRegionLabel: text('subRegionLabel').notNull(),
+  localityLabel: text('localityLabel').notNull(),
 });
 
-export const regions = pgTable('Region', {
-  id:          text('id').primaryKey(),
-  countryCode: text('countryCode').notNull().references(() => countries.code),
-  code:        text('code').notNull(),
-  name:        text('name').notNull(),
-}, (t) => ({ unq: unique().on(t.countryCode, t.code) }));
+export const regions = pgTable(
+  'Region',
+  {
+    id: text('id').primaryKey(),
+    countryCode: text('countryCode')
+      .notNull()
+      .references(() => countries.code),
+    code: text('code').notNull(),
+    name: text('name').notNull(),
+  },
+  (t) => ({ unq: unique().on(t.countryCode, t.code) }),
+);
 
-export const subRegions = pgTable('SubRegion', {
-  id:          text('id').primaryKey(),
-  countryCode: text('countryCode').notNull().references(() => countries.code),
-  regionId:    text('regionId').references((): any => regions.id),
-  code:        text('code').notNull(),
-  name:        text('name').notNull(),
-}, (t) => ({ unq: unique().on(t.countryCode, t.code) }));
+export const subRegions = pgTable(
+  'SubRegion',
+  {
+    id: text('id').primaryKey(),
+    countryCode: text('countryCode')
+      .notNull()
+      .references(() => countries.code),
+    regionId: text('regionId').references((): any => regions.id),
+    code: text('code').notNull(),
+    name: text('name').notNull(),
+  },
+  (t) => ({ unq: unique().on(t.countryCode, t.code) }),
+);
 
-export const localities = pgTable('Locality', {
-  id:          text('id').primaryKey(),
-  countryCode: text('countryCode').notNull().references(() => countries.code),
-  subRegionId: text('subRegionId').notNull().references((): any => subRegions.id),
-  code:        text('code').notNull(),
-  name:        text('name').notNull(),
-}, (t) => ({ unq: unique().on(t.countryCode, t.code) }));
+export const localities = pgTable(
+  'Locality',
+  {
+    id: text('id').primaryKey(),
+    countryCode: text('countryCode')
+      .notNull()
+      .references(() => countries.code),
+    subRegionId: text('subRegionId')
+      .notNull()
+      .references((): any => subRegions.id),
+    code: text('code').notNull(),
+    name: text('name').notNull(),
+  },
+  (t) => ({ unq: unique().on(t.countryCode, t.code) }),
+);
 
 /**
  * ESQUEMA DE NEGOCIO (Multi-tenant)
@@ -147,7 +192,9 @@ export const businessPartners = pgTable('BusinessPartner', {
 
 export const partnerAddresses = pgTable('PartnerAddress', {
   id: text('id').primaryKey(),
-  partnerId: text('partnerId').notNull().references(() => businessPartners.id),
+  partnerId: text('partnerId')
+    .notNull()
+    .references(() => businessPartners.id),
   name: text('name').notNull(),
   street: text('street'),
   city: text('city'),
@@ -178,7 +225,9 @@ export const documentSeries = pgTable('DocumentSeries', {
   id: text('id').primaryKey(),
   name: text('name').unique().notNull(),
   description: text('description'),
-  periodId: text('periodId').notNull().references(() => accountingPeriods.id),
+  periodId: text('periodId')
+    .notNull()
+    .references(() => accountingPeriods.id),
   docType: text('docType').notNull(),
   firstNumber: integer('firstNumber').notNull(),
   nextNumber: integer('nextNumber').notNull(),
@@ -201,14 +250,22 @@ export const priceLists = pgTable('PriceList', {
   name: text('name').notNull(),
 });
 
-export const itemPrices = pgTable('ItemPrice', {
-  id: text('id').primaryKey(),
-  priceListId: text('priceListId').notNull().references(() => priceLists.id),
-  itemId: text('itemId').notNull().references(() => items.id),
-  price: decimal('price', { precision: 12, scale: 4 }).notNull(),
-}, (t) => ({
-  unq: unique().on(t.priceListId, t.itemId)
-}));
+export const itemPrices = pgTable(
+  'ItemPrice',
+  {
+    id: text('id').primaryKey(),
+    priceListId: text('priceListId')
+      .notNull()
+      .references(() => priceLists.id),
+    itemId: text('itemId')
+      .notNull()
+      .references(() => items.id),
+    price: decimal('price', { precision: 12, scale: 4 }).notNull(),
+  },
+  (t) => ({
+    unq: unique().on(t.priceListId, t.itemId),
+  }),
+);
 
 // Maestro de Artículos
 export const items = pgTable('Item', {
@@ -216,7 +273,9 @@ export const items = pgTable('Item', {
   code: text('code').unique().notNull(),
   name: text('name').notNull(),
   description: text('description'),
-  uomId: text('uomId').notNull().references(() => unitsOfMeasure.id),
+  uomId: text('uomId')
+    .notNull()
+    .references(() => unitsOfMeasure.id),
   categoryId: text('categoryId').references(() => categories.id),
   taxGroupId: text('taxGroupId').references(() => taxGroups.id),
   manageBy: text('manageBy').default('N').notNull(),
@@ -231,7 +290,9 @@ export const items = pgTable('Item', {
 export const itemBatches = pgTable('ItemBatch', {
   id: text('id').primaryKey(),
   batchNum: text('batchNum').notNull(),
-  itemId: text('itemId').notNull().references(() => items.id),
+  itemId: text('itemId')
+    .notNull()
+    .references(() => items.id),
   quantity: doublePrecision('quantity').default(0).notNull(),
   expiryDate: timestamp('expiryDate'),
 });
@@ -239,7 +300,9 @@ export const itemBatches = pgTable('ItemBatch', {
 export const itemSerials = pgTable('ItemSerial', {
   id: text('id').primaryKey(),
   serialNum: text('serialNum').unique().notNull(),
-  itemId: text('itemId').notNull().references(() => items.id),
+  itemId: text('itemId')
+    .notNull()
+    .references(() => items.id),
   status: text('status').default('A').notNull(),
 });
 
@@ -260,24 +323,42 @@ export const warehouses = pgTable('Warehouse', {
   updatedAt: timestamp('updatedAt').defaultNow().notNull(),
 });
 
-export const itemWarehouseStocks = pgTable('ItemWarehouseStock', {
-  itemId: text('itemId').notNull().references(() => items.id),
-  warehouseId: text('warehouseId').notNull().references(() => warehouses.id),
-  stock: doublePrecision('stock').default(0).notNull(),
-  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
-}, (t) => ({
-  pk: unique().on(t.itemId, t.warehouseId),
-}));
+export const itemWarehouseStocks = pgTable(
+  'ItemWarehouseStock',
+  {
+    itemId: text('itemId')
+      .notNull()
+      .references(() => items.id),
+    warehouseId: text('warehouseId')
+      .notNull()
+      .references(() => warehouses.id),
+    stock: doublePrecision('stock').default(0).notNull(),
+    updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+  },
+  (t) => ({
+    pk: unique().on(t.itemId, t.warehouseId),
+  }),
+);
 
-export const itemZoneStocks = pgTable('ItemZoneStock', {
-  itemId: text('itemId').notNull().references(() => items.id),
-  warehouseId: text('warehouseId').notNull().references(() => warehouses.id),
-  zoneId: text('zoneId').notNull().references(() => warehouseZones.id),
-  stock: doublePrecision('stock').default(0).notNull(),
-  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
-}, (t) => ({
-  pk: unique().on(t.itemId, t.warehouseId, t.zoneId),
-}));
+export const itemZoneStocks = pgTable(
+  'ItemZoneStock',
+  {
+    itemId: text('itemId')
+      .notNull()
+      .references(() => items.id),
+    warehouseId: text('warehouseId')
+      .notNull()
+      .references(() => warehouses.id),
+    zoneId: text('zoneId')
+      .notNull()
+      .references(() => warehouseZones.id),
+    stock: doublePrecision('stock').default(0).notNull(),
+    updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+  },
+  (t) => ({
+    pk: unique().on(t.itemId, t.warehouseId, t.zoneId),
+  }),
+);
 
 export const unitsOfMeasure = pgTable('UnitOfMeasure', {
   id: text('id').primaryKey(),
@@ -289,8 +370,12 @@ export const unitsOfMeasure = pgTable('UnitOfMeasure', {
 
 export const itemAlternativeUoms = pgTable('ItemAlternativeUom', {
   id: text('id').primaryKey(),
-  itemId: text('itemId').notNull().references(() => items.id),
-  uomId: text('uomId').notNull().references(() => unitsOfMeasure.id),
+  itemId: text('itemId')
+    .notNull()
+    .references(() => items.id),
+  uomId: text('uomId')
+    .notNull()
+    .references(() => unitsOfMeasure.id),
   factor: decimal('factor', { precision: 12, scale: 4 }).notNull(),
 });
 
@@ -307,10 +392,16 @@ export const categories = pgTable('Category', {
 
 export const salesOrders = pgTable('SalesOrder', {
   id: text('id').primaryKey(),
-  seriesId: text('seriesId').references(() => documentSeries.id).notNull(),
+  seriesId: text('seriesId')
+    .references(() => documentSeries.id)
+    .notNull(),
   docNum: integer('docNum').notNull(),
-  periodId: text('periodId').references(() => accountingPeriods.id).notNull(),
-  partnerId: text('partnerId').references(() => businessPartners.id).notNull(),
+  periodId: text('periodId')
+    .references(() => accountingPeriods.id)
+    .notNull(),
+  partnerId: text('partnerId')
+    .references(() => businessPartners.id)
+    .notNull(),
   date: timestamp('date').notNull(),
   deliveryDate: timestamp('deliveryDate'),
   documentDate: timestamp('documentDate'),
@@ -327,9 +418,13 @@ export const salesOrders = pgTable('SalesOrder', {
 
 export const salesOrderLines = pgTable('SalesOrderLine', {
   id: text('id').primaryKey(),
-  orderId: text('orderId').references(() => salesOrders.id).notNull(),
+  orderId: text('orderId')
+    .references(() => salesOrders.id)
+    .notNull(),
   lineNum: integer('lineNum').notNull(),
-  itemId: text('itemId').references(() => items.id).notNull(),
+  itemId: text('itemId')
+    .references(() => items.id)
+    .notNull(),
   warehouseId: text('warehouseId').references(() => warehouses.id),
   zoneId: text('zoneId').references(() => warehouseZones.id),
   orderedQty: decimal('quantity', { precision: 12, scale: 4 }).notNull(),
@@ -337,14 +432,23 @@ export const salesOrderLines = pgTable('SalesOrderLine', {
   price: decimal('price', { precision: 15, scale: 4 }).notNull(),
   taxGroupId: text('taxGroupId').references(() => taxGroups.id),
   lineTotal: decimal('lineTotal', { precision: 15, scale: 4 }).notNull(),
+  uomId: text('uomId').references(() => unitsOfMeasure.id),
+  uomFactor: decimal('uomFactor', { precision: 12, scale: 4 }).default('1.0000'),
+  pluginData: jsonb('pluginData').default({}),
 });
 
 export const salesDeliveryNotes = pgTable('SalesDeliveryNote', {
   id: text('id').primaryKey(),
-  seriesId: text('seriesId').references(() => documentSeries.id).notNull(),
+  seriesId: text('seriesId')
+    .references(() => documentSeries.id)
+    .notNull(),
   docNum: integer('docNum').notNull(),
-  periodId: text('periodId').references(() => accountingPeriods.id).notNull(),
-  partnerId: text('partnerId').references(() => businessPartners.id).notNull(),
+  periodId: text('periodId')
+    .references(() => accountingPeriods.id)
+    .notNull(),
+  partnerId: text('partnerId')
+    .references(() => businessPartners.id)
+    .notNull(),
   orderId: text('orderId').references(() => salesOrders.id),
   date: timestamp('date').notNull(),
   status: text('status').default('O').notNull(),
@@ -360,9 +464,13 @@ export const salesDeliveryNotes = pgTable('SalesDeliveryNote', {
 
 export const salesDeliveryNoteLines = pgTable('SalesDeliveryNoteLine', {
   id: text('id').primaryKey(),
-  deliveryId: text('deliveryId').references(() => salesDeliveryNotes.id).notNull(),
+  deliveryId: text('deliveryId')
+    .references(() => salesDeliveryNotes.id)
+    .notNull(),
   lineNum: integer('lineNum').notNull(),
-  itemId: text('itemId').references(() => items.id).notNull(),
+  itemId: text('itemId')
+    .references(() => items.id)
+    .notNull(),
   warehouseId: text('warehouseId').references(() => warehouses.id),
   zoneId: text('zoneId').references(() => warehouseZones.id),
   quantity: decimal('quantity', { precision: 12, scale: 4 }).notNull(),
@@ -370,11 +478,16 @@ export const salesDeliveryNoteLines = pgTable('SalesDeliveryNoteLine', {
   taxGroupId: text('taxGroupId').references(() => taxGroups.id),
   lineTotal: decimal('lineTotal', { precision: 15, scale: 4 }).notNull(),
   baseLine: integer('baseLine'),
+  uomId: text('uomId').references(() => unitsOfMeasure.id),
+  uomFactor: decimal('uomFactor', { precision: 12, scale: 4 }).default('1.0000'),
+  pluginData: jsonb('pluginData').default({}),
 });
 
 export const salesDeliveryNoteLineBatches = pgTable('SalesDeliveryNoteLineBatch', {
   id: text('id').primaryKey(),
-  deliveryLineId: text('deliveryLineId').notNull().references(() => salesDeliveryNoteLines.id),
+  deliveryLineId: text('deliveryLineId')
+    .notNull()
+    .references(() => salesDeliveryNoteLines.id),
   batchNum: text('batchNum').notNull(),
   quantity: doublePrecision('quantity').default(1).notNull(),
   createdAt: timestamp('createdAt').defaultNow().notNull(),
@@ -382,10 +495,16 @@ export const salesDeliveryNoteLineBatches = pgTable('SalesDeliveryNoteLineBatch'
 
 export const salesInvoices = pgTable('SalesInvoice', {
   id: text('id').primaryKey(),
-  seriesId: text('seriesId').references(() => documentSeries.id).notNull(),
+  seriesId: text('seriesId')
+    .references(() => documentSeries.id)
+    .notNull(),
   docNum: integer('docNum').notNull(),
-  periodId: text('periodId').references(() => accountingPeriods.id).notNull(),
-  partnerId: text('partnerId').references(() => businessPartners.id).notNull(),
+  periodId: text('periodId')
+    .references(() => accountingPeriods.id)
+    .notNull(),
+  partnerId: text('partnerId')
+    .references(() => businessPartners.id)
+    .notNull(),
   date: timestamp('date').notNull(),
   status: text('status').default('O').notNull(),
   billToAddress: text('billToAddress'),
@@ -399,9 +518,13 @@ export const salesInvoices = pgTable('SalesInvoice', {
 
 export const salesInvoiceLines = pgTable('SalesInvoiceLine', {
   id: text('id').primaryKey(),
-  invoiceId: text('invoiceId').references(() => salesInvoices.id).notNull(),
+  invoiceId: text('invoiceId')
+    .references(() => salesInvoices.id)
+    .notNull(),
   lineNum: integer('lineNum').notNull(),
-  itemId: text('itemId').references(() => items.id).notNull(),
+  itemId: text('itemId')
+    .references(() => items.id)
+    .notNull(),
   warehouseId: text('warehouseId').references(() => warehouses.id),
   zoneId: text('zoneId').references(() => warehouseZones.id),
   quantity: decimal('quantity', { precision: 12, scale: 4 }).notNull(),
@@ -411,25 +534,35 @@ export const salesInvoiceLines = pgTable('SalesInvoiceLine', {
   baseType: text('baseType'),
   baseId: text('baseId'),
   baseLine: integer('baseLine'),
+  uomId: text('uomId').references(() => unitsOfMeasure.id),
+  uomFactor: decimal('uomFactor', { precision: 12, scale: 4 }).default('1.0000'),
+  pluginData: jsonb('pluginData').default({}),
 });
 
 export const salesInvoiceLineBatches = pgTable('SalesInvoiceLineBatch', {
   id: text('id').primaryKey(),
-  invoiceLineId: text('invoiceLineId').notNull().references(() => salesInvoiceLines.id),
+  invoiceLineId: text('invoiceLineId')
+    .notNull()
+    .references(() => salesInvoiceLines.id),
   batchNum: text('batchNum').notNull(),
   quantity: doublePrecision('quantity').default(1).notNull(),
   createdAt: timestamp('createdAt').defaultNow().notNull(),
 });
 
-
 // ======= COMPRAS =======
 
 export const purchaseOrders = pgTable('PurchaseOrder', {
   id: text('id').primaryKey(),
-  seriesId: text('seriesId').references(() => documentSeries.id).notNull(),
+  seriesId: text('seriesId')
+    .references(() => documentSeries.id)
+    .notNull(),
   docNum: integer('docNum').notNull(),
-  periodId: text('periodId').references(() => accountingPeriods.id).notNull(),
-  partnerId: text('partnerId').references(() => businessPartners.id).notNull(),
+  periodId: text('periodId')
+    .references(() => accountingPeriods.id)
+    .notNull(),
+  partnerId: text('partnerId')
+    .references(() => businessPartners.id)
+    .notNull(),
   date: timestamp('date').notNull(),
   deliveryDate: timestamp('deliveryDate'),
   documentDate: timestamp('documentDate'),
@@ -446,9 +579,13 @@ export const purchaseOrders = pgTable('PurchaseOrder', {
 
 export const purchaseOrderLines = pgTable('PurchaseOrderLine', {
   id: text('id').primaryKey(),
-  orderId: text('orderId').references(() => purchaseOrders.id).notNull(),
+  orderId: text('orderId')
+    .references(() => purchaseOrders.id)
+    .notNull(),
   lineNum: integer('lineNum').notNull(),
-  itemId: text('itemId').references(() => items.id).notNull(),
+  itemId: text('itemId')
+    .references(() => items.id)
+    .notNull(),
   warehouseId: text('warehouseId').references(() => warehouses.id),
   zoneId: text('zoneId').references(() => warehouseZones.id),
   batchNum: text('batchNum'),
@@ -457,14 +594,23 @@ export const purchaseOrderLines = pgTable('PurchaseOrderLine', {
   price: decimal('price', { precision: 15, scale: 4 }).notNull(),
   taxGroupId: text('taxGroupId').references(() => taxGroups.id),
   lineTotal: decimal('lineTotal', { precision: 15, scale: 4 }).notNull(),
+  uomId: text('uomId').references(() => unitsOfMeasure.id),
+  uomFactor: decimal('uomFactor', { precision: 12, scale: 4 }).default('1.0000'),
+  pluginData: jsonb('pluginData').default({}),
 });
 
 export const purchaseDeliveryNotes = pgTable('PurchaseDeliveryNote', {
   id: text('id').primaryKey(),
-  seriesId: text('seriesId').references(() => documentSeries.id).notNull(),
+  seriesId: text('seriesId')
+    .references(() => documentSeries.id)
+    .notNull(),
   docNum: integer('docNum').notNull(),
-  periodId: text('periodId').references(() => accountingPeriods.id).notNull(),
-  partnerId: text('partnerId').references(() => businessPartners.id).notNull(),
+  periodId: text('periodId')
+    .references(() => accountingPeriods.id)
+    .notNull(),
+  partnerId: text('partnerId')
+    .references(() => businessPartners.id)
+    .notNull(),
   orderId: text('orderId').references(() => purchaseOrders.id),
   date: timestamp('date').notNull(),
   status: text('status').default('O').notNull(),
@@ -480,9 +626,13 @@ export const purchaseDeliveryNotes = pgTable('PurchaseDeliveryNote', {
 
 export const purchaseDeliveryNoteLines = pgTable('PurchaseDeliveryNoteLine', {
   id: text('id').primaryKey(),
-  deliveryId: text('deliveryId').references(() => purchaseDeliveryNotes.id).notNull(),
+  deliveryId: text('deliveryId')
+    .references(() => purchaseDeliveryNotes.id)
+    .notNull(),
   lineNum: integer('lineNum').notNull(),
-  itemId: text('itemId').references(() => items.id).notNull(),
+  itemId: text('itemId')
+    .references(() => items.id)
+    .notNull(),
   warehouseId: text('warehouseId').references(() => warehouses.id),
   zoneId: text('zoneId').references(() => warehouseZones.id),
   batchNum: text('batchNum'),
@@ -491,14 +641,23 @@ export const purchaseDeliveryNoteLines = pgTable('PurchaseDeliveryNoteLine', {
   taxGroupId: text('taxGroupId').references(() => taxGroups.id),
   lineTotal: decimal('lineTotal', { precision: 15, scale: 4 }).notNull(),
   baseLine: integer('baseLine'),
+  uomId: text('uomId').references(() => unitsOfMeasure.id),
+  uomFactor: decimal('uomFactor', { precision: 12, scale: 4 }).default('1.0000'),
+  pluginData: jsonb('pluginData').default({}),
 });
 
 export const purchaseInvoices = pgTable('PurchaseInvoice', {
   id: text('id').primaryKey(),
-  seriesId: text('seriesId').references(() => documentSeries.id).notNull(),
+  seriesId: text('seriesId')
+    .references(() => documentSeries.id)
+    .notNull(),
   docNum: integer('docNum').notNull(),
-  periodId: text('periodId').references(() => accountingPeriods.id).notNull(),
-  partnerId: text('partnerId').references(() => businessPartners.id).notNull(),
+  periodId: text('periodId')
+    .references(() => accountingPeriods.id)
+    .notNull(),
+  partnerId: text('partnerId')
+    .references(() => businessPartners.id)
+    .notNull(),
   date: timestamp('date').notNull(),
   status: text('status').default('O').notNull(),
   billToAddress: text('billToAddress'),
@@ -512,9 +671,13 @@ export const purchaseInvoices = pgTable('PurchaseInvoice', {
 
 export const purchaseInvoiceLines = pgTable('PurchaseInvoiceLine', {
   id: text('id').primaryKey(),
-  invoiceId: text('invoiceId').references(() => purchaseInvoices.id).notNull(),
+  invoiceId: text('invoiceId')
+    .references(() => purchaseInvoices.id)
+    .notNull(),
   lineNum: integer('lineNum').notNull(),
-  itemId: text('itemId').references(() => items.id).notNull(),
+  itemId: text('itemId')
+    .references(() => items.id)
+    .notNull(),
   warehouseId: text('warehouseId').references(() => warehouses.id),
   zoneId: text('zoneId').references(() => warehouseZones.id),
   quantity: decimal('quantity', { precision: 12, scale: 4 }).notNull(),
@@ -523,12 +686,16 @@ export const purchaseInvoiceLines = pgTable('PurchaseInvoiceLine', {
   lineTotal: decimal('lineTotal', { precision: 15, scale: 4 }).notNull(),
   baseType: text('baseType'),
   baseId: text('baseId'),
+  uomId: text('uomId').references(() => unitsOfMeasure.id),
+  uomFactor: decimal('uomFactor', { precision: 12, scale: 4 }).default('1.0000'),
   baseLine: integer('baseLine'),
 });
 
 export const purchaseDeliveryNoteLineBatches = pgTable('PurchaseDeliveryNoteLineBatch', {
   id: text('id').primaryKey(),
-  deliveryLineId: text('deliveryLineId').notNull().references(() => purchaseDeliveryNoteLines.id),
+  deliveryLineId: text('deliveryLineId')
+    .notNull()
+    .references(() => purchaseDeliveryNoteLines.id),
   batchNum: text('batchNum').notNull(),
   quantity: doublePrecision('quantity').default(1).notNull(),
   expiryDate: timestamp('expiryDate'),
@@ -537,7 +704,9 @@ export const purchaseDeliveryNoteLineBatches = pgTable('PurchaseDeliveryNoteLine
 
 export const purchaseInvoiceLineBatches = pgTable('PurchaseInvoiceLineBatch', {
   id: text('id').primaryKey(),
-  invoiceLineId: text('invoiceLineId').notNull().references(() => purchaseInvoiceLines.id),
+  invoiceLineId: text('invoiceLineId')
+    .notNull()
+    .references(() => purchaseInvoiceLines.id),
   batchNum: text('batchNum').notNull(),
   quantity: doublePrecision('quantity').default(1).notNull(),
   expiryDate: timestamp('expiryDate'),
@@ -556,7 +725,9 @@ export const documentTemplates = pgTable('DocumentTemplate', {
 
 export const auditLogs = pgTable('AuditLog', {
   id: text('id').primaryKey(),
-  tenantId: text('tenantId').notNull().references(() => tenants.id),
+  tenantId: text('tenantId')
+    .notNull()
+    .references(() => tenants.id),
   entityType: text('entityType').notNull(),
   entityId: text('entityId').notNull(),
   action: text('action').notNull(),

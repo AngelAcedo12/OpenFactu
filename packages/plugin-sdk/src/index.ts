@@ -14,10 +14,10 @@ export interface OpenFactuPluginManifest {
       title: string;
       type: 'table' | 'form' | 'custom' | 'dashboard';
       config: {
-          endpoint?: string;
-          component?: string;
-          props?: any;
-          columns?: any[];
+        endpoint?: string;
+        component?: string;
+        props?: any;
+        columns?: any[];
       };
     }>;
     menuItems: Array<{
@@ -32,10 +32,10 @@ export interface OpenFactuPluginManifest {
  * Contexto de inicialización del servidor ERP para plugins.
  */
 export interface PluginServerContext {
-    app: any; // Express app instance
-    migration: {
-        addCustomField: (field: any) => Promise<void>;
-    };
+  app: any; // Express app instance
+  migration: {
+    addCustomField: (field: any) => Promise<void>;
+  };
 }
 
 /**
@@ -50,15 +50,32 @@ export type PluginInitFunction = (context: PluginServerContext) => void | Promis
 export type OpenFactuComponent<P = {}> = React.FC<P>;
 
 /**
- * Nombres de las tablas principales del ERP disponibles para extensión.
+ * Nombres de las tablas del ERP disponibles para extensión vía plugins.
+ * Cualquier tabla listada aquí puede recibir campos custom.
  */
-export type CoreTableName = 
-  | 'Tenant'
-  | 'GlobalUser'
+export type CoreTableName =
+  // Documentos — cabeceras
+  | 'SalesInvoice'
+  | 'SalesOrder'
+  | 'SalesDeliveryNote'
+  | 'PurchaseInvoice'
+  | 'PurchaseOrder'
+  | 'PurchaseDeliveryNote'
+  // Documentos — líneas
+  | 'SalesInvoiceLine'
+  | 'SalesOrderLine'
+  | 'SalesDeliveryNoteLine'
+  | 'PurchaseInvoiceLine'
+  | 'PurchaseOrderLine'
+  | 'PurchaseDeliveryNoteLine'
+  // Maestros
   | 'BusinessPartner'
   | 'Item'
-  | 'InvoiceHeader'
-  | 'InvoiceLine'
+  | 'Warehouse'
+  | 'WarehouseZone'
+  | 'Category'
+  | 'UnitOfMeasure'
+  // Sistema
   | 'AccountingPeriod'
   | 'DocumentSeries';
 
@@ -83,18 +100,18 @@ export interface InjectedField {
  * para que el desarrollador tenga IntelliSense.
  */
 export interface UIComponents {
-    Button: React.FC<any>;
-    Card: React.FC<any>;
-    Table: React.FC<any>;
-    Badge: React.FC<any>;
-    Input: React.FC<any>;
-    Loader: React.FC<any>;
-    ToastProvider: React.FC<{ children: React.ReactNode }>;
-    
-    useToast: () => {
-        success: (msg: string) => void;
-        error: (msg: string) => void;
-        info: (msg: string) => void;
-        warning: (msg: string) => void;
-    };
+  Button: React.FC<any>;
+  Card: React.FC<any>;
+  Table: React.FC<any>;
+  Badge: React.FC<any>;
+  Input: React.FC<any>;
+  Loader: React.FC<any>;
+  ToastProvider: React.FC<{ children: React.ReactNode }>;
+
+  useToast: () => {
+    success: (msg: string) => void;
+    error: (msg: string) => void;
+    info: (msg: string) => void;
+    warning: (msg: string) => void;
+  };
 }

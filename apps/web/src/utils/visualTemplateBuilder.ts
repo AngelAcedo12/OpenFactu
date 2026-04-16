@@ -6,10 +6,7 @@ export {
   buildVisualTemplate,
   DEFAULT_VISUAL_OPTIONS,
   serializeMeta,
-  parseMeta
+  parseMeta,
 } from '@openfactu/pdf/browser';
 
-export type {
-  DocType,
-  VisualOptions
-} from '@openfactu/pdf/browser';
+export type { DocType, VisualOptions } from '@openfactu/pdf/browser';

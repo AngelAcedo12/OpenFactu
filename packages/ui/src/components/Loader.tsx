@@ -19,36 +19,38 @@ export const Loader = React.forwardRef<HTMLDivElement, LoaderProps>(
       sm: 'w-4 h-4',
       md: 'w-6 h-6',
       lg: 'w-10 h-10',
-      xl: 'w-16 h-16'
+      xl: 'w-16 h-16',
     };
 
     const variantClasses = {
       primary: 'text-primary',
       white: 'text-white',
-      neutral: 'text-slate-400 dark:text-slate-500'
+      neutral: 'text-slate-400 dark:text-slate-500',
     };
 
     const loaderContent = (
-      <div 
-        ref={ref} 
-        className={cn('flex flex-col items-center justify-center gap-3', className)} 
+      <div
+        ref={ref}
+        className={cn('flex flex-col items-center justify-center gap-3', className)}
         {...props}
       >
         <div className="relative">
-            <Loader2 className={cn('animate-spin', sizeClasses[size], variantClasses[variant])} />
-            {size === 'xl' && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-ping" />
-                </div>
-            )}
+          <Loader2 className={cn('animate-spin', sizeClasses[size], variantClasses[variant])} />
+          {size === 'xl' && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-2 h-2 bg-primary rounded-full animate-ping" />
+            </div>
+          )}
         </div>
         {label && (
-            <span className={cn(
-                "text-sm font-bold tracking-tight animate-pulse",
-                variant === 'white' ? 'text-white' : 'text-slate-600 dark:text-slate-300'
-            )}>
-                {label}
-            </span>
+          <span
+            className={cn(
+              'text-sm font-bold tracking-tight animate-pulse',
+              variant === 'white' ? 'text-white' : 'text-slate-600 dark:text-slate-300',
+            )}
+          >
+            {label}
+          </span>
         )}
       </div>
     );
@@ -62,7 +64,7 @@ export const Loader = React.forwardRef<HTMLDivElement, LoaderProps>(
     }
 
     return loaderContent;
-  }
+  },
 );
 
 Loader.displayName = 'Loader';

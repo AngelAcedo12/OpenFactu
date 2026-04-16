@@ -2,9 +2,26 @@ import React, { useEffect, useState } from 'react';
 import { Card, Button, Input, Badge, Loader, useToast } from '@openfactu/ui';
 import { useAuth } from '../context/AuthContext';
 import {
- UserPlus, Mail, Edit2, Trash2, ShieldCheck, Lock, Building2,
- ChevronDown, ChevronUp, Plus, X, Settings, BookOpen, Users as UsersIcon,
- ShoppingCart, TrendingUp, Calendar, Eye, Pencil, AlertTriangle
+  UserPlus,
+  Mail,
+  Edit2,
+  Trash2,
+  ShieldCheck,
+  Lock,
+  Building2,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  X,
+  Settings,
+  BookOpen,
+  Users as UsersIcon,
+  ShoppingCart,
+  TrendingUp,
+  Calendar,
+  Eye,
+  Pencil,
+  AlertTriangle,
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
@@ -14,641 +31,883 @@ type PermSet = { read: boolean; write: boolean; delete: boolean };
 type Permissions = Record<string, PermSet>;
 
 type MembershipEntry = {
- id?: string;
- tenantId: string;
- tenantName?: string;
- role: 'USER' | 'ADMIN';
- permissions: Permissions;
- isNew?: boolean;
- isDeleted?: boolean;
- expanded?: boolean;
+  id?: string;
+  tenantId: string;
+  tenantName?: string;
+  role: 'USER' | 'ADMIN';
+  permissions: Permissions;
+  isNew?: boolean;
+  isDeleted?: boolean;
+  expanded?: boolean;
 };
 
 // ─── Grupos de permisos ───────────────────────────────────────────────────────
 
 const PERMISSION_GROUPS = [
- {
- group: 'Sistema', icon: Settings,
- items: [
- { label: 'Dashboard', path: '/dashboard' },
- { label: 'Plugins', path: '/plugins' },
- { label: 'Usuarios', path: '/users' },
- { label: 'Auditoría', path: '/audit-logs' },
- ]
- },
- {
- group: 'Catálogos', icon: BookOpen,
- items: [
- { label: 'Artículos', path: '/items' },
- { label: 'Categorías', path: '/categories' },
- { label: 'Unidades', path: '/uom' },
- { label: 'Tarifas', path: '/pricelists' },
- { label: 'Almacenes', path: '/warehouses' },
- { label: 'Impuestos', path: '/taxes' },
- ]
- },
- {
- group: 'Terceros', icon: UsersIcon,
- items: [
- { label: 'Grupos', path: '/partner-groups' },
- { label: 'Directorio', path: '/partners' },
- ]
- },
- {
- group: 'Compras', icon: ShoppingCart,
- items: [
- { label: 'Pedidos', path: '/purchase-orders' },
- { label: 'Albaranes', path: '/purchases/delivery-notes' },
- { label: 'Facturas', path: '/purchases/invoices' },
- ]
- },
- {
- group: 'Ventas', icon: TrendingUp,
- items: [
- { label: 'Pedidos', path: '/sales-orders' },
- { label: 'Albaranes', path: '/sales/delivery-notes' },
- { label: 'Facturas', path: '/sales/invoices' },
- ]
- },
- {
- group: 'Contabilidad', icon: Calendar,
- items: [
- { label: 'Periodos', path: '/accounting-periods' },
- { label: 'Series Doc.', path: '/document-series' },
- ]
- },
+  {
+    group: 'Sistema',
+    icon: Settings,
+    items: [
+      { label: 'Dashboard', path: '/dashboard' },
+      { label: 'Plugins', path: '/plugins' },
+      { label: 'Usuarios', path: '/users' },
+      { label: 'Auditoría', path: '/audit-logs' },
+    ],
+  },
+  {
+    group: 'Catálogos',
+    icon: BookOpen,
+    items: [
+      { label: 'Artículos', path: '/items' },
+      { label: 'Categorías', path: '/categories' },
+      { label: 'Unidades', path: '/uom' },
+      { label: 'Tarifas', path: '/pricelists' },
+      { label: 'Almacenes', path: '/warehouses' },
+      { label: 'Impuestos', path: '/taxes' },
+    ],
+  },
+  {
+    group: 'Terceros',
+    icon: UsersIcon,
+    items: [
+      { label: 'Grupos', path: '/partner-groups' },
+      { label: 'Directorio', path: '/partners' },
+    ],
+  },
+  {
+    group: 'Compras',
+    icon: ShoppingCart,
+    items: [
+      { label: 'Pedidos', path: '/purchase-orders' },
+      { label: 'Albaranes', path: '/purchases/delivery-notes' },
+      { label: 'Facturas', path: '/purchases/invoices' },
+    ],
+  },
+  {
+    group: 'Ventas',
+    icon: TrendingUp,
+    items: [
+      { label: 'Pedidos', path: '/sales-orders' },
+      { label: 'Albaranes', path: '/sales/delivery-notes' },
+      { label: 'Facturas', path: '/sales/invoices' },
+    ],
+  },
+  {
+    group: 'Contabilidad',
+    icon: Calendar,
+    items: [
+      { label: 'Periodos', path: '/accounting-periods' },
+      { label: 'Series Doc.', path: '/document-series' },
+    ],
+  },
 ];
 
 const EMPTY_PERM: PermSet = { read: false, write: false, delete: false };
 
 const defaultPermissions = (): Permissions => {
- const perms: Permissions = {};
- PERMISSION_GROUPS.forEach(g => g.items.forEach(i => { perms[i.path] = { ...EMPTY_PERM }; }));
- return perms;
+  const perms: Permissions = {};
+  PERMISSION_GROUPS.forEach((g) =>
+    g.items.forEach((i) => {
+      perms[i.path] = { ...EMPTY_PERM };
+    }),
+  );
+  return perms;
 };
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
 const PermToggle: React.FC<{
- active: boolean;
- color: 'emerald' | 'blue' | 'rose';
- label: string;
- icon: React.ReactNode;
- disabled?: boolean;
- onChange: (v: boolean) => void;
+  active: boolean;
+  color: 'emerald' | 'blue' | 'rose';
+  label: string;
+  icon: React.ReactNode;
+  disabled?: boolean;
+  onChange: (v: boolean) => void;
 }> = ({ active, color, label, icon, disabled, onChange }) => {
- const activeClass = {
- emerald: 'bg-emerald-100 text-emerald-700 dark:text-emerald-200 ring-1 ring-emerald-300',
- blue: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-200 ring-1 ring-blue-300',
- rose: 'bg-rose-100 text-rose-700 dark:text-rose-200 ring-1 ring-rose-300',
- }[color];
+  const activeClass = {
+    emerald: 'bg-emerald-100 text-emerald-700 dark:text-emerald-200 ring-1 ring-emerald-300',
+    blue: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-200 ring-1 ring-blue-300',
+    rose: 'bg-rose-100 text-rose-700 dark:text-rose-200 ring-1 ring-rose-300',
+  }[color];
 
- return (
- <button
- type="button" disabled={disabled}
- onClick={() => onChange(!active)}
- className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide transition-all
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onChange(!active)}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide transition-all
  ${active ? activeClass : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'}
  ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:opacity-80 active:scale-95'}`}
- >
- <span className={`w-1.5 h-1.5 rounded-full ${active ? `bg-current` : 'bg-slate-300'}`} />
- {icon}{label}
- </button>
- );
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${active ? `bg-current` : 'bg-slate-300'}`} />
+      {icon}
+      {label}
+    </button>
+  );
 };
 
 const PermissionsEditor: React.FC<{
- permissions: Permissions;
- disabled?: boolean;
- onChange: (p: Permissions) => void;
+  permissions: Permissions;
+  disabled?: boolean;
+  onChange: (p: Permissions) => void;
 }> = ({ permissions, disabled, onChange }) => {
- const togglePerm = (path: string, key: keyof PermSet, value: boolean) => {
- onChange({ ...permissions, [path]: { ...(permissions[path] || EMPTY_PERM), [key]: value } });
- };
+  const togglePerm = (path: string, key: keyof PermSet, value: boolean) => {
+    onChange({ ...permissions, [path]: { ...(permissions[path] || EMPTY_PERM), [key]: value } });
+  };
 
- const toggleGroup = (group: typeof PERMISSION_GROUPS[0], key: keyof PermSet, value: boolean) => {
- const next = { ...permissions };
- group.items.forEach(i => { next[i.path] = { ...(next[i.path] || EMPTY_PERM), [key]: value }; });
- onChange(next);
- };
+  const toggleGroup = (
+    group: (typeof PERMISSION_GROUPS)[0],
+    key: keyof PermSet,
+    value: boolean,
+  ) => {
+    const next = { ...permissions };
+    group.items.forEach((i) => {
+      next[i.path] = { ...(next[i.path] || EMPTY_PERM), [key]: value };
+    });
+    onChange(next);
+  };
 
- const allGroupActive = (group: typeof PERMISSION_GROUPS[0], key: keyof PermSet) =>
- group.items.every(i => permissions[i.path]?.[key]);
+  const allGroupActive = (group: (typeof PERMISSION_GROUPS)[0], key: keyof PermSet) =>
+    group.items.every((i) => permissions[i.path]?.[key]);
 
- return (
- <div className="space-y-3 pt-2">
- {PERMISSION_GROUPS.map(group => {
- const Icon = group.icon;
- return (
- <div key={group.group} className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden">
- {/* Header del grupo */}
- <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/50">
- <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-widest">
- <Icon size={11} />
- {group.group}
- </span>
- <div className="flex gap-1">
- {(['read', 'write', 'delete'] as (keyof PermSet)[]).map(key => {
- const all = allGroupActive(group, key);
- const colors = { read: 'emerald', write: 'blue', delete: 'rose' } as const;
- return (
- <button
- key={key}
- type="button" disabled={disabled}
- onClick={() => toggleGroup(group, key, !all)}
- className={`px-2 py-0.5 rounded text-[9px] font-black uppercase transition-all
- ${all
- ? { read: 'bg-emerald-500 text-white', write: 'bg-blue-500 text-white', delete: 'bg-rose-500 text-white' }[key]
- : 'bg-slate-200 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-300'}
+  return (
+    <div className="space-y-3 pt-2">
+      {PERMISSION_GROUPS.map((group) => {
+        const Icon = group.icon;
+        return (
+          <div
+            key={group.group}
+            className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden"
+          >
+            {/* Header del grupo */}
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/50">
+              <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                <Icon size={11} />
+                {group.group}
+              </span>
+              <div className="flex gap-1">
+                {(['read', 'write', 'delete'] as (keyof PermSet)[]).map((key) => {
+                  const all = allGroupActive(group, key);
+                  const colors = { read: 'emerald', write: 'blue', delete: 'rose' } as const;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => toggleGroup(group, key, !all)}
+                      className={`px-2 py-0.5 rounded text-[9px] font-black uppercase transition-all
+ ${
+   all
+     ? {
+         read: 'bg-emerald-500 text-white',
+         write: 'bg-blue-500 text-white',
+         delete: 'bg-rose-500 text-white',
+       }[key]
+     : 'bg-slate-200 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-300'
+ }
  ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}`}
- >
- {key === 'read' ? 'Ver' : key === 'write' ? 'Crear' : 'Borrar'}
- </button>
- );
- })}
- </div>
- </div>
- {/* Filas de ítems */}
- <div className="divide-y divide-slate-50">
- {group.items.map(item => {
- const p = permissions[item.path] || EMPTY_PERM;
- return (
- <div key={item.path} className="flex items-center justify-between px-3 py-1.5">
- <span className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-600 font-medium">{item.label}</span>
- <div className="flex gap-1.5">
- <PermToggle active={p.read} color="emerald"label="Ver"icon={<Eye size={9} />} disabled={disabled} onChange={v => togglePerm(item.path, 'read', v)} />
- <PermToggle active={p.write} color="blue"label="Crear"icon={<Pencil size={9} />} disabled={disabled} onChange={v => togglePerm(item.path, 'write', v)} />
- <PermToggle active={p.delete} color="rose"label="Borrar"icon={<AlertTriangle size={9} />} disabled={disabled} onChange={v => togglePerm(item.path, 'delete', v)} />
- </div>
- </div>
- );
- })}
- </div>
- </div>
- );
- })}
- </div>
- );
+                    >
+                      {key === 'read' ? 'Ver' : key === 'write' ? 'Crear' : 'Borrar'}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Filas de ítems */}
+            <div className="divide-y divide-slate-50">
+              {group.items.map((item) => {
+                const p = permissions[item.path] || EMPTY_PERM;
+                return (
+                  <div key={item.path} className="flex items-center justify-between px-3 py-1.5">
+                    <span className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-600 font-medium">
+                      {item.label}
+                    </span>
+                    <div className="flex gap-1.5">
+                      <PermToggle
+                        active={p.read}
+                        color="emerald"
+                        label="Ver"
+                        icon={<Eye size={9} />}
+                        disabled={disabled}
+                        onChange={(v) => togglePerm(item.path, 'read', v)}
+                      />
+                      <PermToggle
+                        active={p.write}
+                        color="blue"
+                        label="Crear"
+                        icon={<Pencil size={9} />}
+                        disabled={disabled}
+                        onChange={(v) => togglePerm(item.path, 'write', v)}
+                      />
+                      <PermToggle
+                        active={p.delete}
+                        color="rose"
+                        label="Borrar"
+                        icon={<AlertTriangle size={9} />}
+                        disabled={disabled}
+                        onChange={(v) => togglePerm(item.path, 'delete', v)}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export const Users: React.FC = () => {
- const { token, user: currentUser } = useAuth();
- const location = useLocation();
- const canWrite = currentUser?.role === 'SUPERUSER' || currentUser?.role === 'ADMIN' || currentUser?.permissions?.[location.pathname]?.write;
- const canDelete = currentUser?.role === 'SUPERUSER' || currentUser?.role === 'ADMIN' || currentUser?.permissions?.[location.pathname]?.delete;
- const isPrivileged = currentUser?.role === 'SUPERUSER' || currentUser?.role === 'ADMIN';
+  const { token, user: currentUser } = useAuth();
+  const location = useLocation();
+  const canWrite =
+    currentUser?.role === 'SUPERUSER' ||
+    currentUser?.role === 'ADMIN' ||
+    currentUser?.permissions?.[location.pathname]?.write;
+  const canDelete =
+    currentUser?.role === 'SUPERUSER' ||
+    currentUser?.role === 'ADMIN' ||
+    currentUser?.permissions?.[location.pathname]?.delete;
+  const isPrivileged = currentUser?.role === 'SUPERUSER' || currentUser?.role === 'ADMIN';
 
- const toast = useToast();
- const [users, setUsers] = useState<any[]>([]);
- const [loading, setLoading] = useState(true);
- const [showForm, setShowForm] = useState(false);
- const [editingUser, setEditingUser] = useState<any>(null);
- const [isSubmitting, setIsSubmitting] = useState(false);
+  const toast = useToast();
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
- // Campos identidad
- const [username, setUsername] = useState('');
- const [email, setEmail] = useState('');
- const [password, setPassword] = useState('');
- const [globalRole, setGlobalRole] = useState('USER');
+  // Campos identidad
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [globalRole, setGlobalRole] = useState('USER');
 
- // Memberships
- const [memberships, setMemberships] = useState<MembershipEntry[]>([]);
- const [allTenants, setAllTenants] = useState<{id: string, name: string}[]>([]);
+  // Memberships
+  const [memberships, setMemberships] = useState<MembershipEntry[]>([]);
+  const [allTenants, setAllTenants] = useState<{ id: string; name: string }[]>([]);
 
- // ── Fetch ──────────────────────────────────────────────────────────────────
+  // ── Fetch ──────────────────────────────────────────────────────────────────
 
- const fetchUsers = async () => {
- setLoading(true);
- try {
- const res = await fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } });
- setUsers(await res.json());
- } catch { toast.error('Error al cargar usuarios'); }
- finally { setLoading(false); }
- };
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } });
+      setUsers(await res.json());
+    } catch {
+      toast.error('Error al cargar usuarios');
+    } finally {
+      setLoading(false);
+    }
+  };
 
- const fetchTenants = async () => {
- try {
- const res = await fetch('/api/auth/tenants');
- const data = await res.json();
- if (Array.isArray(data)) setAllTenants(data);
- } catch {}
- };
+  const fetchTenants = async () => {
+    try {
+      const res = await fetch('/api/auth/tenants');
+      const data = await res.json();
+      if (Array.isArray(data)) setAllTenants(data);
+    } catch {}
+  };
 
- useEffect(() => { fetchUsers(); fetchTenants(); }, []);
+  useEffect(() => {
+    fetchUsers();
+    fetchTenants();
+  }, []);
 
- // ── Formulario ─────────────────────────────────────────────────────────────
+  // ── Formulario ─────────────────────────────────────────────────────────────
 
- const resetForm = () => {
- setShowForm(false); setEditingUser(null);
- setUsername(''); setEmail(''); setPassword('');
- setGlobalRole('USER'); setMemberships([]);
- };
+  const resetForm = () => {
+    setShowForm(false);
+    setEditingUser(null);
+    setUsername('');
+    setEmail('');
+    setPassword('');
+    setGlobalRole('USER');
+    setMemberships([]);
+  };
 
- const startEdit = async (u: any) => {
- setEditingUser(u);
- setUsername(u.username); setEmail(u.email);
- setPassword(''); setGlobalRole(u.role);
+  const startEdit = async (u: any) => {
+    setEditingUser(u);
+    setUsername(u.username);
+    setEmail(u.email);
+    setPassword('');
+    setGlobalRole(u.role);
 
- try {
- const res = await fetch(`/api/memberships?userId=${u.id}`, {
- headers: { Authorization: `Bearer ${token}` }
- });
- const data = await res.json();
- setMemberships(data.map((m: any) => ({
- id: m.id,
- tenantId: m.tenantId,
- tenantName: m.tenantName,
- role: m.role,
- permissions: m.permissions ? JSON.parse(m.permissions) : defaultPermissions(),
- isNew: false, isDeleted: false, expanded: false,
- })));
- } catch { setMemberships([]); }
+    try {
+      const res = await fetch(`/api/memberships?userId=${u.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setMemberships(
+        data.map((m: any) => ({
+          id: m.id,
+          tenantId: m.tenantId,
+          tenantName: m.tenantName,
+          role: m.role,
+          permissions: m.permissions ? JSON.parse(m.permissions) : defaultPermissions(),
+          isNew: false,
+          isDeleted: false,
+          expanded: false,
+        })),
+      );
+    } catch {
+      setMemberships([]);
+    }
 
- setShowForm(true);
- };
+    setShowForm(true);
+  };
 
- const addMembership = () => {
- const usedTenants = memberships.filter(m => !m.isDeleted).map(m => m.tenantId);
- const available = allTenants.find(t => !usedTenants.includes(t.id));
- if (!available) return toast.error('Ya has asignado todas las empresas disponibles');
- setMemberships(prev => [...prev, {
- tenantId: available.id, tenantName: available.name,
- role: 'USER', permissions: defaultPermissions(),
- isNew: true, isDeleted: false, expanded: true,
- }]);
- };
+  const addMembership = () => {
+    const usedTenants = memberships.filter((m) => !m.isDeleted).map((m) => m.tenantId);
+    const available = allTenants.find((t) => !usedTenants.includes(t.id));
+    if (!available) return toast.error('Ya has asignado todas las empresas disponibles');
+    setMemberships((prev) => [
+      ...prev,
+      {
+        tenantId: available.id,
+        tenantName: available.name,
+        role: 'USER',
+        permissions: defaultPermissions(),
+        isNew: true,
+        isDeleted: false,
+        expanded: true,
+      },
+    ]);
+  };
 
- const updateMembership = (idx: number, patch: Partial<MembershipEntry>) => {
- setMemberships(prev => prev.map((m, i) => {
- if (i !== idx) return m;
- const updated = { ...m, ...patch };
- // Al cambiar tenant, actualizar tenantName
- if (patch.tenantId) updated.tenantName = allTenants.find(t => t.id === patch.tenantId)?.name;
- return updated;
- }));
- };
+  const updateMembership = (idx: number, patch: Partial<MembershipEntry>) => {
+    setMemberships((prev) =>
+      prev.map((m, i) => {
+        if (i !== idx) return m;
+        const updated = { ...m, ...patch };
+        // Al cambiar tenant, actualizar tenantName
+        if (patch.tenantId)
+          updated.tenantName = allTenants.find((t) => t.id === patch.tenantId)?.name;
+        return updated;
+      }),
+    );
+  };
 
- const removeMembership = (idx: number) => {
- setMemberships(prev => prev.map((m, i) => {
- if (i !== idx) return m;
- if (m.isNew) return { ...m, isDeleted: true }; // se filtrará al renderizar
- return { ...m, isDeleted: true };
- }));
- };
+  const removeMembership = (idx: number) => {
+    setMemberships((prev) =>
+      prev.map((m, i) => {
+        if (i !== idx) return m;
+        if (m.isNew) return { ...m, isDeleted: true }; // se filtrará al renderizar
+        return { ...m, isDeleted: true };
+      }),
+    );
+  };
 
- // ── Guardar ────────────────────────────────────────────────────────────────
+  // ── Guardar ────────────────────────────────────────────────────────────────
 
- const handleSubmit = async (e: React.FormEvent) => {
- e.preventDefault();
- setIsSubmitting(true);
- try {
- // 1. Guardar identidad del usuario
- const url = editingUser ? `/api/users/${editingUser.id}` : '/api/users';
- const method = editingUser ? 'PATCH' : 'POST';
- const payload: any = { username, email, role: globalRole };
- if (password) payload.password = password;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      // 1. Guardar identidad del usuario
+      const url = editingUser ? `/api/users/${editingUser.id}` : '/api/users';
+      const method = editingUser ? 'PATCH' : 'POST';
+      const payload: any = { username, email, role: globalRole };
+      if (password) payload.password = password;
 
- const res = await fetch(url, {
- method,
- headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
- body: JSON.stringify(payload)
- });
- if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Error al guardar usuario'); }
- const savedUser = await res.json();
- const userId = savedUser.id || editingUser?.id;
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error(e.error || 'Error al guardar usuario');
+      }
+      const savedUser = await res.json();
+      const userId = savedUser.id || editingUser?.id;
 
- // 2. Procesar memberships
- for (const m of memberships) {
- const permStr = JSON.stringify(m.permissions);
- if (m.isNew && !m.isDeleted) {
- await fetch('/api/memberships', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
- body: JSON.stringify({ userId, tenantId: m.tenantId, role: m.role, permissions: permStr })
- });
- } else if (!m.isNew && m.isDeleted && m.id) {
- await fetch(`/api/memberships/${m.id}`, {
- method: 'DELETE',
- headers: { Authorization: `Bearer ${token}` }
- });
- } else if (!m.isNew && !m.isDeleted && m.id) {
- await fetch(`/api/memberships/${m.id}`, {
- method: 'PATCH',
- headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
- body: JSON.stringify({ role: m.role, permissions: permStr })
- });
- }
- }
+      // 2. Procesar memberships
+      for (const m of memberships) {
+        const permStr = JSON.stringify(m.permissions);
+        if (m.isNew && !m.isDeleted) {
+          await fetch('/api/memberships', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              userId,
+              tenantId: m.tenantId,
+              role: m.role,
+              permissions: permStr,
+            }),
+          });
+        } else if (!m.isNew && m.isDeleted && m.id) {
+          await fetch(`/api/memberships/${m.id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } else if (!m.isNew && !m.isDeleted && m.id) {
+          await fetch(`/api/memberships/${m.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ role: m.role, permissions: permStr }),
+          });
+        }
+      }
 
- toast.success(editingUser ? 'Usuario actualizado' : 'Usuario creado');
- resetForm(); fetchUsers();
- } catch (err: any) {
- toast.error(err.message || 'Error de conexión');
- } finally { setIsSubmitting(false); }
- };
+      toast.success(editingUser ? 'Usuario actualizado' : 'Usuario creado');
+      resetForm();
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || 'Error de conexión');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
- const handleDelete = async (id: string) => {
- if (!confirm('¿Estás seguro de eliminar este usuario?')) return;
- try {
- const res = await fetch(`/api/users/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
- if (res.ok) { fetchUsers(); toast.success('Usuario eliminado'); }
- } catch { toast.error('Fallo al eliminar'); }
- };
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar este usuario?')) return;
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        fetchUsers();
+        toast.success('Usuario eliminado');
+      }
+    } catch {
+      toast.error('Fallo al eliminar');
+    }
+  };
 
- // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
 
- const visibleMemberships = memberships.filter(m => !m.isDeleted || (m.isDeleted && !m.isNew));
- const activeMemberships = memberships.filter(m => !m.isDeleted);
+  const visibleMemberships = memberships.filter((m) => !m.isDeleted || (m.isDeleted && !m.isNew));
+  const activeMemberships = memberships.filter((m) => !m.isDeleted);
 
- return (
- <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {/* Header */}
+      <header className="flex items-end justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="p-1.5 bg-blue-600 rounded-lg text-white">
+              <UsersIcon size={20} />
+            </span>
+            <span className="text-[10px] font-black text-blue-600 dark:text-blue-300 uppercase tracking-[0.2em]">
+              Gestión Central
+            </span>
+          </div>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+            Usuarios
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+            Gestiona accesos, roles y permisos por empresa.
+          </p>
+        </div>
+        {!showForm && (
+          <Button
+            onClick={() => setShowForm(true)}
+            disabled={!canWrite}
+            className="flex items-center gap-2 disabled:opacity-50 disabled:grayscale"
+          >
+            <UserPlus size={18} /> Nuevo Usuario
+          </Button>
+        )}
+      </header>
 
- {/* Header */}
- <header className="flex items-end justify-between gap-4">
- <div className="space-y-1">
- <div className="flex items-center gap-2 mb-1">
- <span className="p-1.5 bg-blue-600 rounded-lg text-white">
- <UsersIcon size={20} />
- </span>
- <span className="text-[10px] font-black text-blue-600 dark:text-blue-300 uppercase tracking-[0.2em]">Gestión Central</span>
- </div>
- <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Usuarios</h1>
- <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">Gestiona accesos, roles y permisos por empresa.</p>
- </div>
- {!showForm && (
- <Button onClick={() => setShowForm(true)} disabled={!canWrite} className="flex items-center gap-2 disabled:opacity-50 disabled:grayscale">
- <UserPlus size={18} /> Nuevo Usuario
- </Button>
- )}
- </header>
+      {/* Formulario */}
+      {showForm && (
+        <Card className="border-0">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">
+              {editingUser ? `Editando: ${editingUser.username}` : 'Nuevo Usuario'}
+            </h2>
+            <button
+              onClick={resetForm}
+              className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
 
- {/* Formulario */}
- {showForm && (
- <Card className="border-0">
- <div className="flex items-center justify-between mb-6">
- <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">
- {editingUser ? `Editando: ${editingUser.username}` : 'Nuevo Usuario'}
- </h2>
- <button onClick={resetForm} className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
- <X size={18} />
- </button>
- </div>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Identidad */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  Nombre de Usuario
+                </label>
+                <Input
+                  type="text"
+                  placeholder="jdoe"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  <Mail size={10} className="inline mr-1" />
+                  Email
+                </label>
+                <Input
+                  type="email"
+                  placeholder="ejemplo@empresa.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  {editingUser ? 'Nueva Contraseña (vacío = no cambiar)' : 'Contraseña'}
+                </label>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required={!editingUser}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <ShieldCheck
+                    size={11}
+                    className={
+                      isPrivileged
+                        ? 'text-blue-500 dark:text-blue-300'
+                        : 'text-slate-300 dark:text-slate-600'
+                    }
+                  />
+                  Rol Global {!isPrivileged && <Lock size={9} className="text-rose-400" />}
+                </label>
+                {isPrivileged ? (
+                  <select
+                    value={globalRole}
+                    onChange={(e) => setGlobalRole(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  >
+                    <option value="USER">USER — acceso por permisos de empresa</option>
+                    <option value="ADMIN">ADMIN — acceso total a su empresa</option>
+                    {currentUser?.role === 'SUPERUSER' && (
+                      <option value="SUPERUSER">SUPERUSER — acceso global</option>
+                    )}
+                  </select>
+                ) : (
+                  <div className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2 px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold">
+                    {globalRole}
+                  </div>
+                )}
+              </div>
+            </div>
 
- <form onSubmit={handleSubmit} className="space-y-8">
- {/* Identidad */}
- <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
- <div className="space-y-1.5">
- <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Nombre de Usuario</label>
- <Input type="text"placeholder="jdoe"value={username} onChange={e => setUsername(e.target.value)} required />
- </div>
- <div className="space-y-1.5">
- <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
- <Mail size={10} className="inline mr-1"/>Email
- </label>
- <Input type="email"placeholder="ejemplo@empresa.com"value={email} onChange={e => setEmail(e.target.value)} required />
- </div>
- <div className="space-y-1.5">
- <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
- {editingUser ? 'Nueva Contraseña (vacío = no cambiar)' : 'Contraseña'}
- </label>
- <Input type="password"placeholder="••••••••"value={password} onChange={e => setPassword(e.target.value)} required={!editingUser} />
- </div>
- <div className="space-y-1.5">
- <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
- <ShieldCheck size={11} className={isPrivileged ? 'text-blue-500 dark:text-blue-300' : 'text-slate-300 dark:text-slate-600'} />
- Rol Global {!isPrivileged && <Lock size={9} className="text-rose-400"/>}
- </label>
- {isPrivileged ? (
- <select value={globalRole} onChange={e => setGlobalRole(e.target.value)}
- className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50">
- <option value="USER">USER — acceso por permisos de empresa</option>
- <option value="ADMIN">ADMIN — acceso total a su empresa</option>
- {currentUser?.role === 'SUPERUSER' && <option value="SUPERUSER">SUPERUSER — acceso global</option>}
- </select>
- ) : (
- <div className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2 px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold">
- {globalRole}
- </div>
- )}
- </div>
- </div>
+            {/* Memberships de empresa */}
+            <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">
+                    Acceso a Empresas
+                  </h3>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-0.5">
+                    {activeMemberships.length === 0
+                      ? 'Sin empresas asignadas — este usuario no podrá iniciar sesión'
+                      : `${activeMemberships.length} empresa${activeMemberships.length > 1 ? 's' : ''} asignada${activeMemberships.length > 1 ? 's' : ''}`}
+                  </p>
+                </div>
+                {isPrivileged && globalRole !== 'SUPERUSER' && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={addMembership}
+                    className="gap-1.5"
+                  >
+                    <Plus size={14} /> Añadir Empresa
+                  </Button>
+                )}
+              </div>
 
- {/* Memberships de empresa */}
- <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
- <div className="flex items-center justify-between">
- <div>
- <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Acceso a Empresas</h3>
- <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-0.5">
- {activeMemberships.length === 0
- ? 'Sin empresas asignadas — este usuario no podrá iniciar sesión'
- : `${activeMemberships.length} empresa${activeMemberships.length > 1 ? 's' : ''} asignada${activeMemberships.length > 1 ? 's' : ''}`}
- </p>
- </div>
- {isPrivileged && globalRole !== 'SUPERUSER' && (
- <Button type="button"variant="secondary"size="sm"onClick={addMembership} className="gap-1.5">
- <Plus size={14} /> Añadir Empresa
- </Button>
- )}
- </div>
+              {globalRole === 'SUPERUSER' && (
+                <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/30 rounded-xl text-amber-700 dark:text-amber-200">
+                  <ShieldCheck size={18} className="shrink-0" />
+                  <p className="text-sm font-bold">
+                    Los SUPERUSER tienen acceso global a todas las empresas sin necesidad de
+                    asignación.
+                  </p>
+                </div>
+              )}
 
- {globalRole === 'SUPERUSER' && (
- <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/30 rounded-xl text-amber-700 dark:text-amber-200">
- <ShieldCheck size={18} className="shrink-0"/>
- <p className="text-sm font-bold">Los SUPERUSER tienen acceso global a todas las empresas sin necesidad de asignación.</p>
- </div>
- )}
+              {activeMemberships.length === 0 && globalRole !== 'SUPERUSER' && (
+                <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 dark:text-slate-500">
+                  <Building2 size={18} className="shrink-0" />
+                  <p className="text-sm font-medium">
+                    Pulsa"Añadir Empresa"para asignar acceso a una empresa.
+                  </p>
+                </div>
+              )}
 
- {activeMemberships.length === 0 && globalRole !== 'SUPERUSER' && (
- <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 dark:text-slate-500">
- <Building2 size={18} className="shrink-0"/>
- <p className="text-sm font-medium">Pulsa"Añadir Empresa"para asignar acceso a una empresa.</p>
- </div>
- )}
+              <div className="space-y-3">
+                {memberships.map((m, idx) => {
+                  if (m.isDeleted && m.isNew) return null;
+                  if (m.isDeleted)
+                    return (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-3 p-3 bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/30 rounded-xl opacity-60"
+                      >
+                        <span className="text-xs text-rose-600 dark:text-rose-300 font-bold line-through">
+                          {m.tenantName}
+                        </span>
+                        <span className="text-[10px] text-rose-500 font-black uppercase">
+                          Se eliminará al guardar
+                        </span>
+                        <button
+                          type="button"
+                          className="ml-auto text-rose-400 hover:text-rose-600 dark:text-rose-300"
+                          onClick={() => updateMembership(idx, { isDeleted: false })}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    );
 
- <div className="space-y-3">
- {memberships.map((m, idx) => {
- if (m.isDeleted && m.isNew) return null;
- if (m.isDeleted) return (
- <div key={idx} className="flex items-center gap-3 p-3 bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/30 rounded-xl opacity-60">
- <span className="text-xs text-rose-600 dark:text-rose-300 font-bold line-through">{m.tenantName}</span>
- <span className="text-[10px] text-rose-500 font-black uppercase">Se eliminará al guardar</span>
- <button type="button"className="ml-auto text-rose-400 hover:text-rose-600 dark:text-rose-300"onClick={() => updateMembership(idx, { isDeleted: false })}>
- <X size={14} />
- </button>
- </div>
- );
+                  const usedTenantIds = memberships
+                    .filter((mm, ii) => ii !== idx && !mm.isDeleted)
+                    .map((mm) => mm.tenantId);
 
- const usedTenantIds = memberships
- .filter((mm, ii) => ii !== idx && !mm.isDeleted)
- .map(mm => mm.tenantId);
+                  return (
+                    <div
+                      key={idx}
+                      className={`border rounded-2xl overflow-hidden transition-all ${m.isNew ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'}`}
+                    >
+                      {/* Cabecera de la membership */}
+                      <div className="flex items-center gap-3 p-4">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center ${m.isNew ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 dark:text-slate-500'}`}
+                        >
+                          <Building2 size={18} />
+                        </div>
 
- return (
- <div key={idx} className={`border rounded-2xl overflow-hidden transition-all ${m.isNew ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'}`}>
- {/* Cabecera de la membership */}
- <div className="flex items-center gap-3 p-4">
- <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${m.isNew ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 dark:text-slate-500'}`}>
- <Building2 size={18} />
- </div>
+                        {/* Selector de empresa */}
+                        <select
+                          value={m.tenantId}
+                          onChange={(e) => updateMembership(idx, { tenantId: e.target.value })}
+                          disabled={!isPrivileged}
+                          className="flex-1 bg-transparent border-0 text-sm font-black text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 rounded-lg px-2 py-1 disabled:cursor-not-allowed"
+                        >
+                          {allTenants
+                            .filter((t) => !usedTenantIds.includes(t.id) || t.id === m.tenantId)
+                            .map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.name}
+                              </option>
+                            ))}
+                        </select>
 
- {/* Selector de empresa */}
- <select
- value={m.tenantId}
- onChange={e => updateMembership(idx, { tenantId: e.target.value })}
- disabled={!isPrivileged}
- className="flex-1 bg-transparent border-0 text-sm font-black text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 rounded-lg px-2 py-1 disabled:cursor-not-allowed" >
- {allTenants
- .filter(t => !usedTenantIds.includes(t.id) || t.id === m.tenantId)
- .map(t => <option key={t.id} value={t.id}>{t.name}</option>)
- }
- </select>
+                        {/* Rol de membership */}
+                        <select
+                          value={m.role}
+                          onChange={(e) =>
+                            updateMembership(idx, { role: e.target.value as 'USER' | 'ADMIN' })
+                          }
+                          disabled={!isPrivileged}
+                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-2 text-xs font-black focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:bg-slate-50 dark:bg-slate-800/50"
+                        >
+                          <option value="USER">USER</option>
+                          <option value="ADMIN">ADMIN</option>
+                        </select>
 
- {/* Rol de membership */}
- <select
- value={m.role}
- onChange={e => updateMembership(idx, { role: e.target.value as 'USER' | 'ADMIN' })}
- disabled={!isPrivileged}
- className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-2 text-xs font-black focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:bg-slate-50 dark:bg-slate-800/50" >
- <option value="USER">USER</option>
- <option value="ADMIN">ADMIN</option>
- </select>
+                        {/* Toggle permisos */}
+                        {m.role === 'USER' && (
+                          <button
+                            type="button"
+                            onClick={() => updateMembership(idx, { expanded: !m.expanded })}
+                            className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
+                            title="Configurar permisos"
+                          >
+                            {m.expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        )}
+                        {m.role === 'ADMIN' && (
+                          <span className="text-[10px] font-black text-blue-600 dark:text-blue-300 uppercase bg-blue-50 dark:bg-blue-500/10 px-2 py-1 rounded-lg">
+                            Acceso Total
+                          </span>
+                        )}
 
- {/* Toggle permisos */}
- {m.role === 'USER' && (
- <button
- type="button" onClick={() => updateMembership(idx, { expanded: !m.expanded })}
- className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all" title="Configurar permisos" >
- {m.expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
- </button>
- )}
- {m.role === 'ADMIN' && (
- <span className="text-[10px] font-black text-blue-600 dark:text-blue-300 uppercase bg-blue-50 dark:bg-blue-500/10 px-2 py-1 rounded-lg">
- Acceso Total
- </span>
- )}
+                        {/* Eliminar */}
+                        {isPrivileged && (
+                          <button
+                            type="button"
+                            onClick={() => removeMembership(idx)}
+                            className="p-2 text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all"
+                          >
+                            <X size={15} />
+                          </button>
+                        )}
+                      </div>
 
- {/* Eliminar */}
- {isPrivileged && (
- <button type="button"onClick={() => removeMembership(idx)}
- className="p-2 text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all">
- <X size={15} />
- </button>
- )}
- </div>
+                      {/* Panel de permisos expandido */}
+                      {m.role === 'USER' && m.expanded && (
+                        <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-800">
+                          <div className="flex justify-end gap-2 pt-3 pb-1">
+                            <button
+                              type="button"
+                              disabled={!isPrivileged}
+                              onClick={() => {
+                                const all = defaultPermissions();
+                                Object.keys(all).forEach((p) => {
+                                  all[p] = { read: true, write: true, delete: true };
+                                });
+                                updateMembership(idx, { permissions: all });
+                              }}
+                              className="text-[10px] font-black text-blue-600 dark:text-blue-300 hover:underline disabled:opacity-40"
+                            >
+                              Activar Todo
+                            </button>
+                            <span className="text-slate-300 dark:text-slate-600">|</span>
+                            <button
+                              type="button"
+                              disabled={!isPrivileged}
+                              onClick={() =>
+                                updateMembership(idx, { permissions: defaultPermissions() })
+                              }
+                              className="text-[10px] font-black text-slate-400 dark:text-slate-500 hover:underline disabled:opacity-40"
+                            >
+                              Limpiar
+                            </button>
+                          </div>
+                          <PermissionsEditor
+                            permissions={m.permissions}
+                            disabled={!isPrivileged}
+                            onChange={(p) => updateMembership(idx, { permissions: p })}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
- {/* Panel de permisos expandido */}
- {m.role === 'USER' && m.expanded && (
- <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-800">
- <div className="flex justify-end gap-2 pt-3 pb-1">
- <button type="button"disabled={!isPrivileged} onClick={() => {
- const all = defaultPermissions();
- Object.keys(all).forEach(p => { all[p] = { read: true, write: true, delete: true }; });
- updateMembership(idx, { permissions: all });
- }} className="text-[10px] font-black text-blue-600 dark:text-blue-300 hover:underline disabled:opacity-40">
- Activar Todo
- </button>
- <span className="text-slate-300 dark:text-slate-600">|</span>
- <button type="button"disabled={!isPrivileged} onClick={() => updateMembership(idx, { permissions: defaultPermissions() })}
- className="text-[10px] font-black text-slate-400 dark:text-slate-500 hover:underline disabled:opacity-40">
- Limpiar
- </button>
- </div>
- <PermissionsEditor
- permissions={m.permissions}
- disabled={!isPrivileged}
- onChange={p => updateMembership(idx, { permissions: p })}
- />
- </div>
- )}
- </div>
- );
- })}
- </div>
- </div>
+            {/* Acciones */}
+            <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+              <Button variant="secondary" type="button" onClick={resetForm}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting || !canWrite}>
+                {isSubmitting && <Loader size="sm" variant="white" className="mr-2" />}
+                {editingUser ? 'Guardar Cambios' : 'Crear Usuario'}
+              </Button>
+            </div>
+          </form>
+        </Card>
+      )}
 
- {/* Acciones */}
- <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
- <Button variant="secondary"type="button"onClick={resetForm}>Cancelar</Button>
- <Button type="submit"disabled={isSubmitting || !canWrite}>
- {isSubmitting && <Loader size="sm"variant="white"className="mr-2"/>}
- {editingUser ? 'Guardar Cambios' : 'Crear Usuario'}
- </Button>
- </div>
- </form>
- </Card>
- )}
-
- {/* Tabla de usuarios */}
- <Card className="border-0 overflow-hidden"noPadding>
- <table className="w-full text-left border-collapse">
- <thead>
- <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-[10px] uppercase font-black text-slate-400 dark:text-slate-500">
- <th className="p-4 pl-6">Usuario</th>
- <th className="p-4">Email</th>
- <th className="p-4">Rol Global</th>
- <th className="p-4">Empresas</th>
- <th className="p-4 text-right pr-6">Acciones</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-slate-50">
- {loading && (
- <tr><td colSpan={5} className="p-20 text-center"><Loader size="lg"/></td></tr>
- )}
- {!loading && users.map(u => (
- <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group">
- <td className="p-4 pl-6">
- <div className="flex items-center gap-3">
- <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-xs font-black text-slate-600 dark:text-slate-300 dark:text-slate-600">
- {u.username?.charAt(0).toUpperCase()}
- </div>
- <span className="font-black text-slate-800 dark:text-slate-100">{u.username}</span>
- </div>
- </td>
- <td className="p-4 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">{u.email}</td>
- <td className="p-4">
- <Badge variant={u.role === 'SUPERUSER' ? 'warning' : u.role === 'ADMIN' ? 'info' : 'neutral'}>
- {u.role === 'SUPERUSER' ? '⚡ Global' : u.role}
- </Badge>
- </td>
- <td className="p-4">
- {u.role === 'SUPERUSER' ? (
- <span className="text-xs text-amber-600 dark:text-amber-300 font-bold">Todas las empresas</span>
- ) : u.membershipCount > 0 ? (
- <div className="flex items-center gap-1.5">
- <Building2 size={13} className="text-slate-400 dark:text-slate-500"/>
- <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
- {u.membershipCount} empresa{u.membershipCount !== 1 ? 's' : ''}
- </span>
- </div>
- ) : u.tenantName ? (
- <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">{u.tenantName}</span>
- ) : (
- <span className="text-xs text-rose-400 font-bold">Sin asignar</span>
- )}
- </td>
- <td className="p-4 text-right pr-6">
- <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
- <button onClick={() => startEdit(u)} disabled={!canWrite}
- className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all disabled:opacity-30">
- <Edit2 size={15} />
- </button>
- {u.role !== 'SUPERUSER' && (
- <button onClick={() => canDelete && handleDelete(u.id)} disabled={!canDelete}
- className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-30">
- <Trash2 size={15} />
- </button>
- )}
- </div>
- </td>
- </tr>
- ))}
- {!loading && users.length === 0 && (
- <tr><td colSpan={5} className="p-20 text-center text-slate-400 dark:text-slate-500 font-medium">No hay usuarios registrados.</td></tr>
- )}
- </tbody>
- </table>
- </Card>
- </div>
- );
+      {/* Tabla de usuarios */}
+      <Card className="border-0 overflow-hidden" noPadding>
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-[10px] uppercase font-black text-slate-400 dark:text-slate-500">
+              <th className="p-4 pl-6">Usuario</th>
+              <th className="p-4">Email</th>
+              <th className="p-4">Rol Global</th>
+              <th className="p-4">Empresas</th>
+              <th className="p-4 text-right pr-6">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {loading && (
+              <tr>
+                <td colSpan={5} className="p-20 text-center">
+                  <Loader size="lg" />
+                </td>
+              </tr>
+            )}
+            {!loading &&
+              users.map((u) => (
+                <tr
+                  key={u.id}
+                  className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group"
+                >
+                  <td className="p-4 pl-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-xs font-black text-slate-600 dark:text-slate-300 dark:text-slate-600">
+                        {u.username?.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-black text-slate-800 dark:text-slate-100">
+                        {u.username}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="p-4 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                    {u.email}
+                  </td>
+                  <td className="p-4">
+                    <Badge
+                      variant={
+                        u.role === 'SUPERUSER' ? 'warning' : u.role === 'ADMIN' ? 'info' : 'neutral'
+                      }
+                    >
+                      {u.role === 'SUPERUSER' ? '⚡ Global' : u.role}
+                    </Badge>
+                  </td>
+                  <td className="p-4">
+                    {u.role === 'SUPERUSER' ? (
+                      <span className="text-xs text-amber-600 dark:text-amber-300 font-bold">
+                        Todas las empresas
+                      </span>
+                    ) : u.membershipCount > 0 ? (
+                      <div className="flex items-center gap-1.5">
+                        <Building2 size={13} className="text-slate-400 dark:text-slate-500" />
+                        <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                          {u.membershipCount} empresa{u.membershipCount !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    ) : u.tenantName ? (
+                      <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+                        {u.tenantName}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-rose-400 font-bold">Sin asignar</span>
+                    )}
+                  </td>
+                  <td className="p-4 text-right pr-6">
+                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => startEdit(u)}
+                        disabled={!canWrite}
+                        className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all disabled:opacity-30"
+                      >
+                        <Edit2 size={15} />
+                      </button>
+                      {u.role !== 'SUPERUSER' && (
+                        <button
+                          onClick={() => canDelete && handleDelete(u.id)}
+                          disabled={!canDelete}
+                          className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-30"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            {!loading && users.length === 0 && (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="p-20 text-center text-slate-400 dark:text-slate-500 font-medium"
+                >
+                  No hay usuarios registrados.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
 };

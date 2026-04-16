@@ -58,44 +58,70 @@ export function useGeo() {
       });
     }
     _countriesPromise
-      .then((data) => { setCountries(data); setLoading(false); })
-      .catch(() => { setLoading(false); });
+      .then((data) => {
+        setCountries(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
   }, [token]);
 
-  const getCountry = useCallback((code: string | null | undefined): Country | null => {
-    if (!code) return null;
-    return countries.find((c) => c.code === code.toUpperCase()) || null;
-  }, [countries]);
+  const getCountry = useCallback(
+    (code: string | null | undefined): Country | null => {
+      if (!code) return null;
+      return countries.find((c) => c.code === code.toUpperCase()) || null;
+    },
+    [countries],
+  );
 
-  const loadRegions = useCallback(async (countryCode: string): Promise<GeoRow[]> => {
-    const key = countryCode.toUpperCase();
-    if (!_regionsCache.has(key)) {
-      _regionsCache.set(key, request<GeoRow[]>(`/api/geo/countries/${key}/regions`, token));
-    }
-    return _regionsCache.get(key)!;
-  }, [token]);
+  const loadRegions = useCallback(
+    async (countryCode: string): Promise<GeoRow[]> => {
+      const key = countryCode.toUpperCase();
+      if (!_regionsCache.has(key)) {
+        _regionsCache.set(key, request<GeoRow[]>(`/api/geo/countries/${key}/regions`, token));
+      }
+      return _regionsCache.get(key)!;
+    },
+    [token],
+  );
 
-  const loadSubRegionsByCountry = useCallback(async (countryCode: string): Promise<GeoRow[]> => {
-    const key = `country:${countryCode.toUpperCase()}`;
-    if (!_subRegionsCache.has(key)) {
-      _subRegionsCache.set(key, request<GeoRow[]>(`/api/geo/countries/${countryCode.toUpperCase()}/subregions`, token));
-    }
-    return _subRegionsCache.get(key)!;
-  }, [token]);
+  const loadSubRegionsByCountry = useCallback(
+    async (countryCode: string): Promise<GeoRow[]> => {
+      const key = `country:${countryCode.toUpperCase()}`;
+      if (!_subRegionsCache.has(key)) {
+        _subRegionsCache.set(
+          key,
+          request<GeoRow[]>(`/api/geo/countries/${countryCode.toUpperCase()}/subregions`, token),
+        );
+      }
+      return _subRegionsCache.get(key)!;
+    },
+    [token],
+  );
 
-  const loadSubRegionsByRegion = useCallback(async (regionId: string): Promise<GeoRow[]> => {
-    const key = `region:${regionId}`;
-    if (!_subRegionsCache.has(key)) {
-      _subRegionsCache.set(key, request<GeoRow[]>(`/api/geo/regions/${regionId}/subregions`, token));
-    }
-    return _subRegionsCache.get(key)!;
-  }, [token]);
+  const loadSubRegionsByRegion = useCallback(
+    async (regionId: string): Promise<GeoRow[]> => {
+      const key = `region:${regionId}`;
+      if (!_subRegionsCache.has(key)) {
+        _subRegionsCache.set(
+          key,
+          request<GeoRow[]>(`/api/geo/regions/${regionId}/subregions`, token),
+        );
+      }
+      return _subRegionsCache.get(key)!;
+    },
+    [token],
+  );
 
-  const searchLocalities = useCallback(async (subRegionId: string, query: string): Promise<GeoRow[]> => {
-    const q = encodeURIComponent(query.trim());
-    const url = `/api/geo/subregions/${subRegionId}/localities?q=${q}&limit=50`;
-    return request<GeoRow[]>(url, token);
-  }, [token]);
+  const searchLocalities = useCallback(
+    async (subRegionId: string, query: string): Promise<GeoRow[]> => {
+      const q = encodeURIComponent(query.trim());
+      const url = `/api/geo/subregions/${subRegionId}/localities?q=${q}&limit=50`;
+      return request<GeoRow[]>(url, token);
+    },
+    [token],
+  );
 
   return {
     countries,

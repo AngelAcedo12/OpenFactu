@@ -8,11 +8,10 @@ import { getDefaultTemplate, DEFAULT_TEMPLATE_NAMES, ALL_DOC_TYPES } from '@open
 import { seedDefaults } from './seedDefaults';
 
 /**
- * MigrationManager lee archivos .sql de la carpeta /migrations 
+ * MigrationManager lee archivos .sql de la carpeta /migrations
  * y los aplica a cada esquema de empresa usando Drizzle.
  */
 export class MigrationManager {
-  
   private static MIGRATIONS_DIR = path.join(__dirname, 'migrations');
 
   /**
@@ -23,13 +22,15 @@ export class MigrationManager {
     console.log(`[MigrationManager] Verificando esquema: ${schemaName}`);
 
     // 1. Asegurar tabla de historia (SQL Directo)
-    await db.execute(sql.raw(`
+    await db.execute(
+      sql.raw(`
       CREATE TABLE IF NOT EXISTS "${schemaName}"."_MigrationHistory" (
         "id" TEXT PRIMARY KEY,
         "description" TEXT,
         "appliedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `));
+    `),
+    );
 
     // 2. Leer archivos SQL
     if (!fs.existsSync(this.MIGRATIONS_DIR)) {
@@ -37,17 +38,18 @@ export class MigrationManager {
       return;
     }
 
-    const files = fs.readdirSync(this.MIGRATIONS_DIR)
-      .filter(f => f.endsWith('.sql'))
+    const files = fs
+      .readdirSync(this.MIGRATIONS_DIR)
+      .filter((f) => f.endsWith('.sql'))
       .sort();
 
     for (const file of files) {
       const migrationId = file.replace('.sql', '');
 
       // Verificar si ya se aplicó
-      const result: any = await db.execute(sql.raw(
-        `SELECT id FROM "${schemaName}"."_MigrationHistory" WHERE id = '${migrationId}'`
-      ));
+      const result: any = await db.execute(
+        sql.raw(`SELECT id FROM "${schemaName}"."_MigrationHistory" WHERE id = '${migrationId}'`),
+      );
 
       if (result.rows.length === 0) {
         console.log(`[MigrationManager] Aplicando migración: ${file}`);
@@ -60,17 +62,19 @@ export class MigrationManager {
           // Dividir por punto y coma, ignorando aquellos dentro de bloques $$ (PL/pgSQL)
           const statements = processedSql
             .split(/;(?=(?:[^$]*\$\$[^$]*\$\$)*[^$]*$)/)
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
 
           for (const statement of statements) {
             await db.execute(sql.raw(statement));
           }
 
           // Registrar éxito
-          await db.execute(sql.raw(
-            `INSERT INTO "${schemaName}"."_MigrationHistory" (id, description) VALUES ('${migrationId}', 'Aplicado desde ${file}')`
-          ));
+          await db.execute(
+            sql.raw(
+              `INSERT INTO "${schemaName}"."_MigrationHistory" (id, description) VALUES ('${migrationId}', 'Aplicado desde ${file}')`,
+            ),
+          );
 
           console.log(`   ✅ Sincronizado correctamente.`);
         } catch (error: any) {
@@ -84,7 +88,9 @@ export class MigrationManager {
     try {
       await seedDefaults(schemaName);
     } catch (err: any) {
-      console.warn(`[MigrationManager] No se pudieron sembrar defaults en ${schemaName}: ${err.message}`);
+      console.warn(
+        `[MigrationManager] No se pudieron sembrar defaults en ${schemaName}: ${err.message}`,
+      );
     }
 
     // 4. Seed de plantillas de documento por defecto (si no existen)
@@ -98,7 +104,8 @@ export class MigrationManager {
     const db = ClientFactory.getClient(schemaName);
     try {
       for (const docType of ALL_DOC_TYPES) {
-        const existing = await db.select({ id: schema.documentTemplates.id })
+        const existing = await db
+          .select({ id: schema.documentTemplates.id })
           .from(schema.documentTemplates)
           .where(eq(schema.documentTemplates.docType, docType));
         if (existing.length > 0) continue;
@@ -108,7 +115,7 @@ export class MigrationManager {
           docType,
           name: DEFAULT_TEMPLATE_NAMES[docType],
           html: getDefaultTemplate(docType),
-          isDefault: true
+          isDefault: true,
         });
         console.log(`[Templates] Seeded default template for ${docType} in ${schemaName}`);
       }
@@ -123,12 +130,14 @@ export class MigrationManager {
   public static async syncAllTenants() {
     console.log('[MigrationManager] Iniciando sincronización global...');
     const db = ClientFactory.getClient('public');
-    
+
     try {
       // Usamos Drizzle tipado para obtener la lista de tenants
-      const tenantsList = await db.select({ 
-        schemaName: schema.tenants.schemaName 
-      }).from(schema.tenants);
+      const tenantsList = await db
+        .select({
+          schemaName: schema.tenants.schemaName,
+        })
+        .from(schema.tenants);
 
       for (const t of tenantsList) {
         await this.syncTenant(t.schemaName);
@@ -137,7 +146,9 @@ export class MigrationManager {
     } catch (error: any) {
       // Si la tabla no existe aún, informamos discretamente
       if (error.message.includes('relation "Tenant" does not exist')) {
-        console.warn('[MigrationManager] Tabla Tenant no encontrada. Postergando sincronización global.');
+        console.warn(
+          '[MigrationManager] Tabla Tenant no encontrada. Postergando sincronización global.',
+        );
       } else {
         console.error('[MigrationManager] Error en sincronización global:', error.message);
       }

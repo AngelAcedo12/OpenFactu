@@ -9,7 +9,8 @@ router.get('/summary', async (req: any, res) => {
     const db = req.tenantClient;
 
     // 1. Periodo contable activo (status 'O' = Open). Si no hay, fallback al más reciente.
-    const [activePeriod] = await db.select()
+    const [activePeriod] = await db
+      .select()
       .from(schema.accountingPeriods)
       .where(eq(schema.accountingPeriods.status, 'O'))
       .orderBy(desc(schema.accountingPeriods.startDate))
@@ -17,7 +18,8 @@ router.get('/summary', async (req: any, res) => {
 
     let period = activePeriod;
     if (!period) {
-      const [latest] = await db.select()
+      const [latest] = await db
+        .select()
         .from(schema.accountingPeriods)
         .orderBy(desc(schema.accountingPeriods.startDate))
         .limit(1);
@@ -27,18 +29,19 @@ router.get('/summary', async (req: any, res) => {
     if (!period) {
       return res.json({
         period: null,
-        sales:      { total: 0, count: 0, prevTotal: 0, prevCount: 0 },
-        purchases:  { total: 0, count: 0, prevTotal: 0, prevCount: 0 },
-        stockAlerts:{ lowStock: [], expiringBatches: [] },
+        sales: { total: 0, count: 0, prevTotal: 0, prevCount: 0 },
+        purchases: { total: 0, count: 0, prevTotal: 0, prevCount: 0 },
+        stockAlerts: { lowStock: [], expiringBatches: [] },
         recentDocs: [],
-        topPartners:{ customers: [], suppliers: [] },
-        receivables:{ open: 0, openCount: 0 },
-        payables:   { open: 0, openCount: 0 },
+        topPartners: { customers: [], suppliers: [] },
+        receivables: { open: 0, openCount: 0 },
+        payables: { open: 0, openCount: 0 },
       });
     }
 
     // 2. Periodo anterior (para comparativa)
-    const [prevPeriod] = await db.select()
+    const [prevPeriod] = await db
+      .select()
       .from(schema.accountingPeriods)
       .where(lt(schema.accountingPeriods.startDate, period.startDate))
       .orderBy(desc(schema.accountingPeriods.startDate))
@@ -46,47 +49,56 @@ router.get('/summary', async (req: any, res) => {
 
     // 3. Totales de ventas y compras (actual + anterior)
     const aggDocs = async (table: any, periodId: string) => {
-      const [row] = await db.select({
-        total: sql<string>`COALESCE(SUM(${table.total}), 0)`,
-        count: sql<string>`COUNT(*)`,
-      })
+      const [row] = await db
+        .select({
+          total: sql<string>`COALESCE(SUM(${table.total}), 0)`,
+          count: sql<string>`COUNT(*)`,
+        })
         .from(table)
         .where(eq(table.periodId, periodId));
       return { total: Number(row?.total || 0), count: Number(row?.count || 0) };
     };
 
-    const sales      = await aggDocs(schema.salesInvoices, period.id);
-    const purchases  = await aggDocs(schema.purchaseInvoices, period.id);
-    const prevSales     = prevPeriod ? await aggDocs(schema.salesInvoices, prevPeriod.id)     : { total: 0, count: 0 };
-    const prevPurchases = prevPeriod ? await aggDocs(schema.purchaseInvoices, prevPeriod.id) : { total: 0, count: 0 };
+    const sales = await aggDocs(schema.salesInvoices, period.id);
+    const purchases = await aggDocs(schema.purchaseInvoices, period.id);
+    const prevSales = prevPeriod
+      ? await aggDocs(schema.salesInvoices, prevPeriod.id)
+      : { total: 0, count: 0 };
+    const prevPurchases = prevPeriod
+      ? await aggDocs(schema.purchaseInvoices, prevPeriod.id)
+      : { total: 0, count: 0 };
 
     // 4. Cobros / pagos pendientes (status 'O' open en facturas)
     const aggOpen = async (table: any) => {
-      const [row] = await db.select({
-        total: sql<string>`COALESCE(SUM(${table.total}), 0)`,
-        count: sql<string>`COUNT(*)`,
-      })
+      const [row] = await db
+        .select({
+          total: sql<string>`COALESCE(SUM(${table.total}), 0)`,
+          count: sql<string>`COUNT(*)`,
+        })
         .from(table)
         .where(eq(table.status, 'O'));
       return { open: Number(row?.total || 0), openCount: Number(row?.count || 0) };
     };
 
     const receivables = await aggOpen(schema.salesInvoices);
-    const payables    = await aggOpen(schema.purchaseInvoices);
+    const payables = await aggOpen(schema.purchaseInvoices);
 
     // 5. Stock crítico
-    const lowStock = await db.select({
-      id:       schema.items.id,
-      code:     schema.items.code,
-      name:     schema.items.name,
-      stock:    schema.items.stock,
-      minStock: schema.items.minStock,
-    })
+    const lowStock = await db
+      .select({
+        id: schema.items.id,
+        code: schema.items.code,
+        name: schema.items.name,
+        stock: schema.items.stock,
+        minStock: schema.items.minStock,
+      })
       .from(schema.items)
-      .where(and(
-        sql`${schema.items.minStock} > 0`,
-        sql`${schema.items.stock} < ${schema.items.minStock}`,
-      ))
+      .where(
+        and(
+          sql`${schema.items.minStock} > 0`,
+          sql`${schema.items.stock} < ${schema.items.minStock}`,
+        ),
+      )
       .orderBy(asc(schema.items.stock))
       .limit(10);
 
@@ -94,48 +106,52 @@ router.get('/summary', async (req: any, res) => {
     const horizon = new Date();
     horizon.setDate(horizon.getDate() + 30);
 
-    const expiringBatches = await db.select({
-      id:         schema.itemBatches.id,
-      batchNum:   schema.itemBatches.batchNum,
-      itemName:   schema.items.name,
-      expiryDate: schema.itemBatches.expiryDate,
-      quantity:   schema.itemBatches.quantity,
-    })
+    const expiringBatches = await db
+      .select({
+        id: schema.itemBatches.id,
+        batchNum: schema.itemBatches.batchNum,
+        itemName: schema.items.name,
+        expiryDate: schema.itemBatches.expiryDate,
+        quantity: schema.itemBatches.quantity,
+      })
       .from(schema.itemBatches)
       .leftJoin(schema.items, eq(schema.itemBatches.itemId, schema.items.id))
-      .where(and(
-        sql`${schema.itemBatches.expiryDate} IS NOT NULL`,
-        lte(schema.itemBatches.expiryDate, horizon),
-        gte(schema.itemBatches.expiryDate, new Date()),
-      ))
+      .where(
+        and(
+          sql`${schema.itemBatches.expiryDate} IS NOT NULL`,
+          lte(schema.itemBatches.expiryDate, horizon),
+          gte(schema.itemBatches.expiryDate, new Date()),
+        ),
+      )
       .orderBy(asc(schema.itemBatches.expiryDate))
       .limit(10);
 
     // 7. Documentos recientes (mezclando 4 tipos)
     const fetchRecent = async (table: any, type: string, route: string) => {
-      const rows = await db.select({
-        id:        table.id,
-        docNum:    table.docNum,
-        date:      table.date,
-        total:     table.total,
-        partnerId: table.partnerId,
-        prefix:    schema.documentSeries.prefix,
-        periodCode:schema.accountingPeriods.code,
-        partnerName: schema.businessPartners.name,
-        createdAt: table.createdAt,
-      })
+      const rows = await db
+        .select({
+          id: table.id,
+          docNum: table.docNum,
+          date: table.date,
+          total: table.total,
+          partnerId: table.partnerId,
+          prefix: schema.documentSeries.prefix,
+          periodCode: schema.accountingPeriods.code,
+          partnerName: schema.businessPartners.name,
+          createdAt: table.createdAt,
+        })
         .from(table)
-        .leftJoin(schema.documentSeries,    eq(table.seriesId, schema.documentSeries.id))
+        .leftJoin(schema.documentSeries, eq(table.seriesId, schema.documentSeries.id))
         .leftJoin(schema.accountingPeriods, eq(table.periodId, schema.accountingPeriods.id))
-        .leftJoin(schema.businessPartners,  eq(table.partnerId, schema.businessPartners.id))
+        .leftJoin(schema.businessPartners, eq(table.partnerId, schema.businessPartners.id))
         .orderBy(desc(table.createdAt))
         .limit(5);
       return rows.map((r: any) => ({
         type,
         route,
-        id:    r.id,
-        code:  `${r.prefix || ''}-${r.periodCode || ''}-${String(r.docNum).padStart(6, '0')}`,
-        date:  r.date,
+        id: r.id,
+        code: `${r.prefix || ''}-${r.periodCode || ''}-${String(r.docNum).padStart(6, '0')}`,
+        date: r.date,
         total: Number(r.total),
         partnerName: r.partnerName || '',
         createdAt: r.createdAt,
@@ -143,10 +159,14 @@ router.get('/summary', async (req: any, res) => {
     };
 
     const [recSI, recPI, recSDN, recPDN] = await Promise.all([
-      fetchRecent(schema.salesInvoices,       'salesInvoice',       '/sales/invoices'),
-      fetchRecent(schema.purchaseInvoices,    'purchaseInvoice',    '/purchases/invoices'),
-      fetchRecent(schema.salesDeliveryNotes,  'salesDeliveryNote',  '/sales/delivery-notes'),
-      fetchRecent(schema.purchaseDeliveryNotes,'purchaseDeliveryNote','/purchases/delivery-notes'),
+      fetchRecent(schema.salesInvoices, 'salesInvoice', '/sales/invoices'),
+      fetchRecent(schema.purchaseInvoices, 'purchaseInvoice', '/purchases/invoices'),
+      fetchRecent(schema.salesDeliveryNotes, 'salesDeliveryNote', '/sales/delivery-notes'),
+      fetchRecent(
+        schema.purchaseDeliveryNotes,
+        'purchaseDeliveryNote',
+        '/purchases/delivery-notes',
+      ),
     ]);
 
     const recentDocs = [...recSI, ...recPI, ...recSDN, ...recPDN]
@@ -155,11 +175,12 @@ router.get('/summary', async (req: any, res) => {
 
     // 8. Top partners (clientes / proveedores) del periodo
     const topPartners = async (table: any) => {
-      const rows = await db.select({
-        id:    schema.businessPartners.id,
-        name:  schema.businessPartners.name,
-        total: sql<string>`COALESCE(SUM(${table.total}), 0)`,
-      })
+      const rows = await db
+        .select({
+          id: schema.businessPartners.id,
+          name: schema.businessPartners.name,
+          total: sql<string>`COALESCE(SUM(${table.total}), 0)`,
+        })
         .from(table)
         .leftJoin(schema.businessPartners, eq(table.partnerId, schema.businessPartners.id))
         .where(eq(table.periodId, period.id))
@@ -176,13 +197,13 @@ router.get('/summary', async (req: any, res) => {
 
     res.json({
       period: {
-        id:        period.id,
-        code:      period.code,
-        name:      period.name,
+        id: period.id,
+        code: period.code,
+        name: period.name,
         startDate: period.startDate,
-        endDate:   period.endDate,
+        endDate: period.endDate,
       },
-      sales:     { ...sales,     prevTotal: prevSales.total,     prevCount: prevSales.count },
+      sales: { ...sales, prevTotal: prevSales.total, prevCount: prevSales.count },
       purchases: { ...purchases, prevTotal: prevPurchases.total, prevCount: prevPurchases.count },
       stockAlerts: { lowStock, expiringBatches },
       recentDocs,

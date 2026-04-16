@@ -6,16 +6,16 @@ import { useState } from 'react';
  */
 export const useCounter = (initialValue = 0) => {
   const [count, setCount] = useState(initialValue);
-  
+
   const increment = () => {
     console.log('[Plugin Layer] Incrementando estado local...');
-    setCount(prev => prev + 1);
+    setCount((prev) => prev + 1);
   };
-  
+
   const decrement = () => {
     console.log('[Plugin Layer] Decrementando estado local...');
-    setCount(prev => prev - 1);
+    setCount((prev) => prev - 1);
   };
-  
+
   return { count, increment, decrement };
 };

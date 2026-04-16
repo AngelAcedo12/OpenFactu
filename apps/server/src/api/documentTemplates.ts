@@ -15,16 +15,23 @@ router.get('/', async (req: any, res) => {
   try {
     const { docType } = req.query;
     const where = docType ? eq(schema.documentTemplates.docType, String(docType)) : undefined;
-    const query = req.tenantClient.select({
-      id: schema.documentTemplates.id,
-      docType: schema.documentTemplates.docType,
-      name: schema.documentTemplates.name,
-      isDefault: schema.documentTemplates.isDefault,
-      updatedAt: schema.documentTemplates.updatedAt
-    }).from(schema.documentTemplates);
+    const query = req.tenantClient
+      .select({
+        id: schema.documentTemplates.id,
+        docType: schema.documentTemplates.docType,
+        name: schema.documentTemplates.name,
+        isDefault: schema.documentTemplates.isDefault,
+        updatedAt: schema.documentTemplates.updatedAt,
+      })
+      .from(schema.documentTemplates);
     const rows = where
-      ? await query.where(where).orderBy(asc(schema.documentTemplates.docType), asc(schema.documentTemplates.name))
-      : await query.orderBy(asc(schema.documentTemplates.docType), asc(schema.documentTemplates.name));
+      ? await query
+          .where(where)
+          .orderBy(asc(schema.documentTemplates.docType), asc(schema.documentTemplates.name))
+      : await query.orderBy(
+          asc(schema.documentTemplates.docType),
+          asc(schema.documentTemplates.name),
+        );
     res.json(rows);
   } catch (e: any) {
     res.status(500).json({ error: e.message });
@@ -34,7 +41,8 @@ router.get('/', async (req: any, res) => {
 // GET /:id — detalle (incluye html)
 router.get('/:id', async (req: any, res) => {
   try {
-    const [row] = await req.tenantClient.select()
+    const [row] = await req.tenantClient
+      .select()
       .from(schema.documentTemplates)
       .where(eq(schema.documentTemplates.id, req.params.id));
     if (!row) return res.status(404).json({ error: 'No encontrada' });
@@ -54,12 +62,17 @@ router.post('/', async (req: any, res) => {
     const id = crypto.randomUUID();
     await req.tenantClient.transaction(async (tx: any) => {
       if (isDefault) {
-        await tx.update(schema.documentTemplates)
+        await tx
+          .update(schema.documentTemplates)
           .set({ isDefault: false })
           .where(eq(schema.documentTemplates.docType, docType));
       }
       await tx.insert(schema.documentTemplates).values({
-        id, docType, name, html, isDefault: !!isDefault
+        id,
+        docType,
+        name,
+        html,
+        isDefault: !!isDefault,
       });
     });
     PdfRenderer.invalidateCache();
@@ -83,13 +96,15 @@ router.put('/:id', async (req: any, res) => {
   try {
     const { name, html, isDefault } = req.body;
     await req.tenantClient.transaction(async (tx: any) => {
-      const [existing] = await tx.select()
+      const [existing] = await tx
+        .select()
         .from(schema.documentTemplates)
         .where(eq(schema.documentTemplates.id, req.params.id));
       if (!existing) throw new Error('No encontrada');
 
       if (isDefault && !existing.isDefault) {
-        await tx.update(schema.documentTemplates)
+        await tx
+          .update(schema.documentTemplates)
           .set({ isDefault: false })
           .where(eq(schema.documentTemplates.docType, existing.docType));
       }
@@ -99,7 +114,8 @@ router.put('/:id', async (req: any, res) => {
       if (typeof html === 'string') updates.html = html;
       if (typeof isDefault === 'boolean') updates.isDefault = isDefault;
 
-      await tx.update(schema.documentTemplates)
+      await tx
+        .update(schema.documentTemplates)
         .set(updates)
         .where(eq(schema.documentTemplates.id, req.params.id));
     });
@@ -123,14 +139,17 @@ router.put('/:id', async (req: any, res) => {
 router.post('/:id/set-default', async (req: any, res) => {
   try {
     await req.tenantClient.transaction(async (tx: any) => {
-      const [existing] = await tx.select()
+      const [existing] = await tx
+        .select()
         .from(schema.documentTemplates)
         .where(eq(schema.documentTemplates.id, req.params.id));
       if (!existing) throw new Error('No encontrada');
-      await tx.update(schema.documentTemplates)
+      await tx
+        .update(schema.documentTemplates)
         .set({ isDefault: false })
         .where(eq(schema.documentTemplates.docType, existing.docType));
-      await tx.update(schema.documentTemplates)
+      await tx
+        .update(schema.documentTemplates)
         .set({ isDefault: true })
         .where(eq(schema.documentTemplates.id, req.params.id));
     });
@@ -144,20 +163,24 @@ router.post('/:id/set-default', async (req: any, res) => {
 router.delete('/:id', async (req: any, res) => {
   try {
     await req.tenantClient.transaction(async (tx: any) => {
-      const [existing] = await tx.select()
+      const [existing] = await tx
+        .select()
         .from(schema.documentTemplates)
         .where(eq(schema.documentTemplates.id, req.params.id));
       if (!existing) return;
-      await tx.delete(schema.documentTemplates)
+      await tx
+        .delete(schema.documentTemplates)
         .where(eq(schema.documentTemplates.id, req.params.id));
       // Si era default, promover el primer restante del mismo docType
       if (existing.isDefault) {
-        const [next] = await tx.select()
+        const [next] = await tx
+          .select()
           .from(schema.documentTemplates)
           .where(eq(schema.documentTemplates.docType, existing.docType))
           .limit(1);
         if (next) {
-          await tx.update(schema.documentTemplates)
+          await tx
+            .update(schema.documentTemplates)
             .set({ isDefault: true })
             .where(eq(schema.documentTemplates.id, next.id));
         }
@@ -196,7 +219,9 @@ router.post('/preview', async (req: any, res) => {
       // Intentar auto-sample
       const latestId = await PdfPayloadBuilder.findLatestSampleId(docType, req.tenantClient);
       payload = latestId
-        ? await PdfPayloadBuilder.build(docType, latestId, req.tenantClient).catch(() => PdfPayloadBuilder.fixture(docType))
+        ? await PdfPayloadBuilder.build(docType, latestId, req.tenantClient).catch(() =>
+            PdfPayloadBuilder.fixture(docType),
+          )
         : PdfPayloadBuilder.fixture(docType);
     }
 

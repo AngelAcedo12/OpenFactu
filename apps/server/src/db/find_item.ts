@@ -3,7 +3,7 @@ import * as schema from './schema';
 import { ilike } from 'drizzle-orm';
 
 async function check() {
-  const db = ClientFactory.getClient('factu'); 
+  const db = ClientFactory.getClient('factu');
   const tenants = await db.select().from(schema.tenants);
   for (const t of tenants) {
     const tDb = ClientFactory.getClient(t.id);
@@ -12,7 +12,10 @@ async function check() {
       console.log('Tenant:', t.name);
       console.log('Items:', JSON.stringify(item, null, 2));
       for (const i of item) {
-        const serials = await tDb.select().from(schema.itemSerials).where(ilike(schema.itemSerials.itemId, i.id));
+        const serials = await tDb
+          .select()
+          .from(schema.itemSerials)
+          .where(ilike(schema.itemSerials.itemId, i.id));
         console.log('Serials for', i.name, ':', serials.length);
       }
     }

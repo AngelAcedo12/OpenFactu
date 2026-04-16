@@ -19,8 +19,6 @@
         }
       }
     ],
-    "menuItems": [
-      { "label": "Loyalty Program", "path": "/fidelidad", "icon": "Star" }
-    ]
+    "menuItems": [{ "label": "Loyalty Program", "path": "/fidelidad", "icon": "Star" }]
   }
 }

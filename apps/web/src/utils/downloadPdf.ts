@@ -6,13 +6,13 @@ export async function downloadPdf(
   url: string,
   token: string,
   tenantId: string,
-  fallbackName: string = 'documento.pdf'
+  fallbackName: string = 'documento.pdf',
 ): Promise<void> {
   const res = await fetch(url, {
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'x-tenant-id': tenantId
-    }
+      Authorization: `Bearer ${token}`,
+      'x-tenant-id': tenantId,
+    },
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Error al generar PDF' }));

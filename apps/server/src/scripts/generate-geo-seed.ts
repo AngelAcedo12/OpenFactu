@@ -22,61 +22,116 @@ const ES_XLSX = path.join(__dirname, '..', 'seed-data', 'es-municipios-ine.xlsx'
 // Metadata de los 7 países
 const COUNTRIES = [
   {
-    code: 'ES',  name: 'España',          nameEn: 'Spain',
-    phonePrefix: '+34', currency: 'EUR', localeDefault: 'es-ES',
+    code: 'ES',
+    name: 'España',
+    nameEn: 'Spain',
+    phonePrefix: '+34',
+    currency: 'EUR',
+    localeDefault: 'es-ES',
     taxIdRegex: '^[A-Z0-9]\\d{7}[A-Z0-9]$',
-    taxIdLabel: 'NIF/CIF',       taxIdExample: 'B12345678',
-    postalCodeRegex: '^[0-9]{5}$', postalCodeLabel: 'Código postal',
-    regionLabel: 'Comunidad Autónoma', subRegionLabel: 'Provincia', localityLabel: 'Municipio',
+    taxIdLabel: 'NIF/CIF',
+    taxIdExample: 'B12345678',
+    postalCodeRegex: '^[0-9]{5}$',
+    postalCodeLabel: 'Código postal',
+    regionLabel: 'Comunidad Autónoma',
+    subRegionLabel: 'Provincia',
+    localityLabel: 'Municipio',
   },
   {
-    code: 'PT',  name: 'Portugal',        nameEn: 'Portugal',
-    phonePrefix: '+351', currency: 'EUR', localeDefault: 'pt-PT',
+    code: 'PT',
+    name: 'Portugal',
+    nameEn: 'Portugal',
+    phonePrefix: '+351',
+    currency: 'EUR',
+    localeDefault: 'pt-PT',
     taxIdRegex: '^\\d{9}$',
-    taxIdLabel: 'NIF',           taxIdExample: '123456789',
-    postalCodeRegex: '^\\d{4}-\\d{3}$', postalCodeLabel: 'Código postal',
-    regionLabel: null, subRegionLabel: 'Distrito', localityLabel: 'Concelho',
+    taxIdLabel: 'NIF',
+    taxIdExample: '123456789',
+    postalCodeRegex: '^\\d{4}-\\d{3}$',
+    postalCodeLabel: 'Código postal',
+    regionLabel: null,
+    subRegionLabel: 'Distrito',
+    localityLabel: 'Concelho',
   },
   {
-    code: 'FR',  name: 'Francia',         nameEn: 'France',
-    phonePrefix: '+33', currency: 'EUR', localeDefault: 'fr-FR',
+    code: 'FR',
+    name: 'Francia',
+    nameEn: 'France',
+    phonePrefix: '+33',
+    currency: 'EUR',
+    localeDefault: 'fr-FR',
     taxIdRegex: '^\\d{14}$',
-    taxIdLabel: 'SIRET',         taxIdExample: '12345678901234',
-    postalCodeRegex: '^\\d{5}$', postalCodeLabel: 'Code postal',
-    regionLabel: 'Région', subRegionLabel: 'Département', localityLabel: 'Commune',
+    taxIdLabel: 'SIRET',
+    taxIdExample: '12345678901234',
+    postalCodeRegex: '^\\d{5}$',
+    postalCodeLabel: 'Code postal',
+    regionLabel: 'Région',
+    subRegionLabel: 'Département',
+    localityLabel: 'Commune',
   },
   {
-    code: 'IT',  name: 'Italia',          nameEn: 'Italy',
-    phonePrefix: '+39', currency: 'EUR', localeDefault: 'it-IT',
+    code: 'IT',
+    name: 'Italia',
+    nameEn: 'Italy',
+    phonePrefix: '+39',
+    currency: 'EUR',
+    localeDefault: 'it-IT',
     taxIdRegex: '^\\d{11}$',
-    taxIdLabel: 'Partita IVA',   taxIdExample: '12345678901',
-    postalCodeRegex: '^\\d{5}$', postalCodeLabel: 'CAP',
-    regionLabel: 'Regione', subRegionLabel: 'Provincia', localityLabel: 'Comune',
+    taxIdLabel: 'Partita IVA',
+    taxIdExample: '12345678901',
+    postalCodeRegex: '^\\d{5}$',
+    postalCodeLabel: 'CAP',
+    regionLabel: 'Regione',
+    subRegionLabel: 'Provincia',
+    localityLabel: 'Comune',
   },
   {
-    code: 'DE',  name: 'Alemania',        nameEn: 'Germany',
-    phonePrefix: '+49', currency: 'EUR', localeDefault: 'de-DE',
+    code: 'DE',
+    name: 'Alemania',
+    nameEn: 'Germany',
+    phonePrefix: '+49',
+    currency: 'EUR',
+    localeDefault: 'de-DE',
     taxIdRegex: '^DE\\d{9}$',
-    taxIdLabel: 'USt-IdNr',      taxIdExample: 'DE123456789',
-    postalCodeRegex: '^\\d{5}$', postalCodeLabel: 'PLZ',
-    regionLabel: 'Bundesland', subRegionLabel: 'Kreis', localityLabel: 'Gemeinde',
+    taxIdLabel: 'USt-IdNr',
+    taxIdExample: 'DE123456789',
+    postalCodeRegex: '^\\d{5}$',
+    postalCodeLabel: 'PLZ',
+    regionLabel: 'Bundesland',
+    subRegionLabel: 'Kreis',
+    localityLabel: 'Gemeinde',
   },
   {
-    code: 'GB',  name: 'Reino Unido',     nameEn: 'United Kingdom',
-    phonePrefix: '+44', currency: 'GBP', localeDefault: 'en-GB',
+    code: 'GB',
+    name: 'Reino Unido',
+    nameEn: 'United Kingdom',
+    phonePrefix: '+44',
+    currency: 'GBP',
+    localeDefault: 'en-GB',
     taxIdRegex: '^GB\\d{9}$',
-    taxIdLabel: 'VAT',           taxIdExample: 'GB123456789',
+    taxIdLabel: 'VAT',
+    taxIdExample: 'GB123456789',
     postalCodeRegex: '^[A-Z]{1,2}\\d{1,2}[A-Z]?\\s*\\d[A-Z]{2}$',
     postalCodeLabel: 'Postcode',
-    regionLabel: 'Country', subRegionLabel: 'County', localityLabel: 'Town',
+    regionLabel: 'Country',
+    subRegionLabel: 'County',
+    localityLabel: 'Town',
   },
   {
-    code: 'US',  name: 'Estados Unidos',  nameEn: 'United States',
-    phonePrefix: '+1', currency: 'USD', localeDefault: 'en-US',
+    code: 'US',
+    name: 'Estados Unidos',
+    nameEn: 'United States',
+    phonePrefix: '+1',
+    currency: 'USD',
+    localeDefault: 'en-US',
     taxIdRegex: '^\\d{2}-\\d{7}$',
-    taxIdLabel: 'EIN',           taxIdExample: '12-3456789',
-    postalCodeRegex: '^\\d{5}(-\\d{4})?$', postalCodeLabel: 'ZIP',
-    regionLabel: null, subRegionLabel: 'State', localityLabel: 'City',
+    taxIdLabel: 'EIN',
+    taxIdExample: '12-3456789',
+    postalCodeRegex: '^\\d{5}(-\\d{4})?$',
+    postalCodeLabel: 'ZIP',
+    regionLabel: null,
+    subRegionLabel: 'State',
+    localityLabel: 'City',
   },
 ];
 
@@ -194,7 +249,14 @@ const GB_COUNTRIES = [
 function fetchText(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = https.get(url, { headers: { 'User-Agent': 'openfactu-seed' } }, (res) => {
-      if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 303 || res.statusCode === 307 || res.statusCode === 308) && res.headers.location) {
+      if (
+        (res.statusCode === 301 ||
+          res.statusCode === 302 ||
+          res.statusCode === 303 ||
+          res.statusCode === 307 ||
+          res.statusCode === 308) &&
+        res.headers.location
+      ) {
         let nextUrl = res.headers.location;
         // Relative redirect → resolver contra la URL original
         if (nextUrl.startsWith('/')) {
@@ -277,16 +339,21 @@ function buildES(): { regions: Region[]; subRegions: SubRegion[]; localities: Lo
   const dataRows = rows.filter((r) => r.A && /^\d+$/.test(r.A) && r.B);
 
   const regions: Region[] = Object.entries(ES_CCAA).map(([code, name]) => ({
-    country: 'ES', code, name,
+    country: 'ES',
+    code,
+    name,
   }));
 
   const subRegions: SubRegion[] = Object.entries(ES_PROVINCES).map(([code, prov]) => ({
-    country: 'ES', region: prov.ccaa, code, name: prov.name,
+    country: 'ES',
+    region: prov.ccaa,
+    code,
+    name: prov.name,
   }));
 
   const localities: Locality[] = dataRows.map((r) => {
-    const cpro = r.B;  // '01'
-    const cmun = r.C;  // '051'
+    const cpro = r.B; // '01'
+    const cmun = r.C; // '051'
     const nombre = r.E;
     return {
       country: 'ES',
@@ -296,19 +363,27 @@ function buildES(): { regions: Region[]; subRegions: SubRegion[]; localities: Lo
     };
   });
 
-  console.log(`[ES] ${regions.length} CCAA, ${subRegions.length} provincias, ${localities.length} municipios`);
+  console.log(
+    `[ES] ${regions.length} CCAA, ${subRegions.length} provincias, ${localities.length} municipios`,
+  );
   return { regions, subRegions, localities };
 }
 
-async function buildPT(): Promise<{ regions: Region[]; subRegions: SubRegion[]; localities: Locality[] }> {
+async function buildPT(): Promise<{
+  regions: Region[];
+  subRegions: SubRegion[];
+  localities: Locality[];
+}> {
   console.log('[PT] fetching gist...');
-  const raw = await fetchText('https://gist.githubusercontent.com/tomahock/a6c07dd255d04499d8336237e35a4827/raw/');
+  const raw = await fetchText(
+    'https://gist.githubusercontent.com/tomahock/a6c07dd255d04499d8336237e35a4827/raw/',
+  );
   const data: Array<{ level: number; code: number; name: string }> = JSON.parse(raw);
 
   // Level 1 = Distrito, Level 2 = Concelho, Level 3 = Freguesia (lo ignoramos)
   // El parent del concelho se deriva del code: floor(code / 100).
   // Ej: concelho 101 (Águeda) → distrito 1 (Aveiro); concelho 4101 → distrito 41.
-  const regions: Region[] = [];  // PT sin nivel de regiones
+  const regions: Region[] = []; // PT sin nivel de regiones
   const subRegions: SubRegion[] = data
     .filter((d) => d.level === 1)
     .map((d) => ({ country: 'PT', region: null, code: String(d.code), name: d.name }));
@@ -325,29 +400,47 @@ async function buildPT(): Promise<{ regions: Region[]; subRegions: SubRegion[]; 
   return { regions, subRegions, localities };
 }
 
-async function buildFR(): Promise<{ regions: Region[]; subRegions: SubRegion[]; localities: Locality[] }> {
+async function buildFR(): Promise<{
+  regions: Region[];
+  subRegions: SubRegion[];
+  localities: Locality[];
+}> {
   console.log('[FR] fetching decoupage-administratif...');
   const [regs, deps] = await Promise.all([
-    fetchJson<Array<{ code: string; nom: string }>>('https://unpkg.com/@etalab/decoupage-administratif/data/regions.json'),
-    fetchJson<Array<{ code: string; nom: string; region: string }>>('https://unpkg.com/@etalab/decoupage-administratif/data/departements.json'),
+    fetchJson<Array<{ code: string; nom: string }>>(
+      'https://unpkg.com/@etalab/decoupage-administratif/data/regions.json',
+    ),
+    fetchJson<Array<{ code: string; nom: string; region: string }>>(
+      'https://unpkg.com/@etalab/decoupage-administratif/data/departements.json',
+    ),
   ]);
 
   const regions: Region[] = regs.map((r) => ({ country: 'FR', code: r.code, name: r.nom }));
   const subRegions: SubRegion[] = deps.map((d) => ({
-    country: 'FR', region: d.region, code: d.code, name: d.nom,
+    country: 'FR',
+    region: d.region,
+    code: d.code,
+    name: d.nom,
   }));
 
   console.log(`[FR] ${regions.length} régions, ${subRegions.length} départements`);
   return { regions, subRegions, localities: [] };
 }
 
-async function buildIT(): Promise<{ regions: Region[]; subRegions: SubRegion[]; localities: Locality[] }> {
+async function buildIT(): Promise<{
+  regions: Region[];
+  subRegions: SubRegion[];
+  localities: Locality[];
+}> {
   console.log('[IT] fetching comuni-json...');
   const data: Array<{
-    nome: string; codice: string;
+    nome: string;
+    codice: string;
     regione: { nome: string; codice: string };
     provincia: { nome: string; codice: string };
-  }> = await fetchJson('https://raw.githubusercontent.com/matteocontrini/comuni-json/master/comuni.json');
+  }> = await fetchJson(
+    'https://raw.githubusercontent.com/matteocontrini/comuni-json/master/comuni.json',
+  );
 
   const regionMap = new Map<string, Region>();
   const provMap = new Map<string, SubRegion>();
@@ -360,7 +453,12 @@ async function buildIT(): Promise<{ regions: Region[]; subRegions: SubRegion[]; 
       regionMap.set(regCode, { country: 'IT', code: regCode, name: c.regione.nome });
     }
     if (!provMap.has(provCode)) {
-      provMap.set(provCode, { country: 'IT', region: regCode, code: provCode, name: c.provincia.nome });
+      provMap.set(provCode, {
+        country: 'IT',
+        region: regCode,
+        code: provCode,
+        name: c.provincia.nome,
+      });
     }
     localities.push({
       country: 'IT',
@@ -370,7 +468,9 @@ async function buildIT(): Promise<{ regions: Region[]; subRegions: SubRegion[]; 
     });
   }
 
-  console.log(`[IT] ${regionMap.size} regioni, ${provMap.size} province, ${localities.length} comuni`);
+  console.log(
+    `[IT] ${regionMap.size} regioni, ${provMap.size} province, ${localities.length} comuni`,
+  );
   return {
     regions: Array.from(regionMap.values()),
     subRegions: Array.from(provMap.values()),
@@ -390,12 +490,22 @@ function buildGB(): { regions: Region[]; subRegions: SubRegion[]; localities: Lo
   return { regions, subRegions: [], localities: [] };
 }
 
-async function buildUS(): Promise<{ regions: Region[]; subRegions: SubRegion[]; localities: Locality[] }> {
+async function buildUS(): Promise<{
+  regions: Region[];
+  subRegions: SubRegion[];
+  localities: Locality[];
+}> {
   console.log('[US] fetching fips-codes CSV...');
-  const csv = await fetchText('https://raw.githubusercontent.com/kjhealy/fips-codes/master/state_and_county_fips_master.csv');
-  const lines = csv.replace(/\r/g, '').split('\n').slice(1).filter((l) => l.trim());
+  const csv = await fetchText(
+    'https://raw.githubusercontent.com/kjhealy/fips-codes/master/state_and_county_fips_master.csv',
+  );
+  const lines = csv
+    .replace(/\r/g, '')
+    .split('\n')
+    .slice(1)
+    .filter((l) => l.trim());
 
-  const regions: Region[] = [];   // US sin nivel de regiones
+  const regions: Region[] = []; // US sin nivel de regiones
   const subRegions: SubRegion[] = [];
   const localities: Locality[] = [];
 
@@ -412,7 +522,9 @@ async function buildUS(): Promise<{ regions: Region[]; subRegions: SubRegion[]; 
 
     // state-level rows tienen fips múltiplo de 1000 (ej: 1000 = Alabama, 6000 = California)
     if (state === 'NA' && fips > 0 && fips % 1000 === 0) {
-      const stateFips = Math.floor(fips / 1000).toString().padStart(2, '0');
+      const stateFips = Math.floor(fips / 1000)
+        .toString()
+        .padStart(2, '0');
       subRegions.push({ country: 'US', region: null, code: stateFips, name });
       stateByFips.set(stateFips, name);
     }
@@ -427,7 +539,9 @@ async function buildUS(): Promise<{ regions: Region[]; subRegions: SubRegion[]; 
     if (!Number.isFinite(fips)) continue;
     if (state === 'NA') continue;
     // county: fips es de 4 o 5 dígitos, los primeros 1-2 son el state fips
-    const stateFips = Math.floor(fips / 1000).toString().padStart(2, '0');
+    const stateFips = Math.floor(fips / 1000)
+      .toString()
+      .padStart(2, '0');
     if (!stateByFips.has(stateFips)) continue;
     const countyCode = fips.toString().padStart(5, '0');
     localities.push({
@@ -452,36 +566,59 @@ async function buildUS(): Promise<{ regions: Region[]; subRegions: SubRegion[]; 
   const allLocalities: Locality[] = [];
 
   const es = buildES();
-  allRegions.push(...es.regions); allSubRegions.push(...es.subRegions); allLocalities.push(...es.localities);
+  allRegions.push(...es.regions);
+  allSubRegions.push(...es.subRegions);
+  allLocalities.push(...es.localities);
 
   const pt = await buildPT();
-  allRegions.push(...pt.regions); allSubRegions.push(...pt.subRegions); allLocalities.push(...pt.localities);
+  allRegions.push(...pt.regions);
+  allSubRegions.push(...pt.subRegions);
+  allLocalities.push(...pt.localities);
 
   const fr = await buildFR();
-  allRegions.push(...fr.regions); allSubRegions.push(...fr.subRegions); allLocalities.push(...fr.localities);
+  allRegions.push(...fr.regions);
+  allSubRegions.push(...fr.subRegions);
+  allLocalities.push(...fr.localities);
 
   const it = await buildIT();
-  allRegions.push(...it.regions); allSubRegions.push(...it.subRegions); allLocalities.push(...it.localities);
+  allRegions.push(...it.regions);
+  allSubRegions.push(...it.subRegions);
+  allLocalities.push(...it.localities);
 
   const de = buildDE();
-  allRegions.push(...de.regions); allSubRegions.push(...de.subRegions); allLocalities.push(...de.localities);
+  allRegions.push(...de.regions);
+  allSubRegions.push(...de.subRegions);
+  allLocalities.push(...de.localities);
 
   const gb = buildGB();
-  allRegions.push(...gb.regions); allSubRegions.push(...gb.subRegions); allLocalities.push(...gb.localities);
+  allRegions.push(...gb.regions);
+  allSubRegions.push(...gb.subRegions);
+  allLocalities.push(...gb.localities);
 
   const us = await buildUS();
-  allRegions.push(...us.regions); allSubRegions.push(...us.subRegions); allLocalities.push(...us.localities);
+  allRegions.push(...us.regions);
+  allSubRegions.push(...us.subRegions);
+  allLocalities.push(...us.localities);
 
   fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
-  fs.writeFileSync(OUTPUT, JSON.stringify({
-    countries: COUNTRIES,
-    regions: allRegions,
-    subRegions: allSubRegions,
-    localities: allLocalities,
-  }, null, 2));
+  fs.writeFileSync(
+    OUTPUT,
+    JSON.stringify(
+      {
+        countries: COUNTRIES,
+        regions: allRegions,
+        subRegions: allSubRegions,
+        localities: allLocalities,
+      },
+      null,
+      2,
+    ),
+  );
 
   console.log(`\n✅ Escrito: ${OUTPUT}`);
-  console.log(`   ${COUNTRIES.length} países, ${allRegions.length} regiones, ${allSubRegions.length} subregiones, ${allLocalities.length} localidades`);
+  console.log(
+    `   ${COUNTRIES.length} países, ${allRegions.length} regiones, ${allSubRegions.length} subregiones, ${allLocalities.length} localidades`,
+  );
 })().catch((err) => {
   console.error('ERROR:', err);
   process.exit(1);

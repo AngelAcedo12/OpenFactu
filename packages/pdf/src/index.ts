@@ -17,7 +17,7 @@ export {
   DOC_TYPE_PARTNER_LABELS,
   getDefaultTemplate,
   DEFAULT_TEMPLATE_NAMES,
-  ALL_DOC_TYPES
+  ALL_DOC_TYPES,
 } from './browser';
 
 export type {
@@ -42,5 +42,5 @@ export type {
   FieldType,
   FieldDef,
   FieldGroup,
-  HelperDef
+  HelperDef,
 } from './browser';

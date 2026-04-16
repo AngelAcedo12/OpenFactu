@@ -42,7 +42,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   return (
     <ToastContext.Provider value={api}>
       {children}
-      
+
       {/* Contenedor de Toasts (Portal Simplificado) */}
       <div className="fixed top-8 right-8 z-[9999] flex flex-col gap-4 w-full max-w-sm pointer-events-none">
         {toasts.map((t) => (

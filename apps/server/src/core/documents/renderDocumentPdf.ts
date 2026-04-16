@@ -23,23 +23,27 @@ export async function renderDocumentPdf(
   documentId: string,
   templateId: string | undefined,
   tenantClient: any,
-  res: Response
+  res: Response,
 ): Promise<void> {
   // 1. Resolver la plantilla
   let template: any = null;
   if (templateId) {
-    const [row] = await tenantClient.select()
+    const [row] = await tenantClient
+      .select()
       .from(schema.documentTemplates)
       .where(eq(schema.documentTemplates.id, templateId));
     template = row;
   }
   if (!template) {
-    const [row] = await tenantClient.select()
+    const [row] = await tenantClient
+      .select()
       .from(schema.documentTemplates)
-      .where(and(
-        eq(schema.documentTemplates.docType, docType),
-        eq(schema.documentTemplates.isDefault, true)
-      ));
+      .where(
+        and(
+          eq(schema.documentTemplates.docType, docType),
+          eq(schema.documentTemplates.isDefault, true),
+        ),
+      );
     template = row;
   }
   if (!template) {
@@ -61,7 +65,9 @@ export async function renderDocumentPdf(
   let finalOpts: VisualOptions = baseOpts;
   try {
     const flags = await getConfigSection(tenantClient, 'flags', FLAGS_DEFAULTS);
-    if (flags.watermarkDraft && payload.doc.status === 'O') {
+    // watermarkDraft sólo fuerza la marca de agua si la plantilla NO la ha desactivado explícitamente.
+    // Si el usuario desactivó la marca en el editor de plantillas, se respeta su decisión.
+    if (flags.watermarkDraft && payload.doc.status === 'D') {
       finalOpts = {
         ...baseOpts,
         watermark: {
@@ -73,7 +79,10 @@ export async function renderDocumentPdf(
       finalHtml = buildVisualTemplate(docType, finalOpts);
     }
   } catch (err: any) {
-    console.warn('[renderDocumentPdf] No se pudo leer flags, usando template tal cual:', err.message);
+    console.warn(
+      '[renderDocumentPdf] No se pudo leer flags, usando template tal cual:',
+      err.message,
+    );
   }
 
   // 5. Renderizar

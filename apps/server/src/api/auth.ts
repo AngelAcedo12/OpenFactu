@@ -12,10 +12,12 @@ const router = Router();
 router.get('/tenants', async (req, res) => {
   try {
     const db = ClientFactory.getClient('public');
-    const results = await db.select({
-      id: schema.tenants.id,
-      name: schema.tenants.name
-    }).from(schema.tenants);
+    const results = await db
+      .select({
+        id: schema.tenants.id,
+        name: schema.tenants.name,
+      })
+      .from(schema.tenants);
     res.json(results);
   } catch (error) {
     res.status(500).json({ error: 'Fallo al obtener empresas' });
@@ -26,18 +28,16 @@ router.get('/tenants', async (req, res) => {
  * POST /api/auth/login
  */
 router.post('/login', async (req, res) => {
-  const { email, password, selectedTenantId } = req.body; 
+  const { email, password, selectedTenantId } = req.body;
 
   try {
     const db = ClientFactory.getClient('public');
-    
+
     // Buscar usuario por email o username
-    const [user] = await db.select()
+    const [user] = await db
+      .select()
       .from(schema.globalUsers)
-      .where(or(
-        eq(schema.globalUsers.email, email),
-        eq(schema.globalUsers.username, email)
-      ));
+      .where(or(eq(schema.globalUsers.email, email), eq(schema.globalUsers.username, email)));
 
     if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
@@ -62,10 +62,12 @@ router.post('/login', async (req, res) => {
         const [membership] = await db
           .select()
           .from(schema.userTenantMemberships)
-          .where(and(
-            eq(schema.userTenantMemberships.userId, user.id),
-            eq(schema.userTenantMemberships.tenantId, selectedTenantId)
-          ));
+          .where(
+            and(
+              eq(schema.userTenantMemberships.userId, user.id),
+              eq(schema.userTenantMemberships.tenantId, selectedTenantId),
+            ),
+          );
 
         if (membership) {
           finalTenantId = membership.tenantId;
@@ -87,7 +89,10 @@ router.post('/login', async (req, res) => {
 
     let tenantName = null;
     if (finalTenantId) {
-      const [t] = await db.select().from(schema.tenants).where(eq(schema.tenants.id, finalTenantId));
+      const [t] = await db
+        .select()
+        .from(schema.tenants)
+        .where(eq(schema.tenants.id, finalTenantId));
       tenantName = t?.name;
     }
 
@@ -104,7 +109,7 @@ router.post('/login', async (req, res) => {
       email: user.email,
       username: user.username,
       role: finalRole,
-      tenantId: finalTenantId
+      tenantId: finalTenantId,
     });
 
     res.json({
@@ -116,8 +121,8 @@ router.post('/login', async (req, res) => {
         role: finalRole,
         tenantId: finalTenantId,
         tenantName,
-        permissions: effectivePermissions
-      }
+        permissions: effectivePermissions,
+      },
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -141,7 +146,10 @@ router.post('/switch-tenant', async (req, res) => {
     if (!tenantId) return res.status(400).json({ error: 'tenantId es obligatorio' });
 
     const db = ClientFactory.getClient('public');
-    const [user] = await db.select().from(schema.globalUsers).where(eq(schema.globalUsers.id, payload.userId));
+    const [user] = await db
+      .select()
+      .from(schema.globalUsers)
+      .where(eq(schema.globalUsers.id, payload.userId));
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
     let finalRole = user.role;
@@ -153,10 +161,12 @@ router.post('/switch-tenant', async (req, res) => {
       const [membership] = await db
         .select()
         .from(schema.userTenantMemberships)
-        .where(and(
-          eq(schema.userTenantMemberships.userId, user.id),
-          eq(schema.userTenantMemberships.tenantId, tenantId),
-        ));
+        .where(
+          and(
+            eq(schema.userTenantMemberships.userId, user.id),
+            eq(schema.userTenantMemberships.tenantId, tenantId),
+          ),
+        );
 
       if (membership) {
         finalRole = membership.role;
@@ -217,7 +227,10 @@ router.get('/me', async (req, res) => {
     if (!payload) return res.status(401).json({ error: 'Token inválido' });
 
     const db = ClientFactory.getClient('public');
-    const [user] = await db.select().from(schema.globalUsers).where(eq(schema.globalUsers.id, payload.userId));
+    const [user] = await db
+      .select()
+      .from(schema.globalUsers)
+      .where(eq(schema.globalUsers.id, payload.userId));
 
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
@@ -230,10 +243,12 @@ router.get('/me', async (req, res) => {
       const [membership] = await db
         .select()
         .from(schema.userTenantMemberships)
-        .where(and(
-          eq(schema.userTenantMemberships.userId, user.id),
-          eq(schema.userTenantMemberships.tenantId, activeTenantId)
-        ));
+        .where(
+          and(
+            eq(schema.userTenantMemberships.userId, user.id),
+            eq(schema.userTenantMemberships.tenantId, activeTenantId),
+          ),
+        );
 
       if (membership) {
         resolvedRole = membership.role;
@@ -246,7 +261,10 @@ router.get('/me', async (req, res) => {
 
     let tenantName = null;
     if (activeTenantId) {
-      const [t] = await db.select().from(schema.tenants).where(eq(schema.tenants.id, activeTenantId));
+      const [t] = await db
+        .select()
+        .from(schema.tenants)
+        .where(eq(schema.tenants.id, activeTenantId));
       tenantName = t?.name;
     }
 
@@ -261,7 +279,7 @@ router.get('/me', async (req, res) => {
       role: resolvedRole,
       tenantId: activeTenantId,
       tenantName,
-      permissions: effectivePermissions
+      permissions: effectivePermissions,
     });
   } catch (e) {
     res.status(401).json({ error: 'No autorizado' });

@@ -22,10 +22,12 @@ router.get('/tenants-for-user', async (req: any, res) => {
     const [user] = await db
       .select()
       .from(schema.globalUsers)
-      .where(or(
-        eq(schema.globalUsers.email, email as string),
-        eq(schema.globalUsers.username, email as string)
-      ));
+      .where(
+        or(
+          eq(schema.globalUsers.email, email as string),
+          eq(schema.globalUsers.username, email as string),
+        ),
+      );
 
     if (!user) return res.json([]);
 
@@ -98,15 +100,24 @@ router.get('/', async (req: any, res) => {
  */
 router.post('/', async (req: any, res) => {
   const { userId, tenantId, role = 'USER', permissions } = req.body;
-  if (!userId || !tenantId) return res.status(400).json({ error: 'userId y tenantId son obligatorios' });
-  if (role === 'SUPERUSER') return res.status(400).json({ error: 'SUPERUSER no puede asignarse como rol de membership' });
+  if (!userId || !tenantId)
+    return res.status(400).json({ error: 'userId y tenantId son obligatorios' });
+  if (role === 'SUPERUSER')
+    return res.status(400).json({ error: 'SUPERUSER no puede asignarse como rol de membership' });
 
   try {
     const db = ClientFactory.getClient('public');
     const id = crypto.randomUUID();
     const [membership] = await db
       .insert(schema.userTenantMemberships)
-      .values({ id, userId, tenantId, role, permissions: permissions || null, updatedAt: new Date() })
+      .values({
+        id,
+        userId,
+        tenantId,
+        role,
+        permissions: permissions || null,
+        updatedAt: new Date(),
+      })
       .returning();
     res.json(membership);
     logAudit({
@@ -133,11 +144,15 @@ router.post('/', async (req: any, res) => {
 router.patch('/:id', async (req: any, res) => {
   const { id } = req.params;
   const { role, permissions } = req.body;
-  if (role === 'SUPERUSER') return res.status(400).json({ error: 'SUPERUSER no puede asignarse como rol de membership' });
+  if (role === 'SUPERUSER')
+    return res.status(400).json({ error: 'SUPERUSER no puede asignarse como rol de membership' });
 
   try {
     const db = ClientFactory.getClient('public');
-    const [old] = await db.select().from(schema.userTenantMemberships).where(eq(schema.userTenantMemberships.id, id));
+    const [old] = await db
+      .select()
+      .from(schema.userTenantMemberships)
+      .where(eq(schema.userTenantMemberships.id, id));
     const updateData: any = { updatedAt: new Date() };
     if (role !== undefined) updateData.role = role;
     if (permissions !== undefined) updateData.permissions = permissions;
@@ -150,16 +165,17 @@ router.patch('/:id', async (req: any, res) => {
 
     if (!membership) return res.status(404).json({ error: 'Membership no encontrada' });
     res.json(membership);
-    if (old) logAudit({
-      tenantClient: await ClientFactory.getTenantClient(membership.tenantId),
-      tenantId: membership.tenantId,
-      userId: req.user?.id,
-      entityType: 'UserTenantMembership',
-      entityId: id,
-      action: 'UPDATE',
-      oldValue: { role: old.role, permissions: old.permissions },
-      newValue: { role: membership.role, permissions: membership.permissions },
-    });
+    if (old)
+      logAudit({
+        tenantClient: await ClientFactory.getTenantClient(membership.tenantId),
+        tenantId: membership.tenantId,
+        userId: req.user?.id,
+        entityType: 'UserTenantMembership',
+        entityId: id,
+        action: 'UPDATE',
+        oldValue: { role: old.role, permissions: old.permissions },
+        newValue: { role: membership.role, permissions: membership.permissions },
+      });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -172,20 +188,22 @@ router.delete('/:id', async (req: any, res) => {
   const { id } = req.params;
   try {
     const db = ClientFactory.getClient('public');
-    const [old] = await db.select().from(schema.userTenantMemberships).where(eq(schema.userTenantMemberships.id, id));
-    await db
-      .delete(schema.userTenantMemberships)
+    const [old] = await db
+      .select()
+      .from(schema.userTenantMemberships)
       .where(eq(schema.userTenantMemberships.id, id));
+    await db.delete(schema.userTenantMemberships).where(eq(schema.userTenantMemberships.id, id));
     res.json({ success: true });
-    if (old) logAudit({
-      tenantClient: await ClientFactory.getTenantClient(old.tenantId),
-      tenantId: old.tenantId,
-      userId: req.user?.id,
-      entityType: 'UserTenantMembership',
-      entityId: id,
-      action: 'DELETE',
-      oldValue: old,
-    });
+    if (old)
+      logAudit({
+        tenantClient: await ClientFactory.getTenantClient(old.tenantId),
+        tenantId: old.tenantId,
+        userId: req.user?.id,
+        entityType: 'UserTenantMembership',
+        entityId: id,
+        action: 'DELETE',
+        oldValue: old,
+      });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

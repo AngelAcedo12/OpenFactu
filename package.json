@@ -12,9 +12,13 @@
     "dev:server": "npm run dev --workspace=@openfactu/server",
     "dev:web": "npm run dev --workspace=@openfactu/web",
     "dev:all": "docker compose stop server web && docker compose up -d db && concurrently \"npm run dev:server\" \"npm run dev:web\"",
-    "install:all": "npm install"
+    "install:all": "npm install",
+    "cli": "npx ts-node --transpile-only --compiler-options '{\"module\":\"commonjs\",\"esModuleInterop\":true}' packages/cli/bin/openfactu.ts",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,js,jsx,json,md,css}\" \"packages/**/*.{ts,tsx,js,jsx,json,md,css}\" \"plugins/**/*.{ts,tsx,js,jsx,json,md,css}\" \"*.{json,md}\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,jsx,json,md,css}\" \"packages/**/*.{ts,tsx,js,jsx,json,md,css}\" \"plugins/**/*.{ts,tsx,js,jsx,json,md,css}\" \"*.{json,md}\""
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "prettier": "3.8.3"
   }
 }

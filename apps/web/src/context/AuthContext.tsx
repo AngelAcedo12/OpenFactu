@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         const res = await fetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (res.ok) {
@@ -90,15 +90,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      token,
-      isAuthenticated: !!token && !!user,
-      loading,
-      login,
-      logout,
-      switchTenant,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated: !!token && !!user,
+        loading,
+        login,
+        logout,
+        switchTenant,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

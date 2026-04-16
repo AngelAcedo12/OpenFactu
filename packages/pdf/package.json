@@ -1,6 +1,6 @@
 {
   "name": "@openfactu/pdf",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,7 +14,9 @@
       "default": "./dist/browser.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"

@@ -8,31 +8,60 @@ import { sql } from 'drizzle-orm';
  */
 export async function cleanPublicSchema() {
   console.log('--- Iniciando limpieza de tablas de negocio en esquema PUBLIC (Drizzle) ---');
-  
+
   const publicDb = ClientFactory.getClient('public');
 
   // Tablas que NO deben estar en public según el diseño multi-tenant
   const tablesToDrop = [
     // Artículos e inventario
-    'Item', 'ItemBatch', 'ItemSerial', 'ItemAlternativeUom', 'ItemWarehouseStock', 'ItemZoneStock',
+    'Item',
+    'ItemBatch',
+    'ItemSerial',
+    'ItemAlternativeUom',
+    'ItemWarehouseStock',
+    'ItemZoneStock',
     // Catálogos
-    'Category', 'UnitOfMeasure', 'TaxGroup', 'PriceList', 'ItemPrice',
+    'Category',
+    'UnitOfMeasure',
+    'TaxGroup',
+    'PriceList',
+    'ItemPrice',
     // Almacenes
-    'Warehouse', 'WarehouseZone',
+    'Warehouse',
+    'WarehouseZone',
     // Interlocutores
-    'BusinessPartner', 'PartnerGroup', 'PartnerAddress',
+    'BusinessPartner',
+    'PartnerGroup',
+    'PartnerAddress',
     // Documentos de compras
-    'PurchaseOrder', 'PurchaseOrderLine',
-    'PurchaseDeliveryNote', 'PurchaseDeliveryNoteLine', 'PurchaseDeliveryNoteLineBatch',
-    'PurchaseInvoice', 'PurchaseInvoiceLine', 'PurchaseInvoiceLineBatch',
+    'PurchaseOrder',
+    'PurchaseOrderLine',
+    'PurchaseDeliveryNote',
+    'PurchaseDeliveryNoteLine',
+    'PurchaseDeliveryNoteLineBatch',
+    'PurchaseInvoice',
+    'PurchaseInvoiceLine',
+    'PurchaseInvoiceLineBatch',
     // Documentos de ventas
-    'SalesOrder', 'SalesOrderLine',
-    'SalesDeliveryNote', 'SalesDeliveryNoteLine', 'SalesDeliveryNoteLineBatch',
-    'SalesInvoice', 'SalesInvoiceLine', 'SalesInvoiceLineBatch',
+    'SalesOrder',
+    'SalesOrderLine',
+    'SalesDeliveryNote',
+    'SalesDeliveryNoteLine',
+    'SalesDeliveryNoteLineBatch',
+    'SalesInvoice',
+    'SalesInvoiceLine',
+    'SalesInvoiceLineBatch',
     // Configuración de tenant
-    'AccountingPeriod', 'DocumentSeries',
+    'AccountingPeriod',
+    'DocumentSeries',
     // Legacy
-    'OrderLine', 'OrderHeader', 'DeliveryLine', 'DeliveryHeader', 'InvoiceLine', 'InvoiceHeader', 'DocumentLineDist',
+    'OrderLine',
+    'OrderHeader',
+    'DeliveryLine',
+    'DeliveryHeader',
+    'InvoiceLine',
+    'InvoiceHeader',
+    'DocumentLineDist',
   ];
 
   for (const table of tablesToDrop) {
@@ -45,7 +74,9 @@ export async function cleanPublicSchema() {
     }
   }
 
-  console.log('--- Limpieza completada. Solo quedan las tablas Core (Tenant, GlobalUser, PluginField, AuditLog) en PUBLIC ---');
+  console.log(
+    '--- Limpieza completada. Solo quedan las tablas Core (Tenant, GlobalUser, PluginField, AuditLog) en PUBLIC ---',
+  );
 }
 
 // Si se ejecuta directamente (como script independiente)

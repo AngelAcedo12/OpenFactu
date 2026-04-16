@@ -7,10 +7,17 @@ const GEO_JSON = path.join(__dirname, '..', '..', 'seed-data', 'geo.json');
 
 interface GeoData {
   countries: Array<{
-    code: string; name: string; nameEn: string;
-    phonePrefix: string; currency: string; localeDefault: string;
-    taxIdRegex: string; taxIdLabel: string; taxIdExample: string;
-    postalCodeRegex: string; postalCodeLabel: string;
+    code: string;
+    name: string;
+    nameEn: string;
+    phonePrefix: string;
+    currency: string;
+    localeDefault: string;
+    taxIdRegex: string;
+    taxIdLabel: string;
+    taxIdExample: string;
+    postalCodeRegex: string;
+    postalCodeLabel: string;
     regionLabel: string | null;
     subRegionLabel: string;
     localityLabel: string;
@@ -25,7 +32,8 @@ interface GeoData {
  * Se ejecuta en cada arranque — es idempotente.
  */
 async function ensurePublicGeoTables(db: any) {
-  await db.execute(sql.raw(`
+  await db.execute(
+    sql.raw(`
     CREATE TABLE IF NOT EXISTS "Country" (
       "code"            TEXT PRIMARY KEY,
       "name"            TEXT NOT NULL,
@@ -71,7 +79,8 @@ async function ensurePublicGeoTables(db: any) {
 
     CREATE INDEX IF NOT EXISTS "Locality_name_idx" ON "Locality" ("name");
     CREATE INDEX IF NOT EXISTS "Locality_subregion_idx" ON "Locality" ("subRegionId");
-  `));
+  `),
+  );
 }
 
 /**
@@ -83,7 +92,9 @@ export async function seedGeo(db: any) {
   await ensurePublicGeoTables(db);
 
   if (!fs.existsSync(GEO_JSON)) {
-    console.warn(`[Geo] ${GEO_JSON} no existe — saltando seed. Ejecuta 'npx ts-node src/scripts/generate-geo-seed.ts' para generarlo.`);
+    console.warn(
+      `[Geo] ${GEO_JSON} no existe — saltando seed. Ejecuta 'npx ts-node src/scripts/generate-geo-seed.ts' para generarlo.`,
+    );
     return;
   }
 
@@ -117,12 +128,14 @@ export async function seedGeo(db: any) {
   // 2. ¿Hay regiones ya? Si sí, saltamos (asumimos que el seed está hecho y es costoso re-hacerlo)
   const existingRegions = await db.select({ id: schema.regions.id }).from(schema.regions).limit(1);
   if (existingRegions.length > 0) {
-    console.log(`[Geo] ${data.countries.length} países (upsert), regiones/subregiones/localidades ya existen — skip.`);
+    console.log(
+      `[Geo] ${data.countries.length} países (upsert), regiones/subregiones/localidades ya existen — skip.`,
+    );
     return;
   }
 
   // 3. Regions
-  const regionIdMap = new Map<string, string>();  // "ES|16" -> uuid
+  const regionIdMap = new Map<string, string>(); // "ES|16" -> uuid
   const crypto = require('crypto');
   for (const r of data.regions) {
     const id = crypto.randomUUID();
@@ -136,11 +149,11 @@ export async function seedGeo(db: any) {
   }
 
   // 4. SubRegions
-  const subRegionIdMap = new Map<string, string>();  // "ES|01" -> uuid
+  const subRegionIdMap = new Map<string, string>(); // "ES|01" -> uuid
   for (const sr of data.subRegions) {
     const id = crypto.randomUUID();
     subRegionIdMap.set(`${sr.country}|${sr.code}`, id);
-    const regionId = sr.region ? (regionIdMap.get(`${sr.country}|${sr.region}`) || null) : null;
+    const regionId = sr.region ? regionIdMap.get(`${sr.country}|${sr.region}`) || null : null;
     await db.insert(schema.subRegions).values({
       id,
       countryCode: sr.country,
@@ -156,7 +169,7 @@ export async function seedGeo(db: any) {
   let inserted = 0;
   for (const l of data.localities) {
     const subRegionId = subRegionIdMap.get(`${l.country}|${l.subRegion}`);
-    if (!subRegionId) continue;  // skip huérfanos
+    if (!subRegionId) continue; // skip huérfanos
     batch.push({
       id: crypto.randomUUID(),
       countryCode: l.country,
@@ -175,5 +188,7 @@ export async function seedGeo(db: any) {
     inserted += batch.length;
   }
 
-  console.log(`[Geo] Seed completo: ${data.countries.length} países, ${data.regions.length} regiones, ${data.subRegions.length} subregiones, ${inserted} localidades.`);
+  console.log(
+    `[Geo] Seed completo: ${data.countries.length} países, ${data.regions.length} regiones, ${data.subRegions.length} subregiones, ${inserted} localidades.`,
+  );
 }

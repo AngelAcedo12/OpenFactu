@@ -2,7 +2,13 @@ import React from 'react';
 import { useGeo } from '../../hooks/useGeo';
 
 const FLAGS: Record<string, string> = {
-  ES: '🇪🇸', PT: '🇵🇹', FR: '🇫🇷', IT: '🇮🇹', DE: '🇩🇪', GB: '🇬🇧', US: '🇺🇸',
+  ES: '🇪🇸',
+  PT: '🇵🇹',
+  FR: '🇫🇷',
+  IT: '🇮🇹',
+  DE: '🇩🇪',
+  GB: '🇬🇧',
+  US: '🇺🇸',
 };
 
 interface Props {
@@ -20,7 +26,10 @@ export const CountrySelect: React.FC<Props> = ({ value, onChange, disabled, clas
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
-      className={className || 'w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm'}
+      className={
+        className ||
+        'w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm'
+      }
     >
       <option value="">— Seleccionar país —</option>
       {countries.map((c) => (

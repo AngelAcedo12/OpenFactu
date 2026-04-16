@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm';
 async function run() {
   const schemaName = 'tenant_openfactu';
   const db = ClientFactory.getClient(schemaName);
-  
+
   const sqlStatement = `
     CREATE TABLE IF NOT EXISTS "${schemaName}"."ItemPrice" (
       "id" TEXT PRIMARY KEY,

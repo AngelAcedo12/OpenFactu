@@ -1,15 +1,15 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
 
 interface PluginManifest {
   id: string;
   name: string;
-  logo?: string; // Icono de Lucide o URL base64/path
+  logo?: string;
   ui: {
     routes: Array<{
       path: string;
       title: string;
       type: 'table' | 'form' | 'custom';
-      icon?: string; // Icono específico para este menú
+      icon?: string;
       config: any;
     }>;
     menuItems: Array<{
@@ -23,6 +23,7 @@ interface PluginManifest {
 interface PluginContextType {
   manifests: PluginManifest[];
   loading: boolean;
+  reload: () => void;
 }
 
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
@@ -31,23 +32,48 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [manifests, setManifests] = useState<PluginManifest[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchManifests = async () => {
-      try {
-        const res = await fetch('/api/plugins/manifests');
-        const data = await res.json();
-        setManifests(data);
-      } catch (err) {
-        console.error('Error fetching plugin manifests', err);
-      } finally {
-        setLoading(false);
+  const fetchManifests = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('openfactu_token');
+      const fetchHeaders: Record<string, string> = {};
+      if (token) fetchHeaders['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/plugins/manifests', { headers: fetchHeaders });
+      if (!res.ok) {
+        console.warn(`Plugin manifests endpoint returned ${res.status}`);
+        setManifests([]);
+        return;
       }
-    };
-    fetchManifests();
+      const text = await res.text();
+      if (!text.trim()) {
+        setManifests([]);
+        return;
+      }
+      try {
+        const data = JSON.parse(text);
+        setManifests(Array.isArray(data) ? data : []);
+      } catch {
+        console.error('Plugin manifests: respuesta no es JSON válido', text.slice(0, 200));
+        setManifests([]);
+      }
+    } catch (err) {
+      console.error('Error fetching plugin manifests', err);
+      setManifests([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchManifests();
+  }, [fetchManifests]);
+
+  const reload = useCallback(() => {
+    fetchManifests();
+  }, [fetchManifests]);
+
   return (
-    <PluginContext.Provider value={{ manifests, loading }}>
+    <PluginContext.Provider value={{ manifests, loading, reload }}>
       {children}
     </PluginContext.Provider>
   );

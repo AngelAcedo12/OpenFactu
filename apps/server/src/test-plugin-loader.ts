@@ -6,7 +6,7 @@ const testPlugin = () => {
   console.log('--- DIAGNÓSTICO DE PLUGINS ---');
   console.log('Ruta objetivo:', pluginPath);
   console.log('¿Existe el archivo?:', fs.existsSync(pluginPath));
-  
+
   try {
     console.log('Intentando require...');
     const mod = require(pluginPath);

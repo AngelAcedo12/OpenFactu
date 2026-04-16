@@ -13,36 +13,36 @@ html.dark {
 
 :root {
   /* Colores en formato RGB (space-separated) para que Tailwind aplique /alpha */
-  --color-primary-rgb:       37 99 235;    /* #2563eb */
-  --color-primary-hover-rgb: 29 78 216;    /* #1d4ed8 */
-  --color-primary-fg-rgb:    255 255 255;
-  --color-accent-rgb:        16 185 129;   /* #10b981 */
-  --color-accent-fg-rgb:     255 255 255;
+  --color-primary-rgb: 37 99 235; /* #2563eb */
+  --color-primary-hover-rgb: 29 78 216; /* #1d4ed8 */
+  --color-primary-fg-rgb: 255 255 255;
+  --color-accent-rgb: 16 185 129; /* #10b981 */
+  --color-accent-fg-rgb: 255 255 255;
 
   /* Alias hex (útiles fuera de Tailwind: inline styles, SVG stroke, etc.) */
-  --color-primary:       rgb(var(--color-primary-rgb));
+  --color-primary: rgb(var(--color-primary-rgb));
   --color-primary-hover: rgb(var(--color-primary-hover-rgb));
-  --color-primary-fg:    rgb(var(--color-primary-fg-rgb));
-  --color-accent:        rgb(var(--color-accent-rgb));
-  --color-accent-fg:     rgb(var(--color-accent-fg-rgb));
+  --color-primary-fg: rgb(var(--color-primary-fg-rgb));
+  --color-accent: rgb(var(--color-accent-rgb));
+  --color-accent-fg: rgb(var(--color-accent-fg-rgb));
 
   --font-sans: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
 
-  --bg-app:        #f8fafc;
-  --bg-card:       #ffffff;
-  --bg-sidebar:    #0f172a;
-  --fg-default:    #0f172a;
-  --fg-muted:      #64748b;
-  --border-default:#e2e8f0;
+  --bg-app: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-sidebar: #0f172a;
+  --fg-default: #0f172a;
+  --fg-muted: #64748b;
+  --border-default: #e2e8f0;
 }
 
 html.dark {
-  --bg-app:        #0b1120;
-  --bg-card:       #0f172a;
-  --bg-sidebar:    #020617;
-  --fg-default:    #e2e8f0;
-  --fg-muted:      #94a3b8;
-  --border-default:#1e293b;
+  --bg-app: #0b1120;
+  --bg-card: #0f172a;
+  --bg-sidebar: #020617;
+  --fg-default: #e2e8f0;
+  --fg-muted: #94a3b8;
+  --border-default: #1e293b;
 }
 
 @layer base {

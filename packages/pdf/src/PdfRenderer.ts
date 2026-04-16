@@ -14,10 +14,13 @@ export interface RenderOptions {
   footerAlignment?: 'left' | 'center' | 'right';
 }
 
-const MARGIN_MM: Record<MarginPreset, { top: string; right: string; bottom: string; left: string }> = {
+const MARGIN_MM: Record<
+  MarginPreset,
+  { top: string; right: string; bottom: string; left: string }
+> = {
   narrow: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
   normal: { top: '18mm', right: '18mm', bottom: '18mm', left: '18mm' },
-  wide:   { top: '28mm', right: '24mm', bottom: '28mm', left: '24mm' }
+  wide: { top: '28mm', right: '24mm', bottom: '28mm', left: '24mm' },
 };
 
 /**
@@ -36,7 +39,7 @@ export class PdfRenderer {
     Handlebars.registerHelper('formatCurrency', (value: any) => {
       const n = Number(value) || 0;
       return new Handlebars.SafeString(
-        n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+        n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €',
       );
     });
 
@@ -73,7 +76,7 @@ export class PdfRenderer {
 
     this.browserPromise = puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
     this.browser = await this.browserPromise;
     this.browserPromise = null;
@@ -99,7 +102,8 @@ export class PdfRenderer {
   }
 
   private static buildFooterTemplate(alignment: string): string {
-    const align = alignment === 'left' ? 'flex-start' : alignment === 'right' ? 'flex-end' : 'center';
+    const align =
+      alignment === 'left' ? 'flex-start' : alignment === 'right' ? 'flex-end' : 'center';
     return `<div style="font-size:8pt; color:#94a3b8; width:100%; padding:0 15mm; display:flex; justify-content:${align}; font-family:-apple-system,sans-serif;">
       <span><span class="pageNumber"></span> / <span class="totalPages"></span></span>
     </div>`;
@@ -111,7 +115,7 @@ export class PdfRenderer {
   public static async render(
     templateHtml: string,
     data: DocumentPdfPayload,
-    options: RenderOptions = {}
+    options: RenderOptions = {},
   ): Promise<Buffer> {
     this.registerHelpers();
     const compiled = this.compile(templateHtml);
@@ -135,7 +139,7 @@ export class PdfRenderer {
         footerTemplate: displayHeaderFooter
           ? this.buildFooterTemplate(options.footerAlignment || 'center')
           : undefined,
-        preferCSSPageSize: true
+        preferCSSPageSize: true,
       });
       return Buffer.from(buffer);
     } finally {
@@ -152,13 +156,17 @@ export class PdfRenderer {
       orientation: opts.orientation,
       margins: opts.margins,
       showPageNumbers: opts.footer.showPageNumbers,
-      footerAlignment: opts.footer.alignment
+      footerAlignment: opts.footer.alignment,
     };
   }
 
   public static async shutdown() {
     if (this.browser) {
-      try { await this.browser.close(); } catch { /* ignore */ }
+      try {
+        await this.browser.close();
+      } catch {
+        /* ignore */
+      }
       this.browser = null;
     }
   }

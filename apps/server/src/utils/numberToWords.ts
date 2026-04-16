@@ -6,19 +6,62 @@
  */
 
 const UNIDADES = [
-  '', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
-  'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete',
-  'dieciocho', 'diecinueve', 'veinte', 'veintiuno', 'veintidós', 'veintitrés',
-  'veinticuatro', 'veinticinco', 'veintiséis', 'veintisiete', 'veintiocho', 'veintinueve'
+  '',
+  'uno',
+  'dos',
+  'tres',
+  'cuatro',
+  'cinco',
+  'seis',
+  'siete',
+  'ocho',
+  'nueve',
+  'diez',
+  'once',
+  'doce',
+  'trece',
+  'catorce',
+  'quince',
+  'dieciséis',
+  'diecisiete',
+  'dieciocho',
+  'diecinueve',
+  'veinte',
+  'veintiuno',
+  'veintidós',
+  'veintitrés',
+  'veinticuatro',
+  'veinticinco',
+  'veintiséis',
+  'veintisiete',
+  'veintiocho',
+  'veintinueve',
 ];
 
 const DECENAS = [
-  '', '', '', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'
+  '',
+  '',
+  '',
+  'treinta',
+  'cuarenta',
+  'cincuenta',
+  'sesenta',
+  'setenta',
+  'ochenta',
+  'noventa',
 ];
 
 const CENTENAS = [
-  '', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos',
-  'seiscientos', 'setecientos', 'ochocientos', 'novecientos'
+  '',
+  'ciento',
+  'doscientos',
+  'trescientos',
+  'cuatrocientos',
+  'quinientos',
+  'seiscientos',
+  'setecientos',
+  'ochocientos',
+  'novecientos',
 ];
 
 function twoDigits(n: number): string {

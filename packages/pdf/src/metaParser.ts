@@ -40,6 +40,6 @@ function mergeWithDefaults(partial: Partial<VisualOptions>): VisualOptions {
     ...partial,
     columns: { ...DEFAULT_VISUAL_OPTIONS.columns, ...(partial.columns || {}) },
     watermark: { ...DEFAULT_VISUAL_OPTIONS.watermark, ...(partial.watermark || {}) },
-    footer: { ...DEFAULT_VISUAL_OPTIONS.footer, ...(partial.footer || {}) }
+    footer: { ...DEFAULT_VISUAL_OPTIONS.footer, ...(partial.footer || {}) },
   };
 }

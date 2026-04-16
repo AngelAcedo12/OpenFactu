@@ -11,13 +11,11 @@
         "config": {
           "component": "ui/MyCustomView.tsx",
           "props": {
-              "initialValue": 100
+            "initialValue": 100
           }
         }
       }
     ],
-    "menuItems": [
-      { "label": "Demo UI Component", "path": "/demo-ui", "icon": "Zap" }
-    ]
+    "menuItems": [{ "label": "Demo UI Component", "path": "/demo-ui", "icon": "Zap" }]
   }
 }

@@ -6,7 +6,7 @@ import {
   type VisualOptions,
   type WatermarkOptions,
   type PageSize,
-  type MarginPreset
+  type MarginPreset,
 } from './visualOptionsSchema';
 import { serializeMeta } from './metaParser';
 
@@ -15,21 +15,24 @@ import { serializeMeta } from './metaParser';
 // ============================================================================
 
 const FONT_FAMILY_CSS: Record<VisualOptions['fontFamily'], string> = {
-  sans:  `-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif`,
+  sans: `-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif`,
   serif: `Georgia, 'Times New Roman', Times, serif`,
-  mono:  `'SFMono-Regular', Menlo, Monaco, 'Courier New', monospace`
+  mono: `'SFMono-Regular', Menlo, Monaco, 'Courier New', monospace`,
 };
 
 const PAGE_SIZE_CSS: Record<PageSize, string> = {
-  A4:     'A4',
+  A4: 'A4',
   Letter: 'letter',
-  A5:     'A5'
+  A5: 'A5',
 };
 
-const MARGIN_MM: Record<MarginPreset, { top: number; right: number; bottom: number; left: number }> = {
+const MARGIN_MM: Record<
+  MarginPreset,
+  { top: number; right: number; bottom: number; left: number }
+> = {
   narrow: { top: 10, right: 10, bottom: 10, left: 10 },
   normal: { top: 18, right: 18, bottom: 18, left: 18 },
-  wide:   { top: 28, right: 24, bottom: 28, left: 24 }
+  wide: { top: 28, right: 24, bottom: 28, left: 24 },
 };
 
 // ============================================================================
@@ -56,7 +59,8 @@ function toBase64(str: string): string {
 
 function buildWatermarkDataUrl(wm: WatermarkOptions): string {
   const text = escapeXml(wm.text || '');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet" overflow="visible">` +
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet" overflow="visible">` +
     `<text x="400" y="300" ` +
     `fill="${wm.color}" fill-opacity="${wm.opacity}" ` +
     `font-size="${wm.fontSize}" font-family="Helvetica, Arial, sans-serif" font-weight="800" ` +
@@ -106,8 +110,12 @@ export function buildVisualTemplate(docType: DocType, opts: VisualOptions): stri
   const logoAlignClass = `logo-${opts.logoPosition}`;
 
   // === Bloques de cliente ===
-  const partnerTaxIdBlock = opts.showPartnerTaxId ? '{{#if partner.taxId}}<div class="meta">{{partner.taxId}}</div>{{/if}}' : '';
-  const partnerAddressBlock = opts.showPartnerAddress ? '{{#if partner.address}}<div class="meta">{{partner.address}}</div>{{/if}}' : '';
+  const partnerTaxIdBlock = opts.showPartnerTaxId
+    ? '{{#if partner.taxId}}<div class="meta">{{partner.taxId}}</div>{{/if}}'
+    : '';
+  const partnerAddressBlock = opts.showPartnerAddress
+    ? '{{#if partner.address}}<div class="meta">{{partner.address}}</div>{{/if}}'
+    : '';
   const partnerContactBlock = opts.showPartnerContact
     ? `{{#if partner.email}}<div class="meta">✉ {{partner.email}}</div>{{/if}}{{#if partner.phone}}<div class="meta">☎ {{partner.phone}}</div>{{/if}}`
     : '';
@@ -135,33 +143,48 @@ export function buildVisualTemplate(docType: DocType, opts: VisualOptions): stri
     : '';
 
   // === Bloques de empresa ===
-  const companyTaxIdBlock = opts.showCompanyTaxId ? '{{#if company.taxId}}<small>CIF/NIF: {{company.taxId}}</small>{{/if}}' : '';
-  const companyAddressBlock = opts.showCompanyAddress ? '{{#if company.address}}<small>{{company.address}}</small>{{/if}}' : '';
+  const companyTaxIdBlock = opts.showCompanyTaxId
+    ? '{{#if company.taxId}}<small>CIF/NIF: {{company.taxId}}</small>{{/if}}'
+    : '';
+  const companyAddressBlock = opts.showCompanyAddress
+    ? '{{#if company.address}}<small>{{company.address}}</small>{{/if}}'
+    : '';
   const companyContactBlock = opts.showCompanyContact
     ? `{{#if company.phone}}<small>☎ {{company.phone}}</small>{{/if}}{{#if company.email}}<small>✉ {{company.email}}</small>{{/if}}{{#if company.website}}<small>🌐 {{company.website}}</small>{{/if}}`
     : '';
 
   // === Columnas de la tabla ===
   const col = opts.columns;
-  const colCount = Number(col.code) + Number(col.description) + Number(col.quantity) + Number(col.uom) + Number(col.price) + Number(col.iva) + Number(col.lineTotal);
+  const colCount =
+    Number(col.code) +
+    Number(col.description) +
+    Number(col.quantity) +
+    Number(col.uom) +
+    Number(col.price) +
+    Number(col.iva) +
+    Number(col.lineTotal);
 
   const headerCells: string[] = [];
-  if (col.code)        headerCells.push('<th style="width:8%">Código</th>');
+  if (col.code) headerCells.push('<th style="width:8%">Código</th>');
   if (col.description) headerCells.push('<th>Descripción</th>');
-  if (col.quantity)    headerCells.push('<th class="num" style="width:8%">Cant.</th>');
-  if (col.uom)         headerCells.push('<th class="num" style="width:6%">U.M.</th>');
-  if (col.price)       headerCells.push('<th class="num" style="width:11%">Precio</th>');
-  if (col.iva)         headerCells.push('<th class="num" style="width:7%">IVA</th>');
-  if (col.lineTotal)   headerCells.push('<th class="num" style="width:13%">Total</th>');
+  if (col.quantity) headerCells.push('<th class="num" style="width:8%">Cant.</th>');
+  if (col.uom) headerCells.push('<th class="num" style="width:6%">U.M.</th>');
+  if (col.price) headerCells.push('<th class="num" style="width:11%">Precio</th>');
+  if (col.iva) headerCells.push('<th class="num" style="width:7%">IVA</th>');
+  if (col.lineTotal) headerCells.push('<th class="num" style="width:13%">Total</th>');
 
   const bodyCells: string[] = [];
-  if (col.code)        bodyCells.push('<td class="mono">{{itemCode}}</td>');
-  if (col.description) bodyCells.push(`<td><strong>{{itemName}}</strong>{{#if itemDescription}}<br><small class="muted">{{itemDescription}}</small>{{/if}}</td>`);
-  if (col.quantity)    bodyCells.push('<td class="num">{{formatNumber quantity 2}}</td>');
-  if (col.uom)         bodyCells.push('<td class="num">{{uom}}</td>');
-  if (col.price)       bodyCells.push('<td class="num">{{formatCurrency price}}</td>');
-  if (col.iva)         bodyCells.push('<td class="num">{{taxRate}}%</td>');
-  if (col.lineTotal)   bodyCells.push('<td class="num"><strong>{{formatCurrency lineTotal}}</strong></td>');
+  if (col.code) bodyCells.push('<td class="mono">{{itemCode}}</td>');
+  if (col.description)
+    bodyCells.push(
+      `<td><strong>{{itemName}}</strong>{{#if itemDescription}}<br><small class="muted">{{itemDescription}}</small>{{/if}}</td>`,
+    );
+  if (col.quantity) bodyCells.push('<td class="num">{{formatNumber quantity 2}}</td>');
+  if (col.uom) bodyCells.push('<td class="num">{{uom}}</td>');
+  if (col.price) bodyCells.push('<td class="num">{{formatCurrency price}}</td>');
+  if (col.iva) bodyCells.push('<td class="num">{{taxRate}}%</td>');
+  if (col.lineTotal)
+    bodyCells.push('<td class="num"><strong>{{formatCurrency lineTotal}}</strong></td>');
 
   // === Tax breakdown ===
   const taxBreakdownBlock = opts.showTaxBreakdown
@@ -178,10 +201,12 @@ export function buildVisualTemplate(docType: DocType, opts: VisualOptions): stri
   const footerAlign = alignToCss(opts.footer.alignment);
   const footerSegments: string[] = [];
   if (opts.footer.text) footerSegments.push(`<div>${opts.footer.text}</div>`);
-  if (opts.footer.showGeneratedAt) footerSegments.push('<div class="footer-meta">{{generatedAt}}</div>');
-  const footerBlock = footerSegments.length > 0
-    ? `<div class="page-footer" style="text-align:${footerAlign};">${footerSegments.join('')}</div>`
-    : '';
+  if (opts.footer.showGeneratedAt)
+    footerSegments.push('<div class="footer-meta">{{generatedAt}}</div>');
+  const footerBlock =
+    footerSegments.length > 0
+      ? `<div class="page-footer" style="text-align:${footerAlign};">${footerSegments.join('')}</div>`
+      : '';
 
   // === CSS ===
   const css = `

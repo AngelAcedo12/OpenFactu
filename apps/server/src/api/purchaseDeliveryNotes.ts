@@ -10,23 +10,33 @@ const router = Router();
 // GET all delivery notes
 router.get('/', async (req: any, res) => {
   try {
-    const results = await req.tenantClient.select({
-      id: schema.purchaseDeliveryNotes.id,
-      docNum: schema.purchaseDeliveryNotes.docNum,
-      seriesPrefix: schema.documentSeries.prefix,
-      periodCode: schema.accountingPeriods.code,
-      date: schema.purchaseDeliveryNotes.date,
-      partnerId: schema.purchaseDeliveryNotes.partnerId,
-      total: schema.purchaseDeliveryNotes.total,
-      status: schema.purchaseDeliveryNotes.status,
-      orderId: schema.purchaseDeliveryNotes.orderId,
-      orderDocNum: schema.purchaseOrders.docNum,
-      orderPrefix: sql`(SELECT "prefix" FROM "DocumentSeries" WHERE id = ${schema.purchaseOrders.seriesId})`
-    })
+    const results = await req.tenantClient
+      .select({
+        id: schema.purchaseDeliveryNotes.id,
+        docNum: schema.purchaseDeliveryNotes.docNum,
+        seriesPrefix: schema.documentSeries.prefix,
+        periodCode: schema.accountingPeriods.code,
+        date: schema.purchaseDeliveryNotes.date,
+        partnerId: schema.purchaseDeliveryNotes.partnerId,
+        total: schema.purchaseDeliveryNotes.total,
+        status: schema.purchaseDeliveryNotes.status,
+        orderId: schema.purchaseDeliveryNotes.orderId,
+        orderDocNum: schema.purchaseOrders.docNum,
+        orderPrefix: sql`(SELECT "prefix" FROM "DocumentSeries" WHERE id = ${schema.purchaseOrders.seriesId})`,
+      })
       .from(schema.purchaseDeliveryNotes)
-      .leftJoin(schema.purchaseOrders, eq(schema.purchaseDeliveryNotes.orderId, schema.purchaseOrders.id))
-      .leftJoin(schema.documentSeries, eq(schema.purchaseDeliveryNotes.seriesId, schema.documentSeries.id))
-      .leftJoin(schema.accountingPeriods, eq(schema.purchaseDeliveryNotes.periodId, schema.accountingPeriods.id))
+      .leftJoin(
+        schema.purchaseOrders,
+        eq(schema.purchaseDeliveryNotes.orderId, schema.purchaseOrders.id),
+      )
+      .leftJoin(
+        schema.documentSeries,
+        eq(schema.purchaseDeliveryNotes.seriesId, schema.documentSeries.id),
+      )
+      .leftJoin(
+        schema.accountingPeriods,
+        eq(schema.purchaseDeliveryNotes.periodId, schema.accountingPeriods.id),
+      )
       .orderBy(sql`${schema.purchaseDeliveryNotes.date} DESC`);
     res.json(results);
   } catch (error: any) {
@@ -37,49 +47,63 @@ router.get('/', async (req: any, res) => {
 // GET detail
 router.get('/:id', async (req: any, res) => {
   try {
-    const [header] = await req.tenantClient.select({
-      header: schema.purchaseDeliveryNotes,
-      seriesPrefix: schema.documentSeries.prefix,
-      periodCode: schema.accountingPeriods.code,
-      orderDocNum: schema.purchaseOrders.docNum,
-      orderPrefix: sql`(SELECT "prefix" FROM "DocumentSeries" WHERE id = ${schema.purchaseOrders.seriesId})`
-    })
+    const [header] = await req.tenantClient
+      .select({
+        header: schema.purchaseDeliveryNotes,
+        seriesPrefix: schema.documentSeries.prefix,
+        periodCode: schema.accountingPeriods.code,
+        orderDocNum: schema.purchaseOrders.docNum,
+        orderPrefix: sql`(SELECT "prefix" FROM "DocumentSeries" WHERE id = ${schema.purchaseOrders.seriesId})`,
+      })
       .from(schema.purchaseDeliveryNotes)
-      .leftJoin(schema.documentSeries, eq(schema.purchaseDeliveryNotes.seriesId, schema.documentSeries.id))
-      .leftJoin(schema.accountingPeriods, eq(schema.purchaseDeliveryNotes.periodId, schema.accountingPeriods.id))
-      .leftJoin(schema.purchaseOrders, eq(schema.purchaseDeliveryNotes.orderId, schema.purchaseOrders.id))
+      .leftJoin(
+        schema.documentSeries,
+        eq(schema.purchaseDeliveryNotes.seriesId, schema.documentSeries.id),
+      )
+      .leftJoin(
+        schema.accountingPeriods,
+        eq(schema.purchaseDeliveryNotes.periodId, schema.accountingPeriods.id),
+      )
+      .leftJoin(
+        schema.purchaseOrders,
+        eq(schema.purchaseDeliveryNotes.orderId, schema.purchaseOrders.id),
+      )
       .where(eq(schema.purchaseDeliveryNotes.id, req.params.id));
-    
+
     if (!header) return res.status(404).json({ error: 'No encontrado' });
 
     // Flatten header for easier use
-    const headerData = { 
-      ...header.header, 
+    const headerData = {
+      ...header.header,
       seriesPrefix: header.seriesPrefix,
       periodCode: header.periodCode,
       orderDocNum: header.orderDocNum,
-      orderPrefix: header.orderPrefix
+      orderPrefix: header.orderPrefix,
     };
 
-    const lines = await req.tenantClient.select()
+    const lines = await req.tenantClient
+      .select()
       .from(schema.purchaseDeliveryNoteLines)
       .where(eq(schema.purchaseDeliveryNoteLines.deliveryId, req.params.id));
 
     // Get batches for each line
-    const linesWithBatches = await Promise.all(lines.map(async (line: any) => {
-      const batches = await req.tenantClient.select()
-        .from(schema.purchaseDeliveryNoteLineBatches)
-        .where(eq(schema.purchaseDeliveryNoteLineBatches.deliveryLineId, line.id));
-      
-      return { 
-        ...line, 
-        batchDetails: batches.map((b: any) => ({
-          batchNum: b.batchNum,
-          quantity: Number(b.quantity),
-          expiryDate: b.expiryDate
-        }))
-      };
-    }));
+    const linesWithBatches = await Promise.all(
+      lines.map(async (line: any) => {
+        const batches = await req.tenantClient
+          .select()
+          .from(schema.purchaseDeliveryNoteLineBatches)
+          .where(eq(schema.purchaseDeliveryNoteLineBatches.deliveryLineId, line.id));
+
+        return {
+          ...line,
+          batchDetails: batches.map((b: any) => ({
+            batchNum: b.batchNum,
+            quantity: Number(b.quantity),
+            expiryDate: b.expiryDate,
+          })),
+        };
+      }),
+    );
 
     res.json({ ...headerData, lines: linesWithBatches });
   } catch (error: any) {
@@ -90,7 +114,13 @@ router.get('/:id', async (req: any, res) => {
 // GET /:id/pdf
 router.get('/:id/pdf', async (req: any, res) => {
   try {
-    await renderDocumentPdf('PDN', req.params.id, req.query.templateId as string | undefined, req.tenantClient, res);
+    await renderDocumentPdf(
+      'PDN',
+      req.params.id,
+      req.query.templateId as string | undefined,
+      req.tenantClient,
+      res,
+    );
   } catch (error: any) {
     console.error('[PurchaseDeliveryNote PDF] Error:', error);
     res.status(500).json({ error: error.message });
@@ -104,15 +134,21 @@ router.post('/', async (req: any, res) => {
   try {
     const result = await req.tenantClient.transaction(async (tx: any) => {
       // 1. Numeración
-      const [series] = await tx.select().from(schema.documentSeries).where(eq(schema.documentSeries.id, seriesId));
+      const [series] = await tx
+        .select()
+        .from(schema.documentSeries)
+        .where(eq(schema.documentSeries.id, seriesId));
       if (!series) throw new Error('Serie no encontrada');
       const docNum = series.nextNumber;
-      await tx.update(schema.documentSeries).set({ nextNumber: docNum + 1 }).where(eq(schema.documentSeries.id, seriesId));
+      await tx
+        .update(schema.documentSeries)
+        .set({ nextNumber: docNum + 1 })
+        .where(eq(schema.documentSeries.id, seriesId));
 
       const deliveryId = crypto.randomUUID();
       let calculatedSubtotal = 0;
       let calculatedTaxTotal = 0;
-      const breakdownMap: Record<string, { base: number, tax: number }> = {};
+      const breakdownMap: Record<string, { base: number; tax: number }> = {};
 
       // Obtener tasas de impuestos para cálculos
       const allTaxGroups = await tx.select().from(schema.taxGroups);
@@ -122,39 +158,59 @@ router.post('/', async (req: any, res) => {
       }, {});
 
       // 2. Insertar Cabecera Temporal
-      const [header] = await tx.insert(schema.purchaseDeliveryNotes).values({
-        id: deliveryId,
-        seriesId,
-        docNum,
-        periodId,
-        partnerId,
-        orderId: orderId || null,
-        date: new Date(date),
-        status: 'O',
-        billToAddress: req.body.billToAddress || null,
-        shipToAddress: req.body.shipToAddress || null,
-        warehouseId: warehouseId || null,
-        subtotal: '0',
-        taxTotal: '0',
-        total: '0',
-        taxBreakdown: '{}'
-      }).returning();
+      const [header] = await tx
+        .insert(schema.purchaseDeliveryNotes)
+        .values({
+          id: deliveryId,
+          seriesId,
+          docNum,
+          periodId,
+          partnerId,
+          orderId: orderId || null,
+          date: new Date(date),
+          status: 'O',
+          billToAddress: req.body.billToAddress || null,
+          shipToAddress: req.body.shipToAddress || null,
+          warehouseId: warehouseId || null,
+          subtotal: '0',
+          taxTotal: '0',
+          total: '0',
+          taxBreakdown: '{}',
+        })
+        .returning();
 
       // 2.5 Consultar flag de forzar zonas de almacén (nueva clave + fallback legacy)
-      const [cfgNew]    = await tx.select().from(schema.systemConfigs).where(eq(schema.systemConfigs.key, 'flags_enforce_warehouse_zones'));
-      const [cfgLegacy] = await tx.select().from(schema.systemConfigs).where(eq(schema.systemConfigs.key, 'enforceWarehouseZones'));
-      const enforceZones = (cfgNew?.value === 'true') || (cfgLegacy?.value === 'true');
+      const [cfgNew] = await tx
+        .select()
+        .from(schema.systemConfigs)
+        .where(eq(schema.systemConfigs.key, 'flags_enforce_warehouse_zones'));
+      const [cfgLegacy] = await tx
+        .select()
+        .from(schema.systemConfigs)
+        .where(eq(schema.systemConfigs.key, 'enforceWarehouseZones'));
+      const enforceZones = cfgNew?.value === 'true' || cfgLegacy?.value === 'true';
 
       // 3. Procesar Líneas y Stock
       for (const line of lines) {
         // Validation: Verify if item requires batches
-        const [itemInfo] = await tx.select().from(schema.items).where(eq(schema.items.id, line.itemId));
+        const [itemInfo] = await tx
+          .select()
+          .from(schema.items)
+          .where(eq(schema.items.id, line.itemId));
         if (!itemInfo) throw new Error(`Artículo ${line.itemId} no encontrado`);
 
+        const uomFactor = Number(line.uomFactor || 1);
+        const baseQty = Number(line.quantity) * uomFactor;
+
         if (itemInfo.manageBy !== 'N') {
-          const totalBatched = (line.batchDetails || []).reduce((acc: number, curr: any) => acc + Number(curr.quantity), 0);
+          const totalBatched = (line.batchDetails || []).reduce(
+            (acc: number, curr: any) => acc + Number(curr.quantity),
+            0,
+          );
           if (totalBatched < Number(line.quantity)) {
-            throw new Error(`El artículo ${itemInfo.name} requiere trazabilidad. Cantidad pendiente: ${Number(line.quantity) - totalBatched}`);
+            throw new Error(
+              `El artículo ${itemInfo.name} requiere trazabilidad. Cantidad pendiente: ${Number(line.quantity) - totalBatched}`,
+            );
           }
         }
 
@@ -175,9 +231,14 @@ router.post('/', async (req: any, res) => {
         const targetWarehouse = line.warehouseId || warehouseId;
 
         if (enforceZones && !line.zoneId && targetWarehouse) {
-          const zones = await tx.select().from(schema.warehouseZones).where(eq(schema.warehouseZones.warehouseId, targetWarehouse));
+          const zones = await tx
+            .select()
+            .from(schema.warehouseZones)
+            .where(eq(schema.warehouseZones.warehouseId, targetWarehouse));
           if (zones.length > 0) {
-            throw new Error(`La configuración del almacén exige indicar una Ubicación (Zona) para el artículo ${itemInfo.name}.`);
+            throw new Error(
+              `La configuración del almacén exige indicar una Ubicación (Zona) para el artículo ${itemInfo.name}.`,
+            );
           }
         }
 
@@ -185,57 +246,80 @@ router.post('/', async (req: any, res) => {
         await tx.insert(schema.purchaseDeliveryNoteLines).values({
           id: lineId,
           deliveryId,
-          lineNum: line.lineNum || (lines.indexOf(line) + 1),
+          lineNum: line.lineNum || lines.indexOf(line) + 1,
           itemId: line.itemId,
           warehouseId: targetWarehouse,
           zoneId: line.zoneId || null,
           batchNum: line.batchNum || null,
           quantity: String(line.quantity),
+          uomId: line.uomId || null,
+          uomFactor: String(uomFactor),
           price: String(line.price),
           taxGroupId: line.taxGroupId || null,
           lineTotal: String(lineSubtotal + lineTax),
-          baseLine: line.baseLine || null
+          baseLine: line.baseLine || null,
         });
 
         // B. Incrementar Stock Global
-        await tx.update(schema.items)
-          .set({ stock: sql`${schema.items.stock} + ${Number(line.quantity)}` })
+        await tx
+          .update(schema.items)
+          .set({ stock: sql`${schema.items.stock} + ${baseQty}` })
           .where(eq(schema.items.id, line.itemId));
 
         // C. Incrementar Stock por Almacén
         if (targetWarehouse) {
-          const [existing] = await tx.select().from(schema.itemWarehouseStocks)
-            .where(sql`${schema.itemWarehouseStocks.itemId} = ${line.itemId} AND ${schema.itemWarehouseStocks.warehouseId} = ${targetWarehouse}`);
-          
+          const [existing] = await tx
+            .select()
+            .from(schema.itemWarehouseStocks)
+            .where(
+              sql`${schema.itemWarehouseStocks.itemId} = ${line.itemId} AND ${schema.itemWarehouseStocks.warehouseId} = ${targetWarehouse}`,
+            );
+
           if (existing) {
-            await tx.update(schema.itemWarehouseStocks)
-              .set({ stock: sql`${schema.itemWarehouseStocks.stock} + ${Number(line.quantity)}`, updatedAt: new Date() })
-              .where(sql`${schema.itemWarehouseStocks.itemId} = ${line.itemId} AND ${schema.itemWarehouseStocks.warehouseId} = ${targetWarehouse}`);
+            await tx
+              .update(schema.itemWarehouseStocks)
+              .set({
+                stock: sql`${schema.itemWarehouseStocks.stock} + ${baseQty}`,
+                updatedAt: new Date(),
+              })
+              .where(
+                sql`${schema.itemWarehouseStocks.itemId} = ${line.itemId} AND ${schema.itemWarehouseStocks.warehouseId} = ${targetWarehouse}`,
+              );
           } else {
             await tx.insert(schema.itemWarehouseStocks).values({
               itemId: line.itemId,
               warehouseId: targetWarehouse,
-              stock: Number(line.quantity),
-              updatedAt: new Date()
+              stock: baseQty,
+              updatedAt: new Date(),
             });
           }
 
           // C.2 Incrementar Stock por Ubicación (Zone)
           if (line.zoneId) {
-            const [existingZone] = await tx.select().from(schema.itemZoneStocks)
-              .where(sql`${schema.itemZoneStocks.itemId} = ${line.itemId} AND ${schema.itemZoneStocks.warehouseId} = ${targetWarehouse} AND ${schema.itemZoneStocks.zoneId} = ${line.zoneId}`);
+            const [existingZone] = await tx
+              .select()
+              .from(schema.itemZoneStocks)
+              .where(
+                sql`${schema.itemZoneStocks.itemId} = ${line.itemId} AND ${schema.itemZoneStocks.warehouseId} = ${targetWarehouse} AND ${schema.itemZoneStocks.zoneId} = ${line.zoneId}`,
+              );
 
             if (existingZone) {
-              await tx.update(schema.itemZoneStocks)
-                .set({ stock: sql`${schema.itemZoneStocks.stock} + ${Number(line.quantity)}`, updatedAt: new Date() })
-                .where(sql`${schema.itemZoneStocks.itemId} = ${line.itemId} AND ${schema.itemZoneStocks.warehouseId} = ${targetWarehouse} AND ${schema.itemZoneStocks.zoneId} = ${line.zoneId}`);
+              await tx
+                .update(schema.itemZoneStocks)
+                .set({
+                  stock: sql`${schema.itemZoneStocks.stock} + ${baseQty}`,
+                  updatedAt: new Date(),
+                })
+                .where(
+                  sql`${schema.itemZoneStocks.itemId} = ${line.itemId} AND ${schema.itemZoneStocks.warehouseId} = ${targetWarehouse} AND ${schema.itemZoneStocks.zoneId} = ${line.zoneId}`,
+                );
             } else {
               await tx.insert(schema.itemZoneStocks).values({
                 itemId: line.itemId,
                 warehouseId: targetWarehouse,
                 zoneId: line.zoneId,
-                stock: Number(line.quantity),
-                updatedAt: new Date()
+                stock: baseQty,
+                updatedAt: new Date(),
               });
             }
           }
@@ -250,24 +334,33 @@ router.post('/', async (req: any, res) => {
               deliveryLineId: lineId,
               batchNum: bd.batchNum,
               quantity: bd.quantity,
-              expiryDate: bd.expiryDate ? new Date(bd.expiryDate) : null
+              expiryDate: bd.expiryDate ? new Date(bd.expiryDate) : null,
             });
 
             // Incrementar stock del lote específico en maestros
-            const [existingBatch] = await tx.select().from(schema.itemBatches)
-              .where(sql`${schema.itemBatches.itemId} = ${line.itemId} AND ${schema.itemBatches.batchNum} = ${bd.batchNum}`);
-            
+            const [existingBatch] = await tx
+              .select()
+              .from(schema.itemBatches)
+              .where(
+                sql`${schema.itemBatches.itemId} = ${line.itemId} AND ${schema.itemBatches.batchNum} = ${bd.batchNum}`,
+              );
+
             if (itemInfo.manageBy === 'S') {
               if (existingBatch && Number(existingBatch.quantity) > 0) {
-                throw new Error(`La serie ${bd.batchNum} ya existe en stock para el artículo ${itemInfo.name}`);
+                throw new Error(
+                  `La serie ${bd.batchNum} ya existe en stock para el artículo ${itemInfo.name}`,
+                );
               }
               if (Number(bd.quantity) !== 1) {
-                throw new Error(`Un artículo gestionado por Serie solo puede tener cantidad 1 por serie. Serie: ${bd.batchNum}`);
+                throw new Error(
+                  `Un artículo gestionado por Serie solo puede tener cantidad 1 por serie. Serie: ${bd.batchNum}`,
+                );
               }
             }
 
             if (existingBatch) {
-              await tx.update(schema.itemBatches)
+              await tx
+                .update(schema.itemBatches)
                 .set({ quantity: sql`${schema.itemBatches.quantity} + ${Number(bd.quantity)}` })
                 .where(eq(schema.itemBatches.id, existingBatch.id));
             } else {
@@ -276,7 +369,7 @@ router.post('/', async (req: any, res) => {
                 itemId: line.itemId,
                 batchNum: bd.batchNum,
                 quantity: Number(bd.quantity),
-                expiryDate: bd.expiryDate ? new Date(bd.expiryDate) : null
+                expiryDate: bd.expiryDate ? new Date(bd.expiryDate) : null,
               });
             }
           }
@@ -284,32 +377,44 @@ router.post('/', async (req: any, res) => {
 
         // E. Lógica de Recepción Parcial en Pedido (si existe orderId)
         if (orderId && line.baseLine) {
-           await tx.update(schema.purchaseOrderLines)
-             .set({ receivedQty: sql`${schema.purchaseOrderLines.receivedQty} + ${Number(line.quantity)}` })
-             .where(sql`${schema.purchaseOrderLines.orderId} = ${orderId} AND ${schema.purchaseOrderLines.lineNum} = ${line.baseLine}`);
+          await tx
+            .update(schema.purchaseOrderLines)
+            .set({
+              receivedQty: sql`${schema.purchaseOrderLines.receivedQty} + ${Number(line.quantity)}`,
+            })
+            .where(
+              sql`${schema.purchaseOrderLines.orderId} = ${orderId} AND ${schema.purchaseOrderLines.lineNum} = ${line.baseLine}`,
+            );
         }
       }
 
       // 4. Actualizar Total en Cabecera
       const finalTotal = calculatedSubtotal + calculatedTaxTotal;
-      await tx.update(schema.purchaseDeliveryNotes)
-        .set({ 
+      await tx
+        .update(schema.purchaseDeliveryNotes)
+        .set({
           subtotal: String(calculatedSubtotal.toFixed(4)),
           taxTotal: String(calculatedTaxTotal.toFixed(4)),
           total: String(finalTotal.toFixed(4)),
-          taxBreakdown: JSON.stringify(breakdownMap)
+          taxBreakdown: JSON.stringify(breakdownMap),
         })
         .where(eq(schema.purchaseDeliveryNotes.id, deliveryId));
 
       // 5. Actualizar estado del Pedido (si corresponde)
       if (orderId) {
-        const poLines = await tx.select().from(schema.purchaseOrderLines).where(eq(schema.purchaseOrderLines.orderId, orderId));
+        const poLines = await tx
+          .select()
+          .from(schema.purchaseOrderLines)
+          .where(eq(schema.purchaseOrderLines.orderId, orderId));
         // Usar un pequeño margen de error para comparaciones decimales
-        const allReceived = poLines.every((l: any) => (Number(l.receivedQty) + 0.0001) >= Number(l.orderedQty));
+        const allReceived = poLines.every(
+          (l: any) => Number(l.receivedQty) + 0.0001 >= Number(l.orderedQty),
+        );
         const anyReceived = poLines.some((l: any) => Number(l.receivedQty) > 0);
-        
-        await tx.update(schema.purchaseOrders)
-          .set({ status: allReceived ? 'C' : (anyReceived ? 'P' : 'O') })
+
+        await tx
+          .update(schema.purchaseOrders)
+          .set({ status: allReceived ? 'C' : anyReceived ? 'P' : 'O' })
           .where(eq(schema.purchaseOrders.id, orderId));
       }
 
@@ -332,64 +437,100 @@ router.post('/', async (req: any, res) => {
   }
 });
 
-// CANCEL (Delete equivalent for ERP logic)
-router.delete('/:id', async (req: any, res) => {
+async function cancelPurchaseDeliveryNote(req: any, res: any) {
   try {
     const result = await req.tenantClient.transaction(async (tx: any) => {
       // 1. Obtener cabecera y líneas para revertir
-      const [header] = await tx.select().from(schema.purchaseDeliveryNotes).where(eq(schema.purchaseDeliveryNotes.id, req.params.id));
+      const [header] = await tx
+        .select()
+        .from(schema.purchaseDeliveryNotes)
+        .where(eq(schema.purchaseDeliveryNotes.id, req.params.id));
       if (!header) throw new Error('Albarán no encontrado');
       if (header.status === 'X') throw new Error('El albarán ya está cancelado');
       if (header.status === 'C') throw new Error('No se puede cancelar un albarán ya facturado');
 
-      const lines = await tx.select().from(schema.purchaseDeliveryNoteLines).where(eq(schema.purchaseDeliveryNoteLines.deliveryId, req.params.id));
+      const lines = await tx
+        .select()
+        .from(schema.purchaseDeliveryNoteLines)
+        .where(eq(schema.purchaseDeliveryNoteLines.deliveryId, req.params.id));
 
       for (const line of lines) {
+        const baseQty = Number(line.quantity) * Number(line.uomFactor || 1);
+
         // A. Revertir Stock Global
-        await tx.update(schema.items)
-          .set({ stock: sql`${schema.items.stock} - ${Number(line.quantity)}` })
+        await tx
+          .update(schema.items)
+          .set({ stock: sql`${schema.items.stock} - ${baseQty}` })
           .where(eq(schema.items.id, line.itemId));
 
         // B. Revertir Stock por Almacén
         if (line.warehouseId) {
-          await tx.update(schema.itemWarehouseStocks)
-            .set({ stock: sql`${schema.itemWarehouseStocks.stock} - ${Number(line.quantity)}`, updatedAt: new Date() })
-            .where(sql`${schema.itemWarehouseStocks.itemId} = ${line.itemId} AND ${schema.itemWarehouseStocks.warehouseId} = ${line.warehouseId}`);
+          await tx
+            .update(schema.itemWarehouseStocks)
+            .set({
+              stock: sql`${schema.itemWarehouseStocks.stock} - ${baseQty}`,
+              updatedAt: new Date(),
+            })
+            .where(
+              sql`${schema.itemWarehouseStocks.itemId} = ${line.itemId} AND ${schema.itemWarehouseStocks.warehouseId} = ${line.warehouseId}`,
+            );
 
           if (line.zoneId) {
-            await tx.update(schema.itemZoneStocks)
-              .set({ stock: sql`${schema.itemZoneStocks.stock} - ${Number(line.quantity)}`, updatedAt: new Date() })
-              .where(sql`${schema.itemZoneStocks.itemId} = ${line.itemId} AND ${schema.itemZoneStocks.warehouseId} = ${line.warehouseId} AND ${schema.itemZoneStocks.zoneId} = ${line.zoneId}`);
+            await tx
+              .update(schema.itemZoneStocks)
+              .set({
+                stock: sql`${schema.itemZoneStocks.stock} - ${baseQty}`,
+                updatedAt: new Date(),
+              })
+              .where(
+                sql`${schema.itemZoneStocks.itemId} = ${line.itemId} AND ${schema.itemZoneStocks.warehouseId} = ${line.warehouseId} AND ${schema.itemZoneStocks.zoneId} = ${line.zoneId}`,
+              );
           }
         }
 
         // C. Revertir Lotes
-        const batches = await tx.select().from(schema.purchaseDeliveryNoteLineBatches).where(eq(schema.purchaseDeliveryNoteLineBatches.deliveryLineId, line.id));
+        const batches = await tx
+          .select()
+          .from(schema.purchaseDeliveryNoteLineBatches)
+          .where(eq(schema.purchaseDeliveryNoteLineBatches.deliveryLineId, line.id));
         for (const bd of batches) {
-           await tx.update(schema.itemBatches)
-             .set({ quantity: sql`${schema.itemBatches.quantity} - ${Number(bd.quantity)}` })
-             .where(sql`${schema.itemBatches.itemId} = ${line.itemId} AND ${schema.itemBatches.batchNum} = ${bd.batchNum}`);
+          await tx
+            .update(schema.itemBatches)
+            .set({ quantity: sql`${schema.itemBatches.quantity} - ${Number(bd.quantity)}` })
+            .where(
+              sql`${schema.itemBatches.itemId} = ${line.itemId} AND ${schema.itemBatches.batchNum} = ${bd.batchNum}`,
+            );
         }
 
         // D. Revertir Pedido (si existe)
         if (header.orderId && line.baseLine) {
-           await tx.update(schema.purchaseOrderLines)
-             .set({ receivedQty: sql`${schema.purchaseOrderLines.receivedQty} - ${Number(line.quantity)}` })
-             .where(sql`${schema.purchaseOrderLines.orderId} = ${header.orderId} AND ${schema.purchaseOrderLines.lineNum} = ${line.baseLine}`);
+          await tx
+            .update(schema.purchaseOrderLines)
+            .set({
+              receivedQty: sql`${schema.purchaseOrderLines.receivedQty} - ${Number(line.quantity)}`,
+            })
+            .where(
+              sql`${schema.purchaseOrderLines.orderId} = ${header.orderId} AND ${schema.purchaseOrderLines.lineNum} = ${line.baseLine}`,
+            );
         }
       }
 
       // 2. Marcar como cancelado
-      await tx.update(schema.purchaseDeliveryNotes)
+      await tx
+        .update(schema.purchaseDeliveryNotes)
         .set({ status: 'X' })
         .where(eq(schema.purchaseDeliveryNotes.id, req.params.id));
 
       // 3. Recalcular estado del pedido
       if (header.orderId) {
-        const poLines = await tx.select().from(schema.purchaseOrderLines).where(eq(schema.purchaseOrderLines.orderId, header.orderId));
+        const poLines = await tx
+          .select()
+          .from(schema.purchaseOrderLines)
+          .where(eq(schema.purchaseOrderLines.orderId, header.orderId));
         const anyReceived = poLines.some((l: any) => Number(l.receivedQty) > 0);
-        
-        await tx.update(schema.purchaseOrders)
+
+        await tx
+          .update(schema.purchaseOrders)
           .set({ status: anyReceived ? 'P' : 'O' })
           .where(eq(schema.purchaseOrders.id, header.orderId));
       }
@@ -409,6 +550,9 @@ router.delete('/:id', async (req: any, res) => {
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
-});
+}
+
+router.delete('/:id', cancelPurchaseDeliveryNote);
+router.post('/:id/cancel', cancelPurchaseDeliveryNote);
 
 export default router;

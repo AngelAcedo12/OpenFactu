@@ -6,30 +6,25 @@ import { PluginContext } from '../../apps/server/src/plugins/types';
  */
 export const init = async ({ app }: PluginContext) => {
   console.log('[Example UI Plugin] Inicializando extensión de interfaz...');
-  
 
   // Podríamos inyectar rutas de API aquí si el componente UI lo necesitara.
 
   app.get('/api/plugins/helloWorld', (req, res) => {
-    
-
-
     res.json({
       message: 'Hello from example plugin',
       data: [
         {
-          name: "Angel",
-          lastName: "Garcia",
-          email: "angel@gmail.com",
-          phone: "123456789",
-          address: "123 Main St",
-          city: "New York",
-          state: "NY",
-          zip: "12345",
-          country: "USA",
-          
-        }
-      ]
+          name: 'Angel',
+          lastName: 'Garcia',
+          email: 'angel@gmail.com',
+          phone: '123456789',
+          address: '123 Main St',
+          city: 'New York',
+          state: 'NY',
+          zip: '12345',
+          country: 'USA',
+        },
+      ],
     });
   });
 };

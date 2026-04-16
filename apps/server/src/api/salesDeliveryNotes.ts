@@ -12,23 +12,30 @@ const router = Router();
 // GET all delivery notes
 router.get('/', async (req: any, res) => {
   try {
-    const results = await req.tenantClient.select({
-      id: schema.salesDeliveryNotes.id,
-      docNum: schema.salesDeliveryNotes.docNum,
-      seriesPrefix: schema.documentSeries.prefix,
-      periodCode: schema.accountingPeriods.code,
-      date: schema.salesDeliveryNotes.date,
-      partnerId: schema.salesDeliveryNotes.partnerId,
-      total: schema.salesDeliveryNotes.total,
-      status: schema.salesDeliveryNotes.status,
-      orderId: schema.salesDeliveryNotes.orderId,
-      orderDocNum: schema.salesOrders.docNum,
-      orderPrefix: sql`(SELECT "prefix" FROM "DocumentSeries" WHERE id = ${schema.salesOrders.seriesId})`
-    })
+    const results = await req.tenantClient
+      .select({
+        id: schema.salesDeliveryNotes.id,
+        docNum: schema.salesDeliveryNotes.docNum,
+        seriesPrefix: schema.documentSeries.prefix,
+        periodCode: schema.accountingPeriods.code,
+        date: schema.salesDeliveryNotes.date,
+        partnerId: schema.salesDeliveryNotes.partnerId,
+        total: schema.salesDeliveryNotes.total,
+        status: schema.salesDeliveryNotes.status,
+        orderId: schema.salesDeliveryNotes.orderId,
+        orderDocNum: schema.salesOrders.docNum,
+        orderPrefix: sql`(SELECT "prefix" FROM "DocumentSeries" WHERE id = ${schema.salesOrders.seriesId})`,
+      })
       .from(schema.salesDeliveryNotes)
       .leftJoin(schema.salesOrders, eq(schema.salesDeliveryNotes.orderId, schema.salesOrders.id))
-      .leftJoin(schema.documentSeries, eq(schema.salesDeliveryNotes.seriesId, schema.documentSeries.id))
-      .leftJoin(schema.accountingPeriods, eq(schema.salesDeliveryNotes.periodId, schema.accountingPeriods.id))
+      .leftJoin(
+        schema.documentSeries,
+        eq(schema.salesDeliveryNotes.seriesId, schema.documentSeries.id),
+      )
+      .leftJoin(
+        schema.accountingPeriods,
+        eq(schema.salesDeliveryNotes.periodId, schema.accountingPeriods.id),
+      )
       .orderBy(desc(schema.salesDeliveryNotes.date));
     res.json(results);
   } catch (error: any) {
@@ -39,38 +46,49 @@ router.get('/', async (req: any, res) => {
 // GET detail
 router.get('/:id', async (req: any, res) => {
   try {
-    const [header] = await req.tenantClient.select({
-      header: schema.salesDeliveryNotes,
-      seriesPrefix: schema.documentSeries.prefix,
-      periodCode: schema.accountingPeriods.code,
-      orderDocNum: schema.salesOrders.docNum,
-      orderPrefix: sql`(SELECT "prefix" FROM "DocumentSeries" WHERE id = ${schema.salesOrders.seriesId})`
-    })
+    const [header] = await req.tenantClient
+      .select({
+        header: schema.salesDeliveryNotes,
+        seriesPrefix: schema.documentSeries.prefix,
+        periodCode: schema.accountingPeriods.code,
+        orderDocNum: schema.salesOrders.docNum,
+        orderPrefix: sql`(SELECT "prefix" FROM "DocumentSeries" WHERE id = ${schema.salesOrders.seriesId})`,
+      })
       .from(schema.salesDeliveryNotes)
       .leftJoin(schema.salesOrders, eq(schema.salesDeliveryNotes.orderId, schema.salesOrders.id))
-      .leftJoin(schema.documentSeries, eq(schema.salesDeliveryNotes.seriesId, schema.documentSeries.id))
-      .leftJoin(schema.accountingPeriods, eq(schema.salesDeliveryNotes.periodId, schema.accountingPeriods.id))
+      .leftJoin(
+        schema.documentSeries,
+        eq(schema.salesDeliveryNotes.seriesId, schema.documentSeries.id),
+      )
+      .leftJoin(
+        schema.accountingPeriods,
+        eq(schema.salesDeliveryNotes.periodId, schema.accountingPeriods.id),
+      )
       .where(eq(schema.salesDeliveryNotes.id, req.params.id));
 
     if (!header) return res.status(404).json({ error: 'No encontrado' });
 
-    const lines = await req.tenantClient.select()
+    const lines = await req.tenantClient
+      .select()
       .from(schema.salesDeliveryNoteLines)
       .where(eq(schema.salesDeliveryNoteLines.deliveryId, req.params.id));
 
-    const linesWithBatches = await Promise.all(lines.map(async (line: any) => {
-      const batches = await req.tenantClient.select()
-        .from(schema.salesDeliveryNoteLineBatches)
-        .where(eq(schema.salesDeliveryNoteLineBatches.deliveryLineId, line.id));
-      
-      return { 
-        ...line, 
-        batchDetails: batches.map((b: any) => ({
-          batchNum: b.batchNum,
-          quantity: Number(b.quantity)
-        }))
-      };
-    }));
+    const linesWithBatches = await Promise.all(
+      lines.map(async (line: any) => {
+        const batches = await req.tenantClient
+          .select()
+          .from(schema.salesDeliveryNoteLineBatches)
+          .where(eq(schema.salesDeliveryNoteLineBatches.deliveryLineId, line.id));
+
+        return {
+          ...line,
+          batchDetails: batches.map((b: any) => ({
+            batchNum: b.batchNum,
+            quantity: Number(b.quantity),
+          })),
+        };
+      }),
+    );
 
     res.json({
       ...header.header,
@@ -78,7 +96,7 @@ router.get('/:id', async (req: any, res) => {
       periodCode: header.periodCode,
       orderDocNum: header.orderDocNum,
       orderPrefix: header.orderPrefix,
-      lines: linesWithBatches
+      lines: linesWithBatches,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -88,7 +106,13 @@ router.get('/:id', async (req: any, res) => {
 // GET /:id/pdf
 router.get('/:id/pdf', async (req: any, res) => {
   try {
-    await renderDocumentPdf('SDN', req.params.id, req.query.templateId as string | undefined, req.tenantClient, res);
+    await renderDocumentPdf(
+      'SDN',
+      req.params.id,
+      req.query.templateId as string | undefined,
+      req.tenantClient,
+      res,
+    );
   } catch (error: any) {
     console.error('[SalesDeliveryNote PDF] Error:', error);
     res.status(500).json({ error: error.message });
@@ -104,15 +128,21 @@ router.post('/', async (req: any, res) => {
 
     const result = await req.tenantClient.transaction(async (tx: any) => {
       // 1. Numeración
-      const [series] = await tx.select().from(schema.documentSeries).where(eq(schema.documentSeries.id, seriesId));
+      const [series] = await tx
+        .select()
+        .from(schema.documentSeries)
+        .where(eq(schema.documentSeries.id, seriesId));
       if (!series) throw new Error('Serie no encontrada');
       const docNum = series.nextNumber;
-      await tx.update(schema.documentSeries).set({ nextNumber: docNum + 1 }).where(eq(schema.documentSeries.id, seriesId));
+      await tx
+        .update(schema.documentSeries)
+        .set({ nextNumber: docNum + 1 })
+        .where(eq(schema.documentSeries.id, seriesId));
 
       const deliveryId = crypto.randomUUID();
       let calculatedSubtotal = 0;
       let calculatedTaxTotal = 0;
-      const breakdownMap: Record<string, { base: number, tax: number }> = {};
+      const breakdownMap: Record<string, { base: number; tax: number }> = {};
 
       const allTaxGroups = await tx.select().from(schema.taxGroups);
       const taxRateMap = allTaxGroups.reduce((acc: any, curr: any) => {
@@ -136,17 +166,26 @@ router.post('/', async (req: any, res) => {
         subtotal: '0',
         taxTotal: '0',
         total: '0',
-        taxBreakdown: '{}'
+        taxBreakdown: '{}',
       });
 
       // 3. Procesar Líneas y Stock
       for (const line of lines) {
-        const [itemInfo] = await tx.select().from(schema.items).where(eq(schema.items.id, line.itemId));
+        const [itemInfo] = await tx
+          .select()
+          .from(schema.items)
+          .where(eq(schema.items.id, line.itemId));
         if (!itemInfo) throw new Error(`Artículo ${line.itemId} no encontrado`);
 
+        // Cantidad convertida a UoM base del artículo
+        const uomFactor = Number(line.uomFactor || 1);
+        const baseQty = Number(line.quantity) * uomFactor;
+
         // VALIDACIÓN STOCK (si allowNegativeStock está desactivado)
-        if (!flags.allowNegativeStock && Number(itemInfo.stock) < Number(line.quantity)) {
-           throw new Error(`Stock insuficiente para el artículo ${itemInfo.name}. Disponible: ${itemInfo.stock}, Requerido: ${line.quantity}`);
+        if (!flags.allowNegativeStock && Number(itemInfo.stock) < baseQty) {
+          throw new Error(
+            `Stock insuficiente para el artículo ${itemInfo.name}. Disponible: ${itemInfo.stock}, Requerido: ${baseQty}`,
+          );
         }
 
         const lineSubtotal = Number(line.quantity) * Number(line.price);
@@ -168,7 +207,7 @@ router.post('/', async (req: any, res) => {
         await tx.insert(schema.salesDeliveryNoteLines).values({
           id: lineId,
           deliveryId,
-          lineNum: line.lineNum || (lines.indexOf(line) + 1),
+          lineNum: line.lineNum || lines.indexOf(line) + 1,
           itemId: line.itemId,
           warehouseId: targetWarehouse,
           zoneId: line.zoneId || null,
@@ -176,48 +215,71 @@ router.post('/', async (req: any, res) => {
           price: String(line.price),
           taxGroupId: line.taxGroupId || null,
           lineTotal: String(lineSubtotal + lineTax),
-          baseLine: line.baseLine || null
+          baseLine: line.baseLine || null,
+          uomId: line.uomId || null,
+          uomFactor: String(uomFactor),
         });
 
-        // B. Reducir Stock Global
-        await tx.update(schema.items)
-          .set({ stock: sql`${schema.items.stock} - ${Number(line.quantity)}` })
+        // B. Reducir Stock Global (en UoM base)
+        await tx
+          .update(schema.items)
+          .set({ stock: sql`${schema.items.stock} - ${baseQty}` })
           .where(eq(schema.items.id, line.itemId));
 
-        // C. Reducir Stock por Almacén / Ubicación
+        // C. Reducir Stock por Almacén / Ubicación (en UoM base)
         if (targetWarehouse) {
-          await tx.update(schema.itemWarehouseStocks)
-            .set({ stock: sql`${schema.itemWarehouseStocks.stock} - ${Number(line.quantity)}`, updatedAt: new Date() })
-            .where(sql`${schema.itemWarehouseStocks.itemId} = ${line.itemId} AND ${schema.itemWarehouseStocks.warehouseId} = ${targetWarehouse}`);
-          
+          await tx
+            .update(schema.itemWarehouseStocks)
+            .set({
+              stock: sql`${schema.itemWarehouseStocks.stock} - ${baseQty}`,
+              updatedAt: new Date(),
+            })
+            .where(
+              sql`${schema.itemWarehouseStocks.itemId} = ${line.itemId} AND ${schema.itemWarehouseStocks.warehouseId} = ${targetWarehouse}`,
+            );
+
           if (line.zoneId) {
-            await tx.update(schema.itemZoneStocks)
-              .set({ stock: sql`${schema.itemZoneStocks.stock} - ${Number(line.quantity)}`, updatedAt: new Date() })
-              .where(sql`${schema.itemZoneStocks.itemId} = ${line.itemId} AND ${schema.itemZoneStocks.warehouseId} = ${targetWarehouse} AND ${schema.itemZoneStocks.zoneId} = ${line.zoneId}`);
+            await tx
+              .update(schema.itemZoneStocks)
+              .set({
+                stock: sql`${schema.itemZoneStocks.stock} - ${baseQty}`,
+                updatedAt: new Date(),
+              })
+              .where(
+                sql`${schema.itemZoneStocks.itemId} = ${line.itemId} AND ${schema.itemZoneStocks.warehouseId} = ${targetWarehouse} AND ${schema.itemZoneStocks.zoneId} = ${line.zoneId}`,
+              );
           }
         }
 
         // D. Gestionar LOTES / SERIES (Salida)
-        const hasManualBatches = line.batchDetails && Array.isArray(line.batchDetails) && line.batchDetails.length > 0;
+        const hasManualBatches =
+          line.batchDetails && Array.isArray(line.batchDetails) && line.batchDetails.length > 0;
 
         if (hasManualBatches) {
           for (const bd of line.batchDetails) {
             // Validar que el lote existe y tiene stock
-            const [existingBatch] = await tx.select().from(schema.itemBatches)
-              .where(sql`${schema.itemBatches.itemId} = ${line.itemId} AND ${schema.itemBatches.batchNum} = ${bd.batchNum}`);
+            const [existingBatch] = await tx
+              .select()
+              .from(schema.itemBatches)
+              .where(
+                sql`${schema.itemBatches.itemId} = ${line.itemId} AND ${schema.itemBatches.batchNum} = ${bd.batchNum}`,
+              );
 
             if (!existingBatch || Number(existingBatch.quantity) < Number(bd.quantity)) {
-               throw new Error(`Stock insuficiente en el lote ${bd.batchNum} para el artículo ${itemInfo.name}. Disponible: ${existingBatch?.quantity || 0}`);
+              throw new Error(
+                `Stock insuficiente en el lote ${bd.batchNum} para el artículo ${itemInfo.name}. Disponible: ${existingBatch?.quantity || 0}`,
+              );
             }
 
             await tx.insert(schema.salesDeliveryNoteLineBatches).values({
               id: crypto.randomUUID(),
               deliveryLineId: lineId,
               batchNum: bd.batchNum,
-              quantity: bd.quantity
+              quantity: bd.quantity,
             });
 
-            await tx.update(schema.itemBatches)
+            await tx
+              .update(schema.itemBatches)
               .set({ quantity: sql`${schema.itemBatches.quantity} - ${Number(bd.quantity)}` })
               .where(eq(schema.itemBatches.id, existingBatch.id));
           }
@@ -228,9 +290,12 @@ router.post('/', async (req: any, res) => {
           }
 
           // Buscar lotes disponibles ordenados por caducidad (más próximos primero, nulls al final)
-          const availableBatches = await tx.select()
+          const availableBatches = await tx
+            .select()
             .from(schema.itemBatches)
-            .where(sql`${schema.itemBatches.itemId} = ${line.itemId} AND ${schema.itemBatches.quantity} > 0`)
+            .where(
+              sql`${schema.itemBatches.itemId} = ${line.itemId} AND ${schema.itemBatches.quantity} > 0`,
+            )
             .orderBy(sql`${schema.itemBatches.expiryDate} ASC NULLS LAST`);
 
           let remaining = Number(line.quantity);
@@ -246,7 +311,8 @@ router.post('/', async (req: any, res) => {
               quantity: take,
             });
 
-            await tx.update(schema.itemBatches)
+            await tx
+              .update(schema.itemBatches)
               .set({ quantity: sql`${schema.itemBatches.quantity} - ${take}` })
               .where(eq(schema.itemBatches.id, batch.id));
 
@@ -254,37 +320,51 @@ router.post('/', async (req: any, res) => {
           }
 
           if (remaining > 0) {
-            throw new Error(`Stock de lotes insuficiente para el artículo ${itemInfo.name}. Faltan ${remaining} unidades.`);
+            throw new Error(
+              `Stock de lotes insuficiente para el artículo ${itemInfo.name}. Faltan ${remaining} unidades.`,
+            );
           }
         }
 
         // E. Lógica de Entrega Parcial en Pedido
         if (orderId && line.baseLine) {
-           await tx.update(schema.salesOrderLines)
-             .set({ deliveredQty: sql`${schema.salesOrderLines.deliveredQty} + ${Number(line.quantity)}` })
-             .where(sql`${schema.salesOrderLines.orderId} = ${orderId} AND ${schema.salesOrderLines.lineNum} = ${line.baseLine}`);
+          await tx
+            .update(schema.salesOrderLines)
+            .set({
+              deliveredQty: sql`${schema.salesOrderLines.deliveredQty} + ${Number(line.quantity)}`,
+            })
+            .where(
+              sql`${schema.salesOrderLines.orderId} = ${orderId} AND ${schema.salesOrderLines.lineNum} = ${line.baseLine}`,
+            );
         }
       }
 
       // 4. Actualizar Totales
       const finalTotal = calculatedSubtotal + calculatedTaxTotal;
-      await tx.update(schema.salesDeliveryNotes)
-        .set({ 
+      await tx
+        .update(schema.salesDeliveryNotes)
+        .set({
           subtotal: String(calculatedSubtotal.toFixed(4)),
           taxTotal: String(calculatedTaxTotal.toFixed(4)),
           total: String(finalTotal.toFixed(4)),
-          taxBreakdown: JSON.stringify(breakdownMap)
+          taxBreakdown: JSON.stringify(breakdownMap),
         })
         .where(eq(schema.salesDeliveryNotes.id, deliveryId));
 
       // 5. Estado del Pedido
       if (orderId) {
-        const soLines = await tx.select().from(schema.salesOrderLines).where(eq(schema.salesOrderLines.orderId, orderId));
-        const allDelivered = soLines.every((l: any) => (Number(l.deliveredQty) + 0.0001) >= Number(l.orderedQty));
+        const soLines = await tx
+          .select()
+          .from(schema.salesOrderLines)
+          .where(eq(schema.salesOrderLines.orderId, orderId));
+        const allDelivered = soLines.every(
+          (l: any) => Number(l.deliveredQty) + 0.0001 >= Number(l.orderedQty),
+        );
         const anyDelivered = soLines.some((l: any) => Number(l.deliveredQty) > 0);
-        
-        await tx.update(schema.salesOrders)
-          .set({ status: allDelivered ? 'C' : (anyDelivered ? 'P' : 'O') })
+
+        await tx
+          .update(schema.salesOrders)
+          .set({ status: allDelivered ? 'C' : anyDelivered ? 'P' : 'O' })
           .where(eq(schema.salesOrders.id, orderId));
       }
 
@@ -300,6 +380,120 @@ router.post('/', async (req: any, res) => {
       entityId: result.id,
       action: 'CREATE',
       newValue: { docNum: result.docNum, partnerId: req.body.partnerId },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /:id/cancel — Cancela un albarán de venta, devolviendo stock y reabriendo el pedido origen
+router.post('/:id/cancel', async (req: any, res) => {
+  try {
+    const result = await req.tenantClient.transaction(async (tx: any) => {
+      const [header] = await tx
+        .select()
+        .from(schema.salesDeliveryNotes)
+        .where(eq(schema.salesDeliveryNotes.id, req.params.id));
+      if (!header) throw new Error('Albarán no encontrado');
+      if (header.status === 'X') throw new Error('El albarán ya está cancelado');
+      if (header.status === 'C') throw new Error('No se puede cancelar un albarán ya facturado');
+
+      const lines = await tx
+        .select()
+        .from(schema.salesDeliveryNoteLines)
+        .where(eq(schema.salesDeliveryNoteLines.deliveryId, req.params.id));
+
+      for (const line of lines) {
+        const baseQty = Number(line.quantity) * Number(line.uomFactor || 1);
+
+        // A. Devolver stock global (en UoM base)
+        await tx
+          .update(schema.items)
+          .set({ stock: sql`${schema.items.stock} + ${baseQty}` })
+          .where(eq(schema.items.id, line.itemId));
+
+        // B. Devolver stock por almacén / zona (en UoM base)
+        if (line.warehouseId) {
+          await tx
+            .update(schema.itemWarehouseStocks)
+            .set({
+              stock: sql`${schema.itemWarehouseStocks.stock} + ${baseQty}`,
+              updatedAt: new Date(),
+            })
+            .where(
+              sql`${schema.itemWarehouseStocks.itemId} = ${line.itemId} AND ${schema.itemWarehouseStocks.warehouseId} = ${line.warehouseId}`,
+            );
+
+          if (line.zoneId) {
+            await tx
+              .update(schema.itemZoneStocks)
+              .set({
+                stock: sql`${schema.itemZoneStocks.stock} + ${baseQty}`,
+                updatedAt: new Date(),
+              })
+              .where(
+                sql`${schema.itemZoneStocks.itemId} = ${line.itemId} AND ${schema.itemZoneStocks.warehouseId} = ${line.warehouseId} AND ${schema.itemZoneStocks.zoneId} = ${line.zoneId}`,
+              );
+          }
+        }
+
+        // C. Devolver lotes/series
+        const batches = await tx
+          .select()
+          .from(schema.salesDeliveryNoteLineBatches)
+          .where(eq(schema.salesDeliveryNoteLineBatches.deliveryLineId, line.id));
+        for (const bd of batches) {
+          await tx
+            .update(schema.itemBatches)
+            .set({ quantity: sql`${schema.itemBatches.quantity} + ${Number(bd.quantity)}` })
+            .where(
+              sql`${schema.itemBatches.itemId} = ${line.itemId} AND ${schema.itemBatches.batchNum} = ${bd.batchNum}`,
+            );
+        }
+
+        // D. Revertir la cantidad entregada del pedido origen
+        if (header.orderId && line.baseLine) {
+          await tx
+            .update(schema.salesOrderLines)
+            .set({
+              deliveredQty: sql`${schema.salesOrderLines.deliveredQty} - ${Number(line.quantity)}`,
+            })
+            .where(
+              sql`${schema.salesOrderLines.orderId} = ${header.orderId} AND ${schema.salesOrderLines.lineNum} = ${line.baseLine}`,
+            );
+        }
+      }
+
+      // 2. Marcar como cancelado
+      await tx
+        .update(schema.salesDeliveryNotes)
+        .set({ status: 'X' })
+        .where(eq(schema.salesDeliveryNotes.id, req.params.id));
+
+      // 3. Recalcular estado del pedido origen
+      if (header.orderId) {
+        const soLines = await tx
+          .select()
+          .from(schema.salesOrderLines)
+          .where(eq(schema.salesOrderLines.orderId, header.orderId));
+        const anyDelivered = soLines.some((l: any) => Number(l.deliveredQty) > 0);
+        await tx
+          .update(schema.salesOrders)
+          .set({ status: anyDelivered ? 'P' : 'O' })
+          .where(eq(schema.salesOrders.id, header.orderId));
+      }
+
+      return { success: true };
+    });
+
+    res.json(result);
+    logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.tenantId || '',
+      userId: req.user?.id,
+      entityType: 'SalesDeliveryNote',
+      entityId: req.params.id,
+      action: 'DELETE',
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import crypto from 'crypto';
 import { renderDocumentPdf } from '../core/documents/renderDocumentPdf';
@@ -10,7 +10,13 @@ const router = Router();
 // GET /orders/:id/pdf
 router.get('/orders/:id/pdf', async (req: any, res) => {
   try {
-    await renderDocumentPdf('PO', req.params.id, req.query.templateId as string | undefined, req.tenantClient, res);
+    await renderDocumentPdf(
+      'PO',
+      req.params.id,
+      req.query.templateId as string | undefined,
+      req.tenantClient,
+      res,
+    );
   } catch (error: any) {
     console.error('[PurchaseOrder PDF] Error:', error);
     res.status(500).json({ error: error.message });
@@ -20,23 +26,27 @@ router.get('/orders/:id/pdf', async (req: any, res) => {
 // GET all orders
 router.get('/orders', async (req: any, res) => {
   try {
-    const orders = await req.tenantClient.select({
-      id: schema.purchaseOrders.id,
-      docNum: schema.purchaseOrders.docNum,
-      seriesPrefix: schema.documentSeries.prefix,
-      periodCode: schema.accountingPeriods.code,
-      date: schema.purchaseOrders.date,
-      partnerId: schema.purchaseOrders.partnerId,
-      total: schema.purchaseOrders.total,
-      status: schema.purchaseOrders.status,
-      subtotal: schema.purchaseOrders.subtotal,
-      taxTotal: schema.purchaseOrders.taxTotal
-    })
+    const orders = await req.tenantClient
+      .select({
+        id: schema.purchaseOrders.id,
+        docNum: schema.purchaseOrders.docNum,
+        seriesPrefix: schema.documentSeries.prefix,
+        periodCode: schema.accountingPeriods.code,
+        date: schema.purchaseOrders.date,
+        partnerId: schema.purchaseOrders.partnerId,
+        total: schema.purchaseOrders.total,
+        status: schema.purchaseOrders.status,
+        subtotal: schema.purchaseOrders.subtotal,
+        taxTotal: schema.purchaseOrders.taxTotal,
+      })
       .from(schema.purchaseOrders)
       .leftJoin(schema.documentSeries, eq(schema.purchaseOrders.seriesId, schema.documentSeries.id))
-      .leftJoin(schema.accountingPeriods, eq(schema.purchaseOrders.periodId, schema.accountingPeriods.id))
+      .leftJoin(
+        schema.accountingPeriods,
+        eq(schema.purchaseOrders.periodId, schema.accountingPeriods.id),
+      )
       .orderBy(desc(schema.purchaseOrders.date), desc(schema.purchaseOrders.createdAt));
-      
+
     res.json(orders);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -45,32 +55,37 @@ router.get('/orders', async (req: any, res) => {
 
 // POST new order (Transaction)
 router.post('/orders', async (req: any, res) => {
-  const { seriesId, periodId, partnerId, date, deliveryDate, documentDate, warehouseId, lines } = req.body;
+  const { seriesId, periodId, partnerId, date, deliveryDate, documentDate, warehouseId, lines } =
+    req.body;
 
   try {
     // 1. Iniciar Transacción
     const result = await req.tenantClient.transaction(async (tx: any) => {
       // 2. Obtener y bloquear la Serie Documental
-      const [series] = await tx.select()
+      const [series] = await tx
+        .select()
         .from(schema.documentSeries)
         .where(eq(schema.documentSeries.id, seriesId));
 
       if (!series) throw new Error('Serie documental no encontrada');
       if (series.nextNumber > series.lastNumber) {
-        throw new Error(`La serie ${series.name} ha alcanzado su límite numérico final (${series.lastNumber}).`);
+        throw new Error(
+          `La serie ${series.name} ha alcanzado su límite numérico final (${series.lastNumber}).`,
+        );
       }
 
       const assignedDocNum = series.nextNumber;
 
       // 3. Actualizar contador autonumérico de la serie
-      await tx.update(schema.documentSeries)
+      await tx
+        .update(schema.documentSeries)
         .set({ nextNumber: assignedDocNum + 1 })
         .where(eq(schema.documentSeries.id, seriesId));
 
       // 4. Calcular totales
       let calculatedSubtotal = 0;
       let calculatedTaxTotal = 0;
-      const breakdownMap: Record<string, { base: number, tax: number }> = {};
+      const breakdownMap: Record<string, { base: number; tax: number }> = {};
 
       const allTaxGroups = await tx.select().from(schema.taxGroups);
       const taxRateMap = allTaxGroups.reduce((acc: any, curr: any) => {
@@ -100,15 +115,18 @@ router.post('/orders', async (req: any, res) => {
           orderedQty: String(line.quantity),
           receivedQty: '0',
           price: String(line.price),
+          uomId: line.uomId || null,
+          uomFactor: line.uomFactor ? String(line.uomFactor) : '1.0000',
           taxGroupId: line.taxGroupId || null,
-          lineTotal: String(lineSubtotal + lineTax)
+          lineTotal: String(lineSubtotal + lineTax),
         };
       });
 
       // 5. Insertar Cabecera (Purchase Order)
       const orderId = crypto.randomUUID();
       const finalTotal = calculatedSubtotal + calculatedTaxTotal;
-      const [header] = await tx.insert(schema.purchaseOrders)
+      const [header] = await tx
+        .insert(schema.purchaseOrders)
         .values({
           id: orderId,
           seriesId,
@@ -125,7 +143,7 @@ router.post('/orders', async (req: any, res) => {
           taxTotal: String(calculatedTaxTotal.toFixed(4)),
           total: String(finalTotal.toFixed(4)),
           taxBreakdown: JSON.stringify(breakdownMap),
-          status: 'O'
+          status: 'O',
         })
         .returning();
 
@@ -157,23 +175,81 @@ router.post('/orders', async (req: any, res) => {
 // GET order by ID with lines
 router.get('/orders/:id', async (req: any, res) => {
   try {
-    const [order] = await req.tenantClient.select({
-      header: schema.purchaseOrders,
-      seriesPrefix: schema.documentSeries.prefix,
-      periodCode: schema.accountingPeriods.code
-    })
+    const [order] = await req.tenantClient
+      .select({
+        header: schema.purchaseOrders,
+        seriesPrefix: schema.documentSeries.prefix,
+        periodCode: schema.accountingPeriods.code,
+      })
       .from(schema.purchaseOrders)
       .leftJoin(schema.documentSeries, eq(schema.purchaseOrders.seriesId, schema.documentSeries.id))
-      .leftJoin(schema.accountingPeriods, eq(schema.purchaseOrders.periodId, schema.accountingPeriods.id))
+      .leftJoin(
+        schema.accountingPeriods,
+        eq(schema.purchaseOrders.periodId, schema.accountingPeriods.id),
+      )
       .where(eq(schema.purchaseOrders.id, req.params.id));
-      
+
     if (!order) return res.status(404).json({ error: 'Pedido no encontrado' });
-    
-    const lines = await req.tenantClient.select()
+
+    const lines = await req.tenantClient
+      .select()
       .from(schema.purchaseOrderLines)
       .where(eq(schema.purchaseOrderLines.orderId, order.header.id));
-      
-    res.json({ ...order.header, seriesPrefix: order.seriesPrefix, periodCode: order.periodCode, lines });
+
+    res.json({
+      ...order.header,
+      seriesPrefix: order.seriesPrefix,
+      periodCode: order.periodCode,
+      lines,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /orders/:id/cancel — Cancela un pedido de compra
+router.post('/orders/:id/cancel', async (req: any, res) => {
+  try {
+    const result = await req.tenantClient.transaction(async (tx: any) => {
+      const [header] = await tx
+        .select()
+        .from(schema.purchaseOrders)
+        .where(eq(schema.purchaseOrders.id, req.params.id));
+      if (!header) throw new Error('Pedido no encontrado');
+      if (header.status === 'X') throw new Error('El pedido ya está cancelado');
+
+      // Comprobar que no hay albaranes vigentes vinculados
+      const activePdns = await tx
+        .select()
+        .from(schema.purchaseDeliveryNotes)
+        .where(
+          sql`${schema.purchaseDeliveryNotes.orderId} = ${req.params.id} AND ${schema.purchaseDeliveryNotes.status} != 'X'`,
+        );
+      if (activePdns.length > 0) {
+        throw new Error(
+          'No se puede cancelar: existen albaranes vigentes vinculados. Cancela los albaranes primero.',
+        );
+      }
+
+      await tx
+        .update(schema.purchaseOrders)
+        .set({ status: 'X' })
+        .where(eq(schema.purchaseOrders.id, req.params.id));
+
+      return { success: true, old: header };
+    });
+
+    res.json({ success: true });
+    logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.tenantId || '',
+      userId: req.user?.id,
+      entityType: 'PurchaseOrder',
+      entityId: req.params.id,
+      action: 'DELETE',
+      oldValue: { status: result.old.status },
+      newValue: { status: 'X' },
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -183,22 +259,27 @@ router.get('/orders/:id', async (req: any, res) => {
 router.patch('/orders/:id/status', async (req: any, res) => {
   const { status } = req.body;
   try {
-    const [old] = await req.tenantClient.select().from(schema.purchaseOrders).where(eq(schema.purchaseOrders.id, req.params.id));
-    const [updated] = await req.tenantClient.update(schema.purchaseOrders)
+    const [old] = await req.tenantClient
+      .select()
+      .from(schema.purchaseOrders)
+      .where(eq(schema.purchaseOrders.id, req.params.id));
+    const [updated] = await req.tenantClient
+      .update(schema.purchaseOrders)
       .set({ status })
       .where(eq(schema.purchaseOrders.id, req.params.id))
       .returning();
     res.json(updated);
-    if (old) logAudit({
-      tenantClient: req.tenantClient,
-      tenantId: req.tenantId || '',
-      userId: req.user?.id,
-      entityType: 'PurchaseOrder',
-      entityId: req.params.id,
-      action: 'UPDATE',
-      oldValue: { status: old.status },
-      newValue: { status },
-    });
+    if (old)
+      logAudit({
+        tenantClient: req.tenantClient,
+        tenantId: req.tenantId || '',
+        userId: req.user?.id,
+        entityType: 'PurchaseOrder',
+        entityId: req.params.id,
+        action: 'UPDATE',
+        oldValue: { status: old.status },
+        newValue: { status },
+      });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

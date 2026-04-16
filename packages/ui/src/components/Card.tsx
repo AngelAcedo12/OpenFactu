@@ -12,22 +12,24 @@ export interface CardProps {
   noPadding?: boolean;
 }
 
-export const Card = ({ 
-  children, 
-  title, 
+export const Card = ({
+  children,
+  title,
   subtitle,
   headerAction,
   footer,
-  className, 
+  className,
   bodyClassName,
-  noPadding = false 
+  noPadding = false,
 }: CardProps) => {
   return (
-    <div className={cn(
-      "bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 shadow-sm dark:shadow-none rounded-xl overflow-hidden",
-      "ring-1 ring-slate-900/5 dark:ring-0",
-      className
-    )}>
+    <div
+      className={cn(
+        'bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 shadow-sm dark:shadow-none rounded-xl overflow-hidden',
+        'ring-1 ring-slate-900/5 dark:ring-0',
+        className,
+      )}
+    >
       {(title || subtitle || headerAction) && (
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 bg-slate-50/30 dark:bg-slate-950/30">
           <div>
@@ -42,20 +44,11 @@ export const Card = ({
               </p>
             )}
           </div>
-          {headerAction && (
-            <div className="flex-shrink-0">
-              {headerAction}
-            </div>
-          )}
+          {headerAction && <div className="flex-shrink-0">{headerAction}</div>}
         </div>
       )}
 
-      <div className={cn(
-        !noPadding && "p-6",
-        bodyClassName
-      )}>
-        {children}
-      </div>
+      <div className={cn(!noPadding && 'p-6', bodyClassName)}>{children}</div>
 
       {footer && (
         <div className="px-6 py-3 bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 mt-auto">

@@ -4,22 +4,15 @@
  * Uso: `import { buildVisualTemplate, FIELD_SCHEMA, ... } from '@openfactu/pdf/browser'`
  */
 
-export {
-  buildVisualTemplate,
-  DEFAULT_VISUAL_OPTIONS
-} from './visualTemplateBuilder';
+export { buildVisualTemplate, DEFAULT_VISUAL_OPTIONS } from './visualTemplateBuilder';
 
-export {
-  serializeMeta,
-  parseMeta,
-  extractMetaFromHtml
-} from './metaParser';
+export { serializeMeta, parseMeta, extractMetaFromHtml } from './metaParser';
 
 export {
   FIELD_SCHEMA,
   HELPERS,
   DOC_TYPE_DEFAULT_TITLES,
-  DOC_TYPE_PARTNER_LABELS
+  DOC_TYPE_PARTNER_LABELS,
 } from './visualOptionsSchema';
 
 export type {
@@ -30,7 +23,7 @@ export type {
   PartnerData,
   PartnerAddressObject,
   CompanyData,
-  TaxBreakdownEntry
+  TaxBreakdownEntry,
 } from './types';
 
 export type {
@@ -47,11 +40,7 @@ export type {
   FieldType,
   FieldDef,
   FieldGroup,
-  HelperDef
+  HelperDef,
 } from './visualOptionsSchema';
 
-export {
-  getDefaultTemplate,
-  DEFAULT_TEMPLATE_NAMES,
-  ALL_DOC_TYPES
-} from './defaultTemplates';
+export { getDefaultTemplate, DEFAULT_TEMPLATE_NAMES, ALL_DOC_TYPES } from './defaultTemplates';

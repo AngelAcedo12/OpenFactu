@@ -1,0 +1,255 @@
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { resolveRouteMeta } from '../components/tabs/RouteRegistry';
+
+const STORAGE_KEY = 'openfactu_tabs';
+
+export interface Tab {
+  id: string;
+  path: string;
+  title: string;
+  iconName?: string;
+}
+
+interface TabsState {
+  tabs: Tab[];
+  activeTabId: string | null;
+}
+
+interface TabsContextValue extends TabsState {
+  openTab: (
+    path: string,
+    opts?: { title?: string; iconName?: string; focusExisting?: boolean },
+  ) => string;
+  closeTab: (id: string) => void;
+  setActiveTab: (id: string) => void;
+  updateTabPath: (id: string, newPath: string) => void;
+  updateTabTitle: (id: string, title: string) => void;
+  resetTabs: (path?: string) => void;
+}
+
+const TabsContext = createContext<TabsContextValue | null>(null);
+
+const genId = () => `tab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+function pathnameOf(url: string): string {
+  const qIdx = url.indexOf('?');
+  return qIdx === -1 ? url : url.slice(0, qIdx);
+}
+
+function loadStorage(): TabsState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { tabs: [], activeTabId: null };
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data.tabs)) return { tabs: [], activeTabId: null };
+    return { tabs: data.tabs, activeTabId: data.activeTabId ?? null };
+  } catch {
+    return { tabs: [], activeTabId: null };
+  }
+}
+
+function saveStorage(state: TabsState) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {}
+}
+
+function computeInitialState(): TabsState {
+  const persisted = loadStorage();
+  const browserPathname = window.location.pathname;
+  const browserSearch = window.location.search;
+  const browserPath = browserPathname + browserSearch;
+
+  let tabs = persisted.tabs.filter((t) => resolveRouteMeta(pathnameOf(t.path)) !== null);
+  let activeTabId: string | null = persisted.activeTabId;
+  if (activeTabId && !tabs.some((t) => t.id === activeTabId)) {
+    activeTabId = tabs[0]?.id ?? null;
+  }
+
+  const dashboardMeta = resolveRouteMeta('/');
+  const makeDashTab = (): Tab => ({
+    id: genId(),
+    path: '/',
+    title: dashboardMeta?.title ?? 'Dashboard',
+    iconName: dashboardMeta?.iconName,
+  });
+
+  if (tabs.length === 0) {
+    const initialPath = browserPathname && browserPathname !== '/' ? browserPath : '/';
+    const meta = resolveRouteMeta(pathnameOf(initialPath));
+    if (meta) {
+      const tab: Tab = {
+        id: genId(),
+        path: initialPath,
+        title: meta.title,
+        iconName: meta.iconName,
+      };
+      tabs = [tab];
+      activeTabId = tab.id;
+    } else {
+      const tab = makeDashTab();
+      tabs = [tab];
+      activeTabId = tab.id;
+    }
+  } else if (browserPathname !== '/' && !tabs.some((t) => pathnameOf(t.path) === browserPathname)) {
+    const meta = resolveRouteMeta(browserPathname);
+    if (meta) {
+      const tab: Tab = {
+        id: genId(),
+        path: browserPath,
+        title: meta.title,
+        iconName: meta.iconName,
+      };
+      tabs = [...tabs, tab];
+      activeTabId = tab.id;
+    }
+  }
+
+  if (!activeTabId && tabs.length > 0) activeTabId = tabs[0].id;
+
+  return { tabs, activeTabId };
+}
+
+export const TabsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [state, setState] = useState<TabsState>(computeInitialState);
+
+  useEffect(() => {
+    saveStorage(state);
+  }, [state]);
+
+  useEffect(() => {
+    const active = state.tabs.find((t) => t.id === state.activeTabId);
+    if (!active) return;
+    const currentUrl = window.location.pathname + window.location.search;
+    if (currentUrl !== active.path) {
+      window.history.replaceState(null, '', active.path);
+    }
+  }, [state.tabs, state.activeTabId]);
+
+  const openTab = useCallback<TabsContextValue['openTab']>((path, opts = {}) => {
+    // NO dedupe: cada llamada crea una tab nueva. El usuario puede cerrar duplicados
+    // manualmente desde el TabBar. `opts.focusExisting` se acepta en el tipo por
+    // compatibilidad pero se ignora deliberadamente.
+    const newPathname = pathnameOf(path);
+    const meta = resolveRouteMeta(newPathname);
+    const title = opts.title ?? meta?.title ?? newPathname;
+    const iconName = opts.iconName ?? meta?.iconName;
+    const id = genId();
+    setState((prev) => ({
+      tabs: [...prev.tabs, { id, path, title, iconName }],
+      activeTabId: id,
+    }));
+    return id;
+  }, []);
+
+  const closeTab = useCallback((id: string) => {
+    setState((prev) => {
+      const idx = prev.tabs.findIndex((t) => t.id === id);
+      if (idx === -1) return prev;
+      const nextTabs = prev.tabs.filter((t) => t.id !== id);
+      let nextActive = prev.activeTabId;
+      if (prev.activeTabId === id) {
+        const adjacent = nextTabs[idx] ?? nextTabs[idx - 1] ?? null;
+        nextActive = adjacent?.id ?? null;
+      }
+      if (nextTabs.length === 0) {
+        const dashboardMeta = resolveRouteMeta('/');
+        const dash: Tab = {
+          id: genId(),
+          path: '/',
+          title: dashboardMeta?.title ?? 'Dashboard',
+          iconName: dashboardMeta?.iconName,
+        };
+        return { tabs: [dash], activeTabId: dash.id };
+      }
+      return { tabs: nextTabs, activeTabId: nextActive };
+    });
+  }, []);
+
+  const setActiveTab = useCallback((id: string) => {
+    setState((prev) => (prev.activeTabId === id ? prev : { ...prev, activeTabId: id }));
+  }, []);
+
+  const updateTabPath = useCallback((id: string, newPath: string) => {
+    setState((prev) => {
+      const tab = prev.tabs.find((t) => t.id === id);
+      if (!tab || tab.path === newPath) return prev;
+      const meta = resolveRouteMeta(pathnameOf(newPath));
+      // Preservamos el título actual (puede ser custom, p.ej. "Albarán ← PO-...");
+      // sólo actualizamos el icono desde el registry.
+      return {
+        ...prev,
+        tabs: prev.tabs.map((t) =>
+          t.id === id ? { ...t, path: newPath, iconName: meta?.iconName ?? t.iconName } : t,
+        ),
+      };
+    });
+  }, []);
+
+  const resetTabs = useCallback((path: string = '/') => {
+    const meta = resolveRouteMeta(pathnameOf(path));
+    const tab: Tab = {
+      id: genId(),
+      path,
+      title: meta?.title ?? 'Dashboard',
+      iconName: meta?.iconName,
+    };
+    setState({ tabs: [tab], activeTabId: tab.id });
+  }, []);
+
+  const updateTabTitle = useCallback((id: string, title: string) => {
+    setState((prev) => {
+      const tab = prev.tabs.find((t) => t.id === id);
+      if (!tab || tab.title === title) return prev;
+      return { ...prev, tabs: prev.tabs.map((t) => (t.id === id ? { ...t, title } : t)) };
+    });
+  }, []);
+
+  const value: TabsContextValue = {
+    tabs: state.tabs,
+    activeTabId: state.activeTabId,
+    openTab,
+    closeTab,
+    setActiveTab,
+    updateTabPath,
+    updateTabTitle,
+    resetTabs,
+  };
+
+  return <TabsContext.Provider value={value}>{children}</TabsContext.Provider>;
+};
+
+export const useTabs = (): TabsContextValue => {
+  const ctx = useContext(TabsContext);
+  if (!ctx) throw new Error('useTabs must be used within TabsProvider');
+  return ctx;
+};
+
+const CurrentTabContext = createContext<string | null>(null);
+
+export const CurrentTabProvider: React.FC<{ tabId: string; children: React.ReactNode }> = ({
+  tabId,
+  children,
+}) => <CurrentTabContext.Provider value={tabId}>{children}</CurrentTabContext.Provider>;
+
+export interface CurrentTab {
+  id: string;
+  close: () => void;
+  rename: (title: string) => void;
+  navigateTab: (path: string) => void;
+}
+
+export const useCurrentTab = (): CurrentTab => {
+  const id = useContext(CurrentTabContext);
+  const { closeTab, updateTabTitle, updateTabPath } = useTabs();
+  if (!id) throw new Error('useCurrentTab must be used within a tab subtree');
+  return useMemo(
+    () => ({
+      id,
+      close: () => closeTab(id),
+      rename: (title: string) => updateTabTitle(id, title),
+      navigateTab: (path: string) => updateTabPath(id, path),
+    }),
+    [id, closeTab, updateTabTitle, updateTabPath],
+  );
+};

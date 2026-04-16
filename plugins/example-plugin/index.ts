@@ -14,7 +14,7 @@ export const init = async ({ app, migration }: PluginContext) => {
       tableName: 'BusinessPartner',
       fieldName: 'internal_notes',
       type: 'TEXT',
-      label: 'Notas Internas (Plugin)'
+      label: 'Notas Internas (Plugin)',
     });
   } catch (err) {
     console.error('[Example Plugin] Error al inyectar campo:', err);
@@ -26,7 +26,7 @@ export const init = async ({ app, migration }: PluginContext) => {
       plugin: 'example-plugin',
       message: 'Esta ruta fue inyectada desde el plugin!',
       injectedField: 'internal_notes',
-      status: 'active'
+      status: 'active',
     });
   });
 };

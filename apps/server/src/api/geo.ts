@@ -11,7 +11,10 @@ const publicDb = () => ClientFactory.getClient('public');
 
 router.get('/countries', async (_req, res) => {
   try {
-    const rows = await publicDb().select().from(schema.countries).orderBy(asc(schema.countries.name));
+    const rows = await publicDb()
+      .select()
+      .from(schema.countries)
+      .orderBy(asc(schema.countries.name));
     res.json(rows);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -20,7 +23,10 @@ router.get('/countries', async (_req, res) => {
 
 router.get('/countries/:code', async (req, res) => {
   try {
-    const [row] = await publicDb().select().from(schema.countries).where(eq(schema.countries.code, req.params.code.toUpperCase()));
+    const [row] = await publicDb()
+      .select()
+      .from(schema.countries)
+      .where(eq(schema.countries.code, req.params.code.toUpperCase()));
     if (!row) return res.status(404).json({ error: 'País no encontrado' });
     res.json(row);
   } catch (error: any) {
@@ -72,7 +78,10 @@ router.get('/subregions/:id/localities', async (req, res) => {
     const q = String(req.query.q || '').trim();
     const limit = Math.min(Number(req.query.limit) || 50, 200);
     const whereClause = q
-      ? and(eq(schema.localities.subRegionId, req.params.id), ilike(schema.localities.name, `%${q}%`))
+      ? and(
+          eq(schema.localities.subRegionId, req.params.id),
+          ilike(schema.localities.name, `%${q}%`),
+        )
       : eq(schema.localities.subRegionId, req.params.id);
 
     const rows = await publicDb()
@@ -89,7 +98,10 @@ router.get('/subregions/:id/localities', async (req, res) => {
 
 router.get('/localities/:id', async (req, res) => {
   try {
-    const [row] = await publicDb().select().from(schema.localities).where(eq(schema.localities.id, req.params.id));
+    const [row] = await publicDb()
+      .select()
+      .from(schema.localities)
+      .where(eq(schema.localities.id, req.params.id));
     if (!row) return res.status(404).json({ error: 'Municipio no encontrado' });
     res.json(row);
   } catch (error: any) {

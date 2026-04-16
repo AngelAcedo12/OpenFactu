@@ -11,24 +11,23 @@ async function diagnose() {
   try {
     const db = await ClientFactory.getTenantClient(tenantId);
     console.log(`Diagnosing tenant: ${tenantId}`);
-    
+
     const whs = await db.execute(sql`
       SELECT id, name FROM "Warehouse"
     `);
     console.log('Warehouses in tenant:');
     console.table(whs.rows);
-    
+
     const counts = await db.execute(sql`
       SELECT COUNT(*) as count FROM "WarehouseZone"
     `);
     console.log(`Rows in WarehouseZone: ${counts.rows[0].count}`);
-    
+
     const samples = await db.execute(sql`
       SELECT name FROM "WarehouseZone" LIMIT 5
     `);
     const searchPath = await db.execute(sql`SHOW search_path`);
     console.log('Search path:', searchPath.rows[0]);
-
   } catch (err) {
     console.error('Diagnosis failed:', err);
   } finally {

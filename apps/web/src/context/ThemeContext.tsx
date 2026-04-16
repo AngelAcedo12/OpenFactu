@@ -1,4 +1,11 @@
-import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from 'react';
 import { useAuth } from './AuthContext';
 
 export interface BrandingConfig {
@@ -27,25 +34,25 @@ export interface FlagsConfig {
 
 export const BRANDING_DEFAULTS: BrandingConfig = {
   colorPrimary: '#2563eb',
-  colorAccent:  '#10b981',
-  logoUrl:      '',
-  appName:      'OpenFactu',
-  fontFamily:   'sans',
-  themeMode:    'light',
+  colorAccent: '#10b981',
+  logoUrl: '',
+  appName: 'OpenFactu',
+  fontFamily: 'sans',
+  themeMode: 'light',
 };
 
 export const FORMAT_DEFAULTS: FormatConfig = {
-  locale:            'es-ES',
-  dateFormat:        'dd/MM/yyyy',
-  decimalPrecision:  2,
+  locale: 'es-ES',
+  dateFormat: 'dd/MM/yyyy',
+  decimalPrecision: 2,
   quantityPrecision: 2,
 };
 
 export const FLAGS_DEFAULTS: FlagsConfig = {
-  allowNegativeStock:    false,
-  autoConfirmBatches:    false,
-  watermarkDraft:        true,
-  confirmBeforeCancel:   true,
+  allowNegativeStock: false,
+  autoConfirmBatches: false,
+  watermarkDraft: true,
+  confirmBeforeCancel: true,
   enforceWarehouseZones: false,
 };
 
@@ -135,12 +142,12 @@ function readCachedBranding(): BrandingConfig {
   // Compat con formato antiguo
   return {
     ...BRANDING_DEFAULTS,
-    themeMode:    cached.themeMode    || BRANDING_DEFAULTS.themeMode,
-    appName:      cached.appName      || BRANDING_DEFAULTS.appName,
+    themeMode: cached.themeMode || BRANDING_DEFAULTS.themeMode,
+    appName: cached.appName || BRANDING_DEFAULTS.appName,
     colorPrimary: cached.colorPrimary || BRANDING_DEFAULTS.colorPrimary,
-    colorAccent:  cached.colorAccent  || BRANDING_DEFAULTS.colorAccent,
-    fontFamily:   cached.fontFamily   || BRANDING_DEFAULTS.fontFamily,
-    logoUrl:      cached.logoUrl      || BRANDING_DEFAULTS.logoUrl,
+    colorAccent: cached.colorAccent || BRANDING_DEFAULTS.colorAccent,
+    fontFamily: cached.fontFamily || BRANDING_DEFAULTS.fontFamily,
+    logoUrl: cached.logoUrl || BRANDING_DEFAULTS.logoUrl,
   };
 }
 
@@ -233,23 +240,23 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useLayoutEffect(() => {
     const root = document.documentElement;
 
-    const primaryRgb      = hexToRgb(branding.colorPrimary);
+    const primaryRgb = hexToRgb(branding.colorPrimary);
     const primaryHoverRgb = darkenRgb(primaryRgb, 0.1);
-    const primaryFgRgb    = contrastingFgRgb(primaryRgb);
-    const accentRgb       = hexToRgb(branding.colorAccent);
-    const accentFgRgb     = contrastingFgRgb(accentRgb);
+    const primaryFgRgb = contrastingFgRgb(primaryRgb);
+    const accentRgb = hexToRgb(branding.colorAccent);
+    const accentFgRgb = contrastingFgRgb(accentRgb);
 
-    const primaryRgbStr      = rgbToSpaceString(primaryRgb);
+    const primaryRgbStr = rgbToSpaceString(primaryRgb);
     const primaryHoverRgbStr = rgbToSpaceString(primaryHoverRgb);
-    const primaryFgRgbStr    = rgbToSpaceString(primaryFgRgb);
-    const accentRgbStr       = rgbToSpaceString(accentRgb);
-    const accentFgRgbStr     = rgbToSpaceString(accentFgRgb);
+    const primaryFgRgbStr = rgbToSpaceString(primaryFgRgb);
+    const accentRgbStr = rgbToSpaceString(accentRgb);
+    const accentFgRgbStr = rgbToSpaceString(accentFgRgb);
 
-    root.style.setProperty('--color-primary-rgb',       primaryRgbStr);
+    root.style.setProperty('--color-primary-rgb', primaryRgbStr);
     root.style.setProperty('--color-primary-hover-rgb', primaryHoverRgbStr);
-    root.style.setProperty('--color-primary-fg-rgb',    primaryFgRgbStr);
-    root.style.setProperty('--color-accent-rgb',        accentRgbStr);
-    root.style.setProperty('--color-accent-fg-rgb',     accentFgRgbStr);
+    root.style.setProperty('--color-primary-fg-rgb', primaryFgRgbStr);
+    root.style.setProperty('--color-accent-rgb', accentRgbStr);
+    root.style.setProperty('--color-accent-fg-rgb', accentFgRgbStr);
 
     root.style.setProperty('--font-sans', fontStackForFamily(branding.fontFamily));
     document.title = branding.appName;
@@ -264,20 +271,22 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         format,
         flags,
         // Flat fields (legacy) para el script inline en index.html
-        themeMode:            branding.themeMode,
-        appName:              branding.appName,
-        colorPrimary:         branding.colorPrimary,
-        colorAccent:          branding.colorAccent,
-        fontFamily:           branding.fontFamily,
-        logoUrl:              branding.logoUrl,
-        colorPrimaryRgb:      primaryRgbStr,
+        themeMode: branding.themeMode,
+        appName: branding.appName,
+        colorPrimary: branding.colorPrimary,
+        colorAccent: branding.colorAccent,
+        fontFamily: branding.fontFamily,
+        logoUrl: branding.logoUrl,
+        colorPrimaryRgb: primaryRgbStr,
         colorPrimaryHoverRgb: primaryHoverRgbStr,
-        colorPrimaryFgRgb:    primaryFgRgbStr,
-        colorAccentRgb:       accentRgbStr,
-        colorAccentFgRgb:     accentFgRgbStr,
+        colorPrimaryFgRgb: primaryFgRgbStr,
+        colorAccentRgb: accentRgbStr,
+        colorAccentFgRgb: accentFgRgbStr,
       };
       localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }, [branding, format, flags, user?.tenantId]);
 
   return (

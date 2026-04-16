@@ -41,13 +41,13 @@ export class ClientFactory {
     }
 
     const baseDbUrl = this.getBaseUrl();
-    
+
     // Inyectar el esquema directamente en la URL de conexión (Postgres-native way)
     // Esto asegura que cada conexión física del Pool nazca ya en el esquema correcto
     const tenantDbUrl = `${baseDbUrl}${baseDbUrl.includes('?') ? '&' : '?'}options=-csearch_path%3D${schemaName}%2Cpublic`;
 
-    const pool = new Pool({ 
-      connectionString: tenantDbUrl
+    const pool = new Pool({
+      connectionString: tenantDbUrl,
     });
 
     // En Drizzle no hay motor binario, solo pasamos el pool
@@ -55,7 +55,7 @@ export class ClientFactory {
 
     this.clients.set(schemaName, db);
     this.pools.set(schemaName, pool);
-    
+
     console.log(`[DrizzleFactory] Cliente listo para el esquema: ${schemaName}`);
     return db;
   }
@@ -65,13 +65,14 @@ export class ClientFactory {
    */
   public static async getTenantClient(tenantId: string) {
     const publicDb = this.getClient('public');
-    
-    const [tenant] = await publicDb.select()
+
+    const [tenant] = await publicDb
+      .select()
       .from(schema.tenants)
       .where(eq(schema.tenants.id, tenantId));
 
     if (!tenant) throw new Error(`Tenant con ID ${tenantId} no encontrado`);
-    
+
     return this.getClient(tenant.schemaName);
   }
 

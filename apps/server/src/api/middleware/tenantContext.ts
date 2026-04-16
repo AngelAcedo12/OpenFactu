@@ -20,9 +20,9 @@ export const tenantContextMiddleware = async (req: any, res: Response, next: Nex
       const payload: any = AuthService.verifyToken(token);
       if (payload) {
         req.user = {
-          id:       payload.userId,
-          role:     payload.role,
-          email:    payload.email,
+          id: payload.userId,
+          role: payload.role,
+          email: payload.email,
           username: payload.username,
           tenantId: payload.tenantId,
         };
@@ -30,7 +30,9 @@ export const tenantContextMiddleware = async (req: any, res: Response, next: Nex
           tenantId = payload.tenantId;
         }
       }
-    } catch (e) { /* token inválido, seguimos sin req.user */ }
+    } catch (e) {
+      /* token inválido, seguimos sin req.user */
+    }
   }
 
   try {

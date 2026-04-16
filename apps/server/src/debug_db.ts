@@ -12,13 +12,27 @@ async function debug() {
   const tenantSchema = tenants.rows[0].schemaName;
   console.log('Checking schema:', tenantSchema);
   const db = ClientFactory.getClient(tenantSchema);
-  
-  const tables = await db.execute(sql.raw(`SELECT table_name FROM information_schema.tables WHERE table_schema = '${tenantSchema}'`));
-  console.log('Tables:', tables.rows.map((r:any) => r.table_name));
 
-  const cols = await db.execute(sql.raw(`SELECT column_name FROM information_schema.columns WHERE table_name = 'SalesOrderLine' AND table_schema = '${tenantSchema}'`));
-  console.log('SalesOrderLine columns:', cols.rows.map((r:any) => r.column_name));
-  
+  const tables = await db.execute(
+    sql.raw(
+      `SELECT table_name FROM information_schema.tables WHERE table_schema = '${tenantSchema}'`,
+    ),
+  );
+  console.log(
+    'Tables:',
+    tables.rows.map((r: any) => r.table_name),
+  );
+
+  const cols = await db.execute(
+    sql.raw(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = 'SalesOrderLine' AND table_schema = '${tenantSchema}'`,
+    ),
+  );
+  console.log(
+    'SalesOrderLine columns:',
+    cols.rows.map((r: any) => r.column_name),
+  );
+
   process.exit(0);
 }
 

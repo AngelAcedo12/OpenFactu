@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { DocType, isPurchaseDoc } from '../docTypes';
 
 export interface DocumentLine {
   id?: string;
@@ -16,12 +17,18 @@ export interface DocumentLine {
 export interface UseDocumentProps {
   token: string;
   tenantId: string;
-  docType: 'PO' | 'PDN' | 'PINV' | 'SO' | 'SDN' | 'SINV';
+  docType: DocType;
   apiEndpoint: string;
   permissions?: { read: boolean; write: boolean; delete: boolean };
 }
 
-export function useDocument({ token, tenantId, docType, apiEndpoint, permissions }: UseDocumentProps) {
+export function useDocument({
+  token,
+  tenantId,
+  docType,
+  apiEndpoint,
+  permissions,
+}: UseDocumentProps) {
   const [partnerId, setPartnerId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [seriesId, setSeriesId] = useState('');
@@ -42,10 +49,10 @@ export function useDocument({ token, tenantId, docType, apiEndpoint, permissions
   const [mastersLoading, setMastersLoading] = useState(false);
   const [mastersError, setMastersError] = useState<string | null>(null);
 
-  const headers = { 
-    'Authorization': `Bearer ${token}`, 
+  const headers = {
+    Authorization: `Bearer ${token}`,
     'x-tenant-id': tenantId,
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
   };
 
   const fetchMasters = useCallback(async () => {
@@ -56,20 +63,25 @@ export function useDocument({ token, tenantId, docType, apiEndpoint, permissions
         fetch('/api/partners', { headers }),
         fetch('/api/items', { headers }),
         fetch('/api/warehouses', { headers }),
-        fetch('/api/taxes', { headers })
+        fetch('/api/taxes', { headers }),
       ]);
 
       const [sData, pData, bpData, iData, wData, tData] = await Promise.all([
-        sRes.json(), pRes.json(), bpRes.json(), iRes.json(), wRes.json(), tRes.json()
+        sRes.json(),
+        pRes.json(),
+        bpRes.json(),
+        iRes.json(),
+        wRes.json(),
+        tRes.json(),
       ]);
 
       const sList = (Array.isArray(sData) ? sData : []).filter((x: any) => {
         if (docType === 'PO') return x.docType === 'PO';
         if (docType === 'PDN') return x.docType === 'PDN';
-        if (docType === 'PINV') return x.docType === 'PINV' 
+        if (docType === 'PINV') return x.docType === 'PINV';
         if (docType === 'SO') return x.docType === 'SO';
         if (docType === 'SDN') return x.docType === 'SDN';
-        if (docType === 'SINV') return x.docType === 'SINV'
+        if (docType === 'SINV') return x.docType === 'SINV';
         return x.docType === docType;
       });
       const pList = Array.isArray(pData) ? pData : [];
@@ -83,7 +95,9 @@ export function useDocument({ token, tenantId, docType, apiEndpoint, permissions
       setWarehouses(wList);
 
       // Proactive validation of series for the CURRENT context
-      const filteredSeries = (Array.isArray(sData) ? sData : []).filter((s:any) => s.docType === docType);
+      const filteredSeries = (Array.isArray(sData) ? sData : []).filter(
+        (s: any) => s.docType === docType,
+      );
       if (filteredSeries.length === 0) {
         setSeriesError(`No hay series de numeración configuradas para: ${docType}`);
       } else {
@@ -92,23 +106,24 @@ export function useDocument({ token, tenantId, docType, apiEndpoint, permissions
 
       // Default selection logic
       const today = new Date();
-      const activePeriod = pList.find((p: any) => {
-        const start = new Date(p.startDate);
-        const end = new Date(p.endDate);
-        return p.status === 'O' && today >= start && today <= end;
-      }) || pList.find((p: any) => p.status === 'O');
+      const activePeriod =
+        pList.find((p: any) => {
+          const start = new Date(p.startDate);
+          const end = new Date(p.endDate);
+          return p.status === 'O' && today >= start && today <= end;
+        }) || pList.find((p: any) => p.status === 'O');
 
       if (activePeriod) {
         setPeriodId(activePeriod.id);
-        const defaultSeries = sList.find((s: any) => s.periodId === activePeriod.id && s.docType === docType) || 
-                              sList.find((s: any) => s.periodId === activePeriod.id) || 
-                              sList[0];
+        const defaultSeries =
+          sList.find((s: any) => s.periodId === activePeriod.id && s.docType === docType) ||
+          sList.find((s: any) => s.periodId === activePeriod.id) ||
+          sList[0];
         if (defaultSeries) setSeriesId(defaultSeries.id);
       }
 
       const defW = wList.find((x: any) => x.isDefault);
       if (defW) setWarehouseId(defW.id);
-
     } catch (e: any) {
       console.error('Error fetching masters:', e);
       setMastersError(e.message || 'Error al cargar datos maestros');
@@ -129,14 +144,16 @@ export function useDocument({ token, tenantId, docType, apiEndpoint, permissions
   // Pricing Logic
   useEffect(() => {
     const fetchPartnerPrices = async () => {
-      const partner = partners.find(p => p.id === partnerId);
+      const partner = partners.find((p) => p.id === partnerId);
       if (partner?.priceListId) {
         try {
           const res = await fetch(`/api/pricelists/${partner.priceListId}/prices`, { headers });
           const data = await res.json();
           const pMap: Record<string, number> = {};
           if (Array.isArray(data)) {
-            data.forEach((p: any) => { pMap[p.itemId] = Number(p.price); });
+            data.forEach((p: any) => {
+              pMap[p.itemId] = Number(p.price);
+            });
           }
           setMappedPrices(pMap);
         } catch {
@@ -151,37 +168,49 @@ export function useDocument({ token, tenantId, docType, apiEndpoint, permissions
 
   const addLine = (defaults: any = {}) => {
     // Evitar que el objeto Event pase como defaults si se usa onClick={addLine}
-    const cleanDefaults = (defaults && typeof defaults === 'object' && 'nativeEvent' in defaults) ? {} : defaults;
+    const cleanDefaults =
+      defaults && typeof defaults === 'object' && 'nativeEvent' in defaults ? {} : defaults;
 
-    setLines([...lines, { 
-      itemId: '', 
-      quantity: 1, 
-      price: 0, 
-      taxGroupId: '',
-      warehouseId: warehouseId || '', 
-      lineNum: lines.length + 1,
-      ...cleanDefaults 
-    }]);
+    setLines([
+      ...lines,
+      {
+        itemId: '',
+        quantity: 1,
+        price: 0,
+        taxGroupId: '',
+        warehouseId: warehouseId || '',
+        lineNum: lines.length + 1,
+        ...cleanDefaults,
+      },
+    ]);
   };
 
   const updateLine = (index: number, field: string, value: any) => {
     const newLines = [...lines];
-    
+
     let castedValue = value;
     if (field === 'quantity' || field === 'price') {
       const stringValue = String(value || '0').replace(',', '.');
       castedValue = parseFloat(stringValue) || 0;
     }
-    
+
     newLines[index] = { ...newLines[index], [field]: castedValue };
 
     if (field === 'itemId') {
-      const selectedItem = items.find(i => i.id === value);
+      const selectedItem = items.find((i) => i.id === value);
       if (selectedItem) {
         newLines[index].price = mappedPrices[value] || Number(selectedItem.basePrice) || 0;
         newLines[index].taxGroupId = selectedItem.taxGroupId || '';
+        newLines[index].uomId = selectedItem.uomId || '';
+        newLines[index].uomFactor = 1;
       }
     }
+    setLines(newLines);
+  };
+
+  const updateLineFields = (index: number, updates: Record<string, any>) => {
+    const newLines = [...lines];
+    newLines[index] = { ...newLines[index], ...updates };
     setLines(newLines);
   };
 
@@ -189,13 +218,16 @@ export function useDocument({ token, tenantId, docType, apiEndpoint, permissions
     setLines(lines.filter((_, i) => i !== index));
   };
 
-  const subtotal = lines.reduce((acc, curr) => acc + (Number(curr.quantity || 0) * Number(curr.price || 0)), 0);
-  
+  const subtotal = lines.reduce(
+    (acc, curr) => acc + Number(curr.quantity || 0) * Number(curr.price || 0),
+    0,
+  );
+
   const taxTotal = lines.reduce((acc, curr) => {
     const lineSubtotal = Number(curr.quantity || 0) * Number(curr.price || 0);
-    const taxGroup = taxGroups.find(t => t.id === curr.taxGroupId);
+    const taxGroup = taxGroups.find((t) => t.id === curr.taxGroupId);
     const rate = taxGroup ? Number(taxGroup.rate) : 0;
-    return acc + (lineSubtotal * (rate / 100));
+    return acc + lineSubtotal * (rate / 100);
   }, 0);
 
   const total = subtotal + taxTotal;
@@ -207,24 +239,38 @@ export function useDocument({ token, tenantId, docType, apiEndpoint, permissions
   const [pluginData, setPluginData] = useState<Record<string, any>>({});
 
   const setPluginField = (fieldName: string, value: any) => {
-    setPluginData(prev => ({ ...prev, [fieldName]: value }));
+    setPluginData((prev) => ({ ...prev, [fieldName]: value }));
   };
 
   // ... (headers etc) ...
 
   const submitDocument = async (extraBody: any = {}) => {
-    if (!canWrite) throw new Error('No tienes permisos suficientes para realizar esta acción (Escritura denegada).');
+    if (!canWrite)
+      throw new Error(
+        'No tienes permisos suficientes para realizar esta acción (Escritura denegada).',
+      );
+    if (!partnerId)
+      throw new Error(
+        isPurchaseDoc(docType)
+          ? 'Debes seleccionar un proveedor.'
+          : 'Debes seleccionar un cliente.',
+      );
     if (!seriesId) throw new Error('Debes seleccionar una serie de numeración operativa.');
     if (!periodId) throw new Error('Debes seleccionar un periodo contable válido.');
     if (lines.length === 0) throw new Error('El documento no tiene líneas.');
-    
+
     // Batches validation
     for (const [idx, line] of lines.entries()) {
-      const item = items.find(i => i.id === line.itemId);
+      const item = items.find((i) => i.id === line.itemId);
       if (item && item.manageBy !== 'N' && docType !== 'PO' && docType !== 'SO') {
-        const totalBatched = (line.batchDetails || []).reduce((acc: number, curr: any) => acc + Number(curr.quantity), 0);
+        const totalBatched = (line.batchDetails || []).reduce(
+          (acc: number, curr: any) => acc + Number(curr.quantity),
+          0,
+        );
         if (totalBatched < Number(line.quantity)) {
-          throw new Error(`Línea ${idx + 1}: Faltan lotes/trazabilidad por asignar (${Number(line.quantity) - totalBatched} pendientes).`);
+          throw new Error(
+            `Línea ${idx + 1}: Faltan lotes/trazabilidad por asignar (${Number(line.quantity) - totalBatched} pendientes).`,
+          );
         }
       }
     }
@@ -234,18 +280,22 @@ export function useDocument({ token, tenantId, docType, apiEndpoint, permissions
         method: 'POST',
         headers,
         body: JSON.stringify({
-          seriesId, periodId, partnerId, date, warehouseId,
-          lines, 
+          seriesId,
+          periodId,
+          partnerId,
+          date,
+          warehouseId,
+          lines,
           ...pluginData,
-          ...extraBody
-        })
+          ...extraBody,
+        }),
       });
-      
+
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Error al guardar el documento');
       }
-      
+
       return await res.json();
     } finally {
       setIsSubmitting(false);
@@ -253,10 +303,34 @@ export function useDocument({ token, tenantId, docType, apiEndpoint, permissions
   };
 
   return {
-    state: { partnerId, warehouseId, seriesId, periodId, date, lines, isSubmitting, seriesError, mastersLoading, mastersError, canRead, canWrite, canDelete, pluginData },
-    setState: { setPartnerId, setWarehouseId, setSeriesId, setPeriodId, setDate, setLines, setPluginField, setPluginData },
+    state: {
+      partnerId,
+      warehouseId,
+      seriesId,
+      periodId,
+      date,
+      lines,
+      isSubmitting,
+      seriesError,
+      mastersLoading,
+      mastersError,
+      canRead,
+      canWrite,
+      canDelete,
+      pluginData,
+    },
+    setState: {
+      setPartnerId,
+      setWarehouseId,
+      setSeriesId,
+      setPeriodId,
+      setDate,
+      setLines,
+      setPluginField,
+      setPluginData,
+    },
     masters: { partners, items, warehouses, series, periods, taxGroups },
-    actions: { addLine, updateLine, removeLine, submitDocument },
-    computations: { subtotal, taxTotal, total }
+    actions: { addLine, updateLine, updateLineFields, removeLine, submitDocument },
+    computations: { subtotal, taxTotal, total },
   };
 }

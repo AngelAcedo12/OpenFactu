@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 export interface FilterConfig {
   key: string;
@@ -15,17 +15,27 @@ export interface UseDataTableProps<T> {
   filters?: FilterConfig[];
 }
 
-export function useDataTable<T>({ data, searchColumns, filters: filterConfigs = [] }: UseDataTableProps<T>) {
+export function useDataTable<T>({
+  data,
+  searchColumns,
+  filters: filterConfigs = [],
+}: UseDataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 200);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
 
   const filteredData = useMemo(() => {
     return data.filter((item: any) => {
-      // 1. Global Search
-      if (searchTerm) {
-        const matchesSearch = searchColumns.some(col => {
+      // 1. Global Search (debounced)
+      if (debouncedSearch) {
+        const matchesSearch = searchColumns.some((col) => {
           const val = String(item[col] || '').toLowerCase();
-          return val.includes(searchTerm.toLowerCase());
+          return val.includes(debouncedSearch.toLowerCase());
         });
         if (!matchesSearch) return false;
       }
@@ -40,24 +50,27 @@ export function useDataTable<T>({ data, searchColumns, filters: filterConfigs = 
         } else {
           // Default Exact Match logic
           const itemValue = item[config.key];
-          
+
           if (config.type === 'dateRange') {
-             const itemDate = new Date(itemValue).getTime();
-             const { start, end } = filterValue;
-             if (start && itemDate < new Date(start).getTime()) return false;
-             if (end && itemDate > new Date(end).getTime()) return false;
+            const itemDate = new Date(itemValue).getTime();
+            const { start, end } = filterValue;
+            if (start && itemDate < new Date(start).getTime()) return false;
+            if (end && itemDate > new Date(end).getTime()) return false;
           } else {
-             if (String(itemValue) !== String(filterValue)) return false;
+            if (String(itemValue) !== String(filterValue)) return false;
           }
         }
       }
 
       return true;
     });
-  }, [data, searchTerm, activeFilters, searchColumns, filterConfigs]);
+    // searchColumns y filterConfigs son estables en la práctica (mismas keys/types entre renders);
+    // excluirlos evita recálculos espurios causados por nuevas referencias de options.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, debouncedSearch, activeFilters]);
 
   const setFilter = (key: string, value: any) => {
-    setActiveFilters(prev => ({ ...prev, [key]: value }));
+    setActiveFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   const clearFilters = () => {
@@ -71,6 +84,6 @@ export function useDataTable<T>({ data, searchColumns, filters: filterConfigs = 
     setSearchTerm,
     activeFilters,
     setFilter,
-    clearFilters
+    clearFilters,
   };
 }

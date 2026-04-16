@@ -15,28 +15,30 @@ router.get('/', async (req: any, res) => {
   try {
     const db = ClientFactory.getClient('public');
     const [users, membershipCounts] = await Promise.all([
-      db.select({
-        id: schema.globalUsers.id,
-        email: schema.globalUsers.email,
-        username: schema.globalUsers.username,
-        role: schema.globalUsers.role,
-        tenantId: schema.globalUsers.tenantId,
-        tenantName: schema.tenants.name,
-        permissions: schema.globalUsers.permissions
-      })
+      db
+        .select({
+          id: schema.globalUsers.id,
+          email: schema.globalUsers.email,
+          username: schema.globalUsers.username,
+          role: schema.globalUsers.role,
+          tenantId: schema.globalUsers.tenantId,
+          tenantName: schema.tenants.name,
+          permissions: schema.globalUsers.permissions,
+        })
         .from(schema.globalUsers)
         .leftJoin(schema.tenants, eq(schema.globalUsers.tenantId, schema.tenants.id)),
-      db.select({
-        userId: schema.userTenantMemberships.userId,
-        count: sql<number>`count(*)::int`
-      })
+      db
+        .select({
+          userId: schema.userTenantMemberships.userId,
+          count: sql<number>`count(*)::int`,
+        })
         .from(schema.userTenantMemberships)
-        .groupBy(schema.userTenantMemberships.userId)
+        .groupBy(schema.userTenantMemberships.userId),
     ]);
 
-    const result = users.map(u => ({
+    const result = users.map((u) => ({
       ...u,
-      membershipCount: membershipCounts.find(m => m.userId === u.id)?.count ?? 0
+      membershipCount: membershipCounts.find((m) => m.userId === u.id)?.count ?? 0,
     }));
 
     res.json(result);
@@ -54,12 +56,22 @@ router.post('/', async (req: any, res) => {
     const { password, ...userData } = req.body;
     const id = crypto.randomUUID();
     const hashedPassword = await AuthService.hashPassword(password);
-    const [user] = await db.insert(schema.globalUsers)
+    const [user] = await db
+      .insert(schema.globalUsers)
       .values({ ...userData, id, password: hashedPassword })
       .returning();
     const { password: _, ...safeUser } = user;
     res.json(safeUser);
-    if (req.tenantId) logAudit({ tenantClient: db, tenantId: req.tenantId, userId: req.user?.id, entityType: 'User', entityId: id, action: 'CREATE', newValue: safeUser });
+    if (req.tenantId)
+      logAudit({
+        tenantClient: db,
+        tenantId: req.tenantId,
+        userId: req.user?.id,
+        entityType: 'User',
+        entityId: id,
+        action: 'CREATE',
+        newValue: safeUser,
+      });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -76,7 +88,8 @@ router.patch('/:id', async (req: any, res) => {
     const updateData: any = { ...userData, updatedAt: new Date() };
     if (password) updateData.password = await AuthService.hashPassword(password);
     const [old] = await db.select().from(schema.globalUsers).where(eq(schema.globalUsers.id, id));
-    const [user] = await db.update(schema.globalUsers)
+    const [user] = await db
+      .update(schema.globalUsers)
       .set(updateData)
       .where(eq(schema.globalUsers.id, id))
       .returning();
@@ -84,7 +97,16 @@ router.patch('/:id', async (req: any, res) => {
     res.json(safeUser);
     if (req.tenantId) {
       const { password: _o, ...safeOld } = old || {};
-      logAudit({ tenantClient: db, tenantId: req.tenantId, userId: req.user?.id, entityType: 'User', entityId: id, action: 'UPDATE', oldValue: safeOld, newValue: safeUser });
+      logAudit({
+        tenantClient: db,
+        tenantId: req.tenantId,
+        userId: req.user?.id,
+        entityType: 'User',
+        entityId: id,
+        action: 'UPDATE',
+        oldValue: safeOld,
+        newValue: safeUser,
+      });
     }
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -103,7 +125,15 @@ router.delete('/:id', async (req: any, res) => {
     res.json({ success: true });
     if (req.tenantId && old) {
       const { password: _, ...safeOld } = old;
-      logAudit({ tenantClient: db, tenantId: req.tenantId, userId: req.user?.id, entityType: 'User', entityId: id, action: 'DELETE', oldValue: safeOld });
+      logAudit({
+        tenantClient: db,
+        tenantId: req.tenantId,
+        userId: req.user?.id,
+        entityType: 'User',
+        entityId: id,
+        action: 'DELETE',
+        oldValue: safeOld,
+      });
     }
   } catch (error: any) {
     res.status(500).json({ error: error.message });

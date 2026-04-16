@@ -29,7 +29,9 @@ router.get('/', async (req: any, res) => {
 
   try {
     const [logs, countResult] = await Promise.all([
-      req.tenantClient.select().from(schema.auditLogs)
+      req.tenantClient
+        .select()
+        .from(schema.auditLogs)
         .where(whereClause)
         .orderBy(desc(schema.auditLogs.createdAt))
         .limit(limitNum)
@@ -37,14 +39,14 @@ router.get('/', async (req: any, res) => {
       req.tenantClient
         .select({ count: sql<number>`count(*)::int` })
         .from(schema.auditLogs)
-        .where(whereClause)
+        .where(whereClause),
     ]);
 
     res.json({
       data: logs,
       total: countResult[0]?.count ?? 0,
       page: pageNum,
-      limit: limitNum
+      limit: limitNum,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

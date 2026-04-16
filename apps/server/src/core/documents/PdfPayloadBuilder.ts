@@ -5,7 +5,7 @@ import type {
   DocumentPdfPayload,
   DocumentLineData,
   TaxBreakdownEntry,
-  PartnerAddressObject
+  PartnerAddressObject,
 } from '@openfactu/pdf';
 import { amountToSpanishWords } from '../../utils/numberToWords';
 
@@ -27,7 +27,7 @@ const TABLE_MAP: Record<DocType, DocTypeTables> = {
     lineFk: 'invoiceId',
     supportsBase: true,
     baseType: 'SDN',
-    baseTable: schema.salesDeliveryNotes
+    baseTable: schema.salesDeliveryNotes,
   },
   PINV: {
     header: schema.purchaseInvoices,
@@ -36,36 +36,36 @@ const TABLE_MAP: Record<DocType, DocTypeTables> = {
     lineFk: 'invoiceId',
     supportsBase: true,
     baseType: 'PDN',
-    baseTable: schema.purchaseDeliveryNotes
+    baseTable: schema.purchaseDeliveryNotes,
   },
   SDN: {
     header: schema.salesDeliveryNotes,
     lines: schema.salesDeliveryNoteLines,
     batches: schema.salesDeliveryNoteLineBatches,
     lineFk: 'deliveryId',
-    supportsBase: false
+    supportsBase: false,
   },
   PDN: {
     header: schema.purchaseDeliveryNotes,
     lines: schema.purchaseDeliveryNoteLines,
     batches: schema.purchaseDeliveryNoteLineBatches,
     lineFk: 'deliveryId',
-    supportsBase: false
+    supportsBase: false,
   },
   SO: {
     header: schema.salesOrders,
     lines: schema.salesOrderLines,
     batches: null,
     lineFk: 'orderId',
-    supportsBase: false
+    supportsBase: false,
   },
   PO: {
     header: schema.purchaseOrders,
     lines: schema.purchaseOrderLines,
     batches: null,
     lineFk: 'orderId',
-    supportsBase: false
-  }
+    supportsBase: false,
+  },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -73,7 +73,7 @@ const STATUS_LABELS: Record<string, string> = {
   C: 'Cerrado',
   X: 'Cancelado',
   P: 'Parcial',
-  D: 'Borrador'
+  D: 'Borrador',
 };
 
 function parseTaxBreakdown(raw: any): TaxBreakdownEntry[] {
@@ -83,7 +83,7 @@ function parseTaxBreakdown(raw: any): TaxBreakdownEntry[] {
     return Object.entries(obj).map(([rate, v]: any) => ({
       rate: Number(rate),
       base: Number(v.base || 0),
-      tax: Number(v.tax || 0)
+      tax: Number(v.tax || 0),
     }));
   } catch {
     return [];
@@ -118,7 +118,7 @@ function addressObject(addr: any): PartnerAddressObject | null {
     city: addr.city || null,
     state: addr.state || null,
     zipCode: addr.zipCode || null,
-    country: addr.country || null
+    country: addr.country || null,
   };
 }
 
@@ -126,17 +126,18 @@ export class PdfPayloadBuilder {
   public static async build(
     docType: DocType,
     documentId: string,
-    db: any
+    db: any,
   ): Promise<DocumentPdfPayload> {
     const map = TABLE_MAP[docType];
     if (!map) throw new Error(`Tipo de documento no soportado: ${docType}`);
 
     // 1. Header + series + period
-    const [headerRow] = await db.select({
-      header: map.header,
-      seriesPrefix: schema.documentSeries.prefix,
-      periodCode: schema.accountingPeriods.code
-    })
+    const [headerRow] = await db
+      .select({
+        header: map.header,
+        seriesPrefix: schema.documentSeries.prefix,
+        periodCode: schema.accountingPeriods.code,
+      })
       .from(map.header)
       .leftJoin(schema.documentSeries, eq(map.header.seriesId, schema.documentSeries.id))
       .leftJoin(schema.accountingPeriods, eq(map.header.periodId, schema.accountingPeriods.id))
@@ -146,13 +147,16 @@ export class PdfPayloadBuilder {
     const header = headerRow.header;
 
     // 2. Partner + priceList
-    const [partner] = await db.select()
+    const [partner] = await db
+      .select()
       .from(schema.businessPartners)
       .where(eq(schema.businessPartners.id, header.partnerId));
 
     let priceListName: string | null = null;
     if (partner?.priceListId) {
-      const [pl] = await db.select().from(schema.priceLists)
+      const [pl] = await db
+        .select()
+        .from(schema.priceLists)
         .where(eq(schema.priceLists.id, partner.priceListId));
       priceListName = pl?.name || null;
     }
@@ -162,7 +166,8 @@ export class PdfPayloadBuilder {
     let billingAddr: any = null;
     let shippingAddr: any = null;
     if (partner) {
-      const addresses = await db.select()
+      const addresses = await db
+        .select()
         .from(schema.partnerAddresses)
         .where(eq(schema.partnerAddresses.partnerId, partner.id));
       defaultAddr = addresses.find((a: any) => a.isDefault) || addresses[0] || null;
@@ -175,44 +180,68 @@ export class PdfPayloadBuilder {
     const partnerCountryCode = partner?.countryCode || defaultAddr?.countryCode;
     if (partnerCountryCode) {
       try {
-        const publicDb = (await import('../tenant/ClientFactory')).ClientFactory.getClient('public');
+        const publicDb = (await import('../tenant/ClientFactory')).ClientFactory.getClient(
+          'public',
+        );
         const [country] = await publicDb
           .select({ name: schema.countries.name })
           .from(schema.countries)
           .where(eq(schema.countries.code, partnerCountryCode.toUpperCase()));
         partnerCountryName = country?.name || null;
-      } catch { /* ignorar */ }
+      } catch {
+        /* ignorar */
+      }
     }
 
     // 3. Lines
-    const lineRows = await db.select()
-      .from(map.lines)
-      .where(eq(map.lines[map.lineFk], documentId));
+    const lineRows = await db.select().from(map.lines).where(eq(map.lines[map.lineFk], documentId));
 
     // 4. Items + UoM + Category (batch fetch)
     const itemIds = [...new Set(lineRows.map((l: any) => l.itemId))];
-    const itemList = itemIds.length > 0
-      ? await db.select().from(schema.items).where(inArray(schema.items.id, itemIds as string[]))
-      : [];
+    const itemList =
+      itemIds.length > 0
+        ? await db
+            .select()
+            .from(schema.items)
+            .where(inArray(schema.items.id, itemIds as string[]))
+        : [];
     const itemsMap = new Map(itemList.map((i: any) => [i.id, i]));
 
-    const uomIds = [...new Set(itemList.map((i: any) => i.uomId).filter(Boolean))];
-    const uomList = uomIds.length > 0
-      ? await db.select().from(schema.unitsOfMeasure).where(inArray(schema.unitsOfMeasure.id, uomIds as string[]))
-      : [];
+    // UoMs: recoger tanto las base de los artículos como las elegidas por línea
+    const uomIds = [
+      ...new Set([
+        ...itemList.map((i: any) => i.uomId),
+        ...lineRows.map((l: any) => l.uomId),
+      ].filter(Boolean)),
+    ];
+    const uomList =
+      uomIds.length > 0
+        ? await db
+            .select()
+            .from(schema.unitsOfMeasure)
+            .where(inArray(schema.unitsOfMeasure.id, uomIds as string[]))
+        : [];
     const uomMap = new Map(uomList.map((u: any) => [u.id, u.code]));
 
     const categoryIds = [...new Set(itemList.map((i: any) => i.categoryId).filter(Boolean))];
-    const catList = categoryIds.length > 0
-      ? await db.select().from(schema.categories).where(inArray(schema.categories.id, categoryIds as string[]))
-      : [];
+    const catList =
+      categoryIds.length > 0
+        ? await db
+            .select()
+            .from(schema.categories)
+            .where(inArray(schema.categories.id, categoryIds as string[]))
+        : [];
     const catMap = new Map(catList.map((c: any) => [c.id, c.name]));
 
     // 5. Tax groups
     const taxIds = [...new Set(lineRows.map((l: any) => l.taxGroupId).filter(Boolean))];
-    const taxList = taxIds.length > 0
-      ? await db.select().from(schema.taxGroups).where(inArray(schema.taxGroups.id, taxIds as string[]))
-      : [];
+    const taxList =
+      taxIds.length > 0
+        ? await db
+            .select()
+            .from(schema.taxGroups)
+            .where(inArray(schema.taxGroups.id, taxIds as string[]))
+        : [];
     const taxRateMap = new Map(taxList.map((t: any) => [t.id, Number(t.rate)]));
 
     // 6. Batches per line
@@ -220,7 +249,8 @@ export class PdfPayloadBuilder {
     if (map.batches && lineRows.length > 0) {
       const fkCol = 'invoiceLineId' in map.batches ? 'invoiceLineId' : 'deliveryLineId';
       const lineIds = lineRows.map((l: any) => l.id);
-      const batchRows = await db.select()
+      const batchRows = await db
+        .select()
         .from(map.batches)
         .where(inArray((map.batches as any)[fkCol], lineIds));
       for (const b of batchRows) {
@@ -237,14 +267,18 @@ export class PdfPayloadBuilder {
       const linesWithBase = lineRows.filter((l: any) => l.baseType === map.baseType && l.baseId);
       if (linesWithBase.length > 0) {
         const baseIds = [...new Set(linesWithBase.map((l: any) => l.baseId))];
-        const [baseRow] = await db.select({
-          docNum: map.baseTable.docNum,
-          prefix: schema.documentSeries.prefix,
-          periodCode: schema.accountingPeriods.code
-        })
+        const [baseRow] = await db
+          .select({
+            docNum: map.baseTable.docNum,
+            prefix: schema.documentSeries.prefix,
+            periodCode: schema.accountingPeriods.code,
+          })
           .from(map.baseTable)
           .leftJoin(schema.documentSeries, eq(map.baseTable.seriesId, schema.documentSeries.id))
-          .leftJoin(schema.accountingPeriods, eq(map.baseTable.periodId, schema.accountingPeriods.id))
+          .leftJoin(
+            schema.accountingPeriods,
+            eq(map.baseTable.periodId, schema.accountingPeriods.id),
+          )
           .where(inArray(map.baseTable.id, baseIds as string[]));
         if (baseRow) {
           baseDocCode = formatDocCode(baseRow.prefix, baseRow.periodCode, baseRow.docNum);
@@ -259,13 +293,42 @@ export class PdfPayloadBuilder {
     const configVal = (snake: string, camel: string): string | null =>
       cfg[snake] || cfg[camel] || null;
 
+    // 8b. Plugin fields — campos custom de la cabecera
+    const pluginFieldRows = await db.select().from(schema.pluginFields);
+    const headerTableName = {
+      SINV: 'SalesInvoice', PINV: 'PurchaseInvoice',
+      SDN: 'SalesDeliveryNote', PDN: 'PurchaseDeliveryNote',
+      SO: 'SalesOrder', PO: 'PurchaseOrder',
+    }[docType] || '';
+    const headerPluginFields = pluginFieldRows.filter((pf: any) => pf.tableName === headerTableName);
+    const customFields: Record<string, any> = {};
+    for (const pf of headerPluginFields) {
+      if (header[pf.fieldName] != null) {
+        customFields[pf.fieldName] = header[pf.fieldName];
+      }
+    }
+
+    const lineTableName = headerTableName + 'Line';
+    const linePluginFields = pluginFieldRows.filter((pf: any) => pf.tableName === lineTableName);
+
     // 9. Líneas — ordenar y mapear
     const lines: DocumentLineData[] = lineRows
       .sort((a: any, b: any) => (a.lineNum || 0) - (b.lineNum || 0))
       .map((l: any) => {
         const it: any = itemsMap.get(l.itemId);
-        const uomCode = it?.uomId ? (uomMap.get(it.uomId) as string | undefined) || null : null;
-        const category = it?.categoryId ? (catMap.get(it.categoryId) as string | undefined) || null : null;
+        // Preferir la UoM elegida en la línea; si no hay, la base del artículo
+        const effectiveUomId = l.uomId || it?.uomId;
+        const uomCode = effectiveUomId ? (uomMap.get(effectiveUomId) as string | undefined) || null : null;
+        const category = it?.categoryId
+          ? (catMap.get(it.categoryId) as string | undefined) || null
+          : null;
+        // Plugin fields de la línea (columnas p_* o desde pluginData jsonb)
+        const lineCustom: Record<string, any> = {};
+        for (const pf of linePluginFields) {
+          const val = l.pluginData?.[pf.fieldName] ?? l[pf.fieldName];
+          if (val != null) lineCustom[pf.fieldName] = val;
+        }
+
         return {
           lineNum: l.lineNum,
           itemId: l.itemId,
@@ -278,7 +341,8 @@ export class PdfPayloadBuilder {
           taxRate: (taxRateMap.get(l.taxGroupId) as number) ?? 0,
           lineTotal: Number(l.lineTotal),
           category,
-          batches: batchesMap.get(l.id) || []
+          batches: batchesMap.get(l.id) || [],
+          customFields: Object.keys(lineCustom).length > 0 ? lineCustom : undefined,
         };
       });
 
@@ -299,7 +363,8 @@ export class PdfPayloadBuilder {
         taxBreakdown: parseTaxBreakdown(header.taxBreakdown),
         billToAddress: header.billToAddress || null,
         shipToAddress: header.shipToAddress || null,
-        baseDocCode
+        baseDocCode,
+        customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
       },
       partner: {
         id: partner?.id || '',
@@ -312,7 +377,7 @@ export class PdfPayloadBuilder {
         email: partner?.email || null,
         phone: partner?.phone || null,
         website: partner?.website || null,
-        priceListName
+        priceListName,
       },
       company: {
         name: configVal('company_name', 'companyName') || 'Mi Empresa',
@@ -321,10 +386,10 @@ export class PdfPayloadBuilder {
         phone: configVal('company_phone', 'companyPhone'),
         email: configVal('company_email', 'companyEmail'),
         website: configVal('company_website', 'companyWebsite'),
-        logoUrl: configVal('company_logo_url', 'companyLogoUrl')
+        logoUrl: configVal('company_logo_url', 'companyLogoUrl'),
       },
       lines,
-      generatedAt: new Date().toLocaleString('es-ES')
+      generatedAt: new Date().toLocaleString('es-ES'),
     };
   }
 
@@ -339,14 +404,14 @@ export class PdfPayloadBuilder {
         date: new Date().toLocaleDateString('es-ES'),
         status: 'O',
         statusLabel: 'Abierto',
-        subtotal: 1000.00,
-        taxTotal: 210.00,
-        total: 1210.00,
+        subtotal: 1000.0,
+        taxTotal: 210.0,
+        total: 1210.0,
         totalInWords: 'mil doscientos diez euros',
         taxBreakdown: [{ rate: 21, base: 1000, tax: 210 }],
         billToAddress: 'Calle Ejemplo 42, 28001 Madrid',
         shipToAddress: 'Polígono Industrial Norte, Nave 5, 28100 Alcobendas',
-        baseDocCode: null
+        baseDocCode: null,
       },
       partner: {
         id: 'sample-partner',
@@ -354,12 +419,24 @@ export class PdfPayloadBuilder {
         foreignName: null,
         taxId: 'B12345678',
         address: 'Av. Principal 1, 28001 Madrid, España',
-        billingAddress: { street: 'Av. Principal 1', city: 'Madrid', state: null, zipCode: '28001', country: 'España' },
-        shippingAddress: { street: 'Polígono Industrial Norte, Nave 5', city: 'Alcobendas', state: null, zipCode: '28100', country: 'España' },
+        billingAddress: {
+          street: 'Av. Principal 1',
+          city: 'Madrid',
+          state: null,
+          zipCode: '28001',
+          country: 'España',
+        },
+        shippingAddress: {
+          street: 'Polígono Industrial Norte, Nave 5',
+          city: 'Alcobendas',
+          state: null,
+          zipCode: '28100',
+          country: 'España',
+        },
         email: 'cliente@ejemplo.com',
         phone: '+34 900 000 000',
         website: 'https://ejemplo.com',
-        priceListName: 'Tarifa General'
+        priceListName: 'Tarifa General',
       },
       company: {
         name: 'Mi Empresa S.L.',
@@ -368,20 +445,45 @@ export class PdfPayloadBuilder {
         phone: '+34 911 222 333',
         email: 'contacto@miempresa.com',
         website: 'https://miempresa.com',
-        logoUrl: null
+        logoUrl: null,
       },
       lines: [
-        { lineNum: 1, itemId: 'i1', itemCode: 'ART-001', itemName: 'Artículo de muestra 1', itemDescription: 'Descripción detallada del artículo', quantity: 2, uom: 'u', price: 250, taxRate: 21, lineTotal: 605, category: 'General' },
-        { lineNum: 2, itemId: 'i2', itemCode: 'ART-002', itemName: 'Servicio profesional', itemDescription: null, quantity: 1, uom: 'h', price: 500, taxRate: 21, lineTotal: 605, category: 'Servicios' }
+        {
+          lineNum: 1,
+          itemId: 'i1',
+          itemCode: 'ART-001',
+          itemName: 'Artículo de muestra 1',
+          itemDescription: 'Descripción detallada del artículo',
+          quantity: 2,
+          uom: 'u',
+          price: 250,
+          taxRate: 21,
+          lineTotal: 605,
+          category: 'General',
+        },
+        {
+          lineNum: 2,
+          itemId: 'i2',
+          itemCode: 'ART-002',
+          itemName: 'Servicio profesional',
+          itemDescription: null,
+          quantity: 1,
+          uom: 'h',
+          price: 500,
+          taxRate: 21,
+          lineTotal: 605,
+          category: 'Servicios',
+        },
       ],
-      generatedAt: new Date().toLocaleString('es-ES')
+      generatedAt: new Date().toLocaleString('es-ES'),
     };
   }
 
   public static async findLatestSampleId(docType: DocType, db: any): Promise<string | null> {
     const map = TABLE_MAP[docType];
     if (!map) return null;
-    const [row] = await db.select({ id: map.header.id })
+    const [row] = await db
+      .select({ id: map.header.id })
       .from(map.header)
       .orderBy(desc(map.header.createdAt))
       .limit(1);

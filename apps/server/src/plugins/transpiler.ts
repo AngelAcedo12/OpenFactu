@@ -5,10 +5,10 @@ import * as esbuild from 'esbuild';
  * El navegador resolverá estas URLs directamente contra el servidor.
  */
 const EXTERNAL_PACKAGE_MAP: Record<string, string> = {
-  'react':            'http://localhost:3000/api/plugins/sdk/react.js',
-  'react-dom':        'http://localhost:3000/api/plugins/sdk/react-dom.js',
-  'lucide-react':     'http://localhost:3000/api/plugins/sdk/lucide-react.js',
-  '@openfactu/ui':    'http://localhost:3000/api/plugins/sdk/@openfactu/ui.js',
+  react: 'http://localhost:3000/api/plugins/sdk/react.js',
+  'react-dom': 'http://localhost:3000/api/plugins/sdk/react-dom.js',
+  'lucide-react': 'http://localhost:3000/api/plugins/sdk/lucide-react.js',
+  '@openfactu/ui': 'http://localhost:3000/api/plugins/sdk/@openfactu/ui.js',
   'react-router-dom': 'http://localhost:3000/api/plugins/sdk/react-router-dom.js',
 };
 
@@ -20,17 +20,20 @@ const sdkResolverPlugin: esbuild.Plugin = {
   name: 'sdk-resolver',
   setup(build) {
     // Interceptar la resolución de los paquetes externos
-    build.onResolve({ filter: /^(react|react-dom|lucide-react|@openfactu\/ui|react-router-dom)/ }, (args) => {
-      const url = EXTERNAL_PACKAGE_MAP[args.path];
-      if (url) {
-        return {
-          path: url,
-          external: true,  // Decirle a esbuild que no lo empaquete
-        };
-      }
-      return null;
-    });
-  }
+    build.onResolve(
+      { filter: /^(react|react-dom|lucide-react|@openfactu\/ui|react-router-dom)/ },
+      (args) => {
+        const url = EXTERNAL_PACKAGE_MAP[args.path];
+        if (url) {
+          return {
+            path: url,
+            external: true, // Decirle a esbuild que no lo empaquete
+          };
+        }
+        return null;
+      },
+    );
+  },
 };
 
 /**
@@ -54,8 +57,8 @@ export const transpilePluginFile = async (filePath: string): Promise<string> => 
         '.js': 'js',
         '.jsx': 'jsx',
         '.css': 'css',
-        '.json': 'json'
-      }
+        '.json': 'json',
+      },
     });
 
     if (!result.outputFiles || result.outputFiles.length === 0) {

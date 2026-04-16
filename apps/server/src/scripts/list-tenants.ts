@@ -6,7 +6,7 @@ async function listTenants() {
     const db = ClientFactory.getClient('public');
     const tenants = await db.select().from(schema.tenants);
     console.log('Tenants found:');
-    console.table(tenants.map(t => ({ id: t.id, name: t.name, schema: t.schemaName })));
+    console.table(tenants.map((t) => ({ id: t.id, name: t.name, schema: t.schemaName })));
   } catch (err) {
     console.error('Failed to list tenants:', err);
   } finally {

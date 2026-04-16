@@ -45,7 +45,10 @@ router.get('/mine', async (req: any, res) => {
     const db = ClientFactory.getClient('public');
     const { userId } = req.authPayload;
 
-    const [user] = await db.select().from(schema.globalUsers).where(eq(schema.globalUsers.id, userId));
+    const [user] = await db
+      .select()
+      .from(schema.globalUsers)
+      .where(eq(schema.globalUsers.id, userId));
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
     if (user.role === 'SUPERUSER') {
@@ -97,7 +100,11 @@ router.post('/', requireAdmin, async (req: any, res) => {
   try {
     const publicDb = ClientFactory.getClient('public');
 
-    const slug = String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const slug = String(name)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
     if (!slug) return res.status(400).json({ error: 'Nombre inválido' });
     const schemaName = `tenant_${slug}`;
 
@@ -114,15 +121,15 @@ router.post('/', requireAdmin, async (req: any, res) => {
       const tenantDb = ClientFactory.getClient(schemaName);
       await setCompanyConfig(tenantDb, {
         name,
-        taxId:           nif || '',
-        address:         body.address || '',
-        city:            body.city || '',
-        zipCode:         body.zipCode || '',
-        country:         body.country || 'ES',
-        email:           body.email || '',
-        phone:           body.phone || '',
-        website:         body.website || '',
-        currency:        body.currency || 'EUR',
+        taxId: nif || '',
+        address: body.address || '',
+        city: body.city || '',
+        zipCode: body.zipCode || '',
+        country: body.country || 'ES',
+        email: body.email || '',
+        phone: body.phone || '',
+        website: body.website || '',
+        currency: body.currency || 'EUR',
         fiscalYearStart: body.fiscalYearStart || '01-01',
       });
     } catch (err: any) {

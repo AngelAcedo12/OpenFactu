@@ -32,6 +32,7 @@ import tenantsRouter from './api/tenants';
 import configRouter from './api/config';
 import searchRouter from './api/search';
 import geoRouter from './api/geo';
+import factuApiRouter from './api/factuapi';
 import { tenantContextMiddleware } from './api/middleware/tenantContext';
 import { MigrationManager } from './core/tenant/MigrationManager';
 import { bootstrapAdmin } from './core/auth/bootstrap';
@@ -85,7 +86,7 @@ app.use('/api/tenants', tenantsRouter);
 app.use('/api/config', configRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/geo', geoRouter);
-
+app.use('/api/factuapi', factuApiRouter);
 
 // Health check para el instalador y Docker
 app.get('/health', (req, res) => {
@@ -99,7 +100,7 @@ async function waitForDatabase(retries = 10, delay = 2000) {
   const dbUrl = process.env.DATABASE_URL || '';
   const maskedUrl = dbUrl.replace(/:([^:@]+)@/, ':***@');
   console.log(`[Server] Intentando conectar a: ${maskedUrl}`);
-  
+
   const db = ClientFactory.getClient('public');
   for (let i = 0; i < retries; i++) {
     try {
@@ -107,8 +108,10 @@ async function waitForDatabase(retries = 10, delay = 2000) {
       console.log('   ✅ Base de datos lista.');
       return;
     } catch (err: any) {
-      console.log(`   [Wait] Reintentando conexión a la base de datos (${i + 1}/${retries})... Error: ${err.message}`);
-      await new Promise(res => setTimeout(res, delay));
+      console.log(
+        `   [Wait] Reintentando conexión a la base de datos (${i + 1}/${retries})... Error: ${err.message}`,
+      );
+      await new Promise((res) => setTimeout(res, delay));
     }
   }
   throw new Error('No se pudo establecer conexión con la base de datos tras varios intentos.');
@@ -134,7 +137,7 @@ const start = async () => {
     console.log('[Bootstrap] Sincronizando esquemas de empresas...');
     await MigrationManager.syncAllTenants();
     console.log('[Bootstrap] Esquemas sincronizados.');
-    
+
     await loadPlugins(app);
 
     app.listen(PORT, () => {
@@ -149,7 +152,11 @@ const start = async () => {
 // Cerrar Puppeteer al recibir señal de apagado
 const shutdown = async () => {
   console.log('[Server] Cerrando recursos...');
-  try { await PdfRenderer.shutdown(); } catch { /* noop */ }
+  try {
+    await PdfRenderer.shutdown();
+  } catch {
+    /* noop */
+  }
   process.exit(0);
 };
 process.on('SIGTERM', shutdown);

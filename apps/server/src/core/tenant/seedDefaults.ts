@@ -30,35 +30,65 @@ interface SeedSeries {
 }
 
 const TAX_GROUPS: SeedTaxGroup[] = [
-  { code: 'IVA0',  rate: '0.00'  },
-  { code: 'IVA4',  rate: '4.00'  },
+  { code: 'IVA0', rate: '0.00' },
+  { code: 'IVA4', rate: '4.00' },
   { code: 'IVA10', rate: '10.00' },
   { code: 'IVA21', rate: '21.00' },
 ];
 
 const UOMS: SeedUom[] = [
-  { code: 'UD', name: 'Unidad'    },
+  { code: 'UD', name: 'Unidad' },
   { code: 'KG', name: 'Kilogramo' },
-  { code: 'L',  name: 'Litro'     },
-  { code: 'M',  name: 'Metro'     },
-  { code: 'CJ', name: 'Caja'      },
-  { code: 'BL', name: 'Bolsa'     },
-  { code: 'H',  name: 'Hora'      },
+  { code: 'L', name: 'Litro' },
+  { code: 'M', name: 'Metro' },
+  { code: 'CJ', name: 'Caja' },
+  { code: 'BL', name: 'Bolsa' },
+  { code: 'H', name: 'Hora' },
 ];
 
 const PARTNER_GROUPS: SeedPartnerGroup[] = [
-  { code: 'CLI', name: 'Clientes',    codePrefix: 'CLI', isCustomer: true,  isVendor: false },
-  { code: 'PRV', name: 'Proveedores', codePrefix: 'PRV', isCustomer: false, isVendor: true  },
-  { code: 'MAY', name: 'Mayoristas',  codePrefix: 'MAY', isCustomer: true,  isVendor: false },
+  { code: 'CLI', name: 'Clientes', codePrefix: 'CLI', isCustomer: true, isVendor: false },
+  { code: 'PRV', name: 'Proveedores', codePrefix: 'PRV', isCustomer: false, isVendor: true },
+  { code: 'MAY', name: 'Mayoristas', codePrefix: 'MAY', isCustomer: true, isVendor: false },
 ];
 
 const SERIES: SeedSeries[] = [
-  { docType: 'SINV', name: 'Facturas Venta',     description: 'Serie por defecto de facturas de venta',  prefix: 'FA' },
-  { docType: 'PINV', name: 'Facturas Compra',    description: 'Serie por defecto de facturas de compra', prefix: 'FC' },
-  { docType: 'SDN',  name: 'Albaranes Venta',    description: 'Serie por defecto de albaranes de venta', prefix: 'AL' },
-  { docType: 'PDN',  name: 'Albaranes Compra',   description: 'Serie por defecto de albaranes de compra',prefix: 'AC' },
-  { docType: 'SO',   name: 'Pedidos Venta',      description: 'Serie por defecto de pedidos de venta',   prefix: 'PE' },
-  { docType: 'PO',   name: 'Pedidos Compra',     description: 'Serie por defecto de pedidos de compra',  prefix: 'PC' },
+  {
+    docType: 'SINV',
+    name: 'Facturas Venta',
+    description: 'Serie por defecto de facturas de venta',
+    prefix: 'FA',
+  },
+  {
+    docType: 'PINV',
+    name: 'Facturas Compra',
+    description: 'Serie por defecto de facturas de compra',
+    prefix: 'FC',
+  },
+  {
+    docType: 'SDN',
+    name: 'Albaranes Venta',
+    description: 'Serie por defecto de albaranes de venta',
+    prefix: 'AL',
+  },
+  {
+    docType: 'PDN',
+    name: 'Albaranes Compra',
+    description: 'Serie por defecto de albaranes de compra',
+    prefix: 'AC',
+  },
+  {
+    docType: 'SO',
+    name: 'Pedidos Venta',
+    description: 'Serie por defecto de pedidos de venta',
+    prefix: 'PE',
+  },
+  {
+    docType: 'PO',
+    name: 'Pedidos Compra',
+    description: 'Serie por defecto de pedidos de compra',
+    prefix: 'PC',
+  },
 ];
 
 /**
@@ -82,7 +112,8 @@ export async function seedDefaults(schemaName: string) {
 
 async function seedTaxGroups(db: any) {
   for (const tg of TAX_GROUPS) {
-    const existing = await db.select({ id: schema.taxGroups.id })
+    const existing = await db
+      .select({ id: schema.taxGroups.id })
       .from(schema.taxGroups)
       .where(eq(schema.taxGroups.code, tg.code));
     if (existing.length > 0) continue;
@@ -96,7 +127,8 @@ async function seedTaxGroups(db: any) {
 
 async function seedUoms(db: any) {
   for (const u of UOMS) {
-    const existing = await db.select({ id: schema.unitsOfMeasure.id })
+    const existing = await db
+      .select({ id: schema.unitsOfMeasure.id })
       .from(schema.unitsOfMeasure)
       .where(eq(schema.unitsOfMeasure.code, u.code));
     if (existing.length > 0) continue;
@@ -111,7 +143,8 @@ async function seedUoms(db: any) {
 
 async function seedPartnerGroups(db: any) {
   for (const pg of PARTNER_GROUPS) {
-    const existing = await db.select({ id: schema.partnerGroups.id })
+    const existing = await db
+      .select({ id: schema.partnerGroups.id })
       .from(schema.partnerGroups)
       .where(eq(schema.partnerGroups.code, pg.code));
     if (existing.length > 0) continue;
@@ -149,7 +182,8 @@ async function seedCurrentPeriod(db: any): Promise<string> {
   const year = new Date().getFullYear();
   const code = String(year);
 
-  const [existing] = await db.select({ id: schema.accountingPeriods.id })
+  const [existing] = await db
+    .select({ id: schema.accountingPeriods.id })
     .from(schema.accountingPeriods)
     .where(eq(schema.accountingPeriods.code, code));
   if (existing) return existing.id;
@@ -168,12 +202,15 @@ async function seedCurrentPeriod(db: any): Promise<string> {
 
 async function seedSeries(db: any, periodId: string) {
   for (const s of SERIES) {
-    const existing = await db.select({ id: schema.documentSeries.id })
+    const existing = await db
+      .select({ id: schema.documentSeries.id })
       .from(schema.documentSeries)
-      .where(and(
-        eq(schema.documentSeries.docType, s.docType),
-        eq(schema.documentSeries.periodId, periodId),
-      ));
+      .where(
+        and(
+          eq(schema.documentSeries.docType, s.docType),
+          eq(schema.documentSeries.periodId, periodId),
+        ),
+      );
     if (existing.length > 0) continue;
 
     await db.insert(schema.documentSeries).values({

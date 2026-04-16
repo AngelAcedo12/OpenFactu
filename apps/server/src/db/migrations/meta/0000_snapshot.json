@@ -54,16 +54,12 @@
         "Tenant_name_unique": {
           "name": "Tenant_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         },
         "Tenant_schemaName_unique": {
           "name": "Tenant_schemaName_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "schemaName"
-          ]
+          "columns": ["schemaName"]
         }
       },
       "policies": {},
@@ -132,12 +128,8 @@
           "name": "GlobalUser_tenantId_Tenant_id_fk",
           "tableFrom": "GlobalUser",
           "tableTo": "Tenant",
-          "columnsFrom": [
-            "tenantId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenantId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -147,16 +139,12 @@
         "GlobalUser_email_unique": {
           "name": "GlobalUser_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         },
         "GlobalUser_username_unique": {
           "name": "GlobalUser_username_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "username"
-          ]
+          "columns": ["username"]
         }
       },
       "policies": {},
@@ -276,9 +264,7 @@
         "PartnerGroup_code_unique": {
           "name": "PartnerGroup_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -356,12 +342,8 @@
           "name": "BusinessPartner_groupId_PartnerGroup_id_fk",
           "tableFrom": "BusinessPartner",
           "tableTo": "PartnerGroup",
-          "columnsFrom": [
-            "groupId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["groupId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -369,12 +351,8 @@
           "name": "BusinessPartner_priceListId_PriceList_id_fk",
           "tableFrom": "BusinessPartner",
           "tableTo": "PriceList",
-          "columnsFrom": [
-            "priceListId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["priceListId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -384,16 +362,12 @@
         "BusinessPartner_code_unique": {
           "name": "BusinessPartner_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         },
         "BusinessPartner_nif_unique": {
           "name": "BusinessPartner_nif_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "nif"
-          ]
+          "columns": ["nif"]
         }
       },
       "policies": {},
@@ -473,12 +447,8 @@
           "name": "PartnerAddress_partnerId_BusinessPartner_id_fk",
           "tableFrom": "PartnerAddress",
           "tableTo": "BusinessPartner",
-          "columnsFrom": [
-            "partnerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["partnerId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -538,9 +508,7 @@
         "AccountingPeriod_code_unique": {
           "name": "AccountingPeriod_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -625,12 +593,8 @@
           "name": "DocumentSeries_periodId_AccountingPeriod_id_fk",
           "tableFrom": "DocumentSeries",
           "tableTo": "AccountingPeriod",
-          "columnsFrom": [
-            "periodId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["periodId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -640,9 +604,7 @@
         "DocumentSeries_name_unique": {
           "name": "DocumentSeries_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -679,9 +641,7 @@
         "TaxGroup_code_unique": {
           "name": "TaxGroup_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -748,12 +708,8 @@
           "name": "ItemPrice_priceListId_PriceList_id_fk",
           "tableFrom": "ItemPrice",
           "tableTo": "PriceList",
-          "columnsFrom": [
-            "priceListId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["priceListId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -761,12 +717,8 @@
           "name": "ItemPrice_itemId_Item_id_fk",
           "tableFrom": "ItemPrice",
           "tableTo": "Item",
-          "columnsFrom": [
-            "itemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["itemId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -776,10 +728,7 @@
         "ItemPrice_priceListId_itemId_unique": {
           "name": "ItemPrice_priceListId_itemId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "priceListId",
-            "itemId"
-          ]
+          "columns": ["priceListId", "itemId"]
         }
       },
       "policies": {},
@@ -874,12 +823,8 @@
           "name": "Item_uomId_UnitOfMeasure_id_fk",
           "tableFrom": "Item",
           "tableTo": "UnitOfMeasure",
-          "columnsFrom": [
-            "uomId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["uomId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -887,12 +832,8 @@
           "name": "Item_categoryId_Category_id_fk",
           "tableFrom": "Item",
           "tableTo": "Category",
-          "columnsFrom": [
-            "categoryId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["categoryId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -902,9 +843,7 @@
         "Item_code_unique": {
           "name": "Item_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -953,12 +892,8 @@
           "name": "ItemBatch_itemId_Item_id_fk",
           "tableFrom": "ItemBatch",
           "tableTo": "Item",
-          "columnsFrom": [
-            "itemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["itemId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1005,12 +940,8 @@
           "name": "ItemSerial_itemId_Item_id_fk",
           "tableFrom": "ItemSerial",
           "tableTo": "Item",
-          "columnsFrom": [
-            "itemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["itemId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1020,9 +951,7 @@
         "ItemSerial_serialNum_unique": {
           "name": "ItemSerial_serialNum_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "serialNum"
-          ]
+          "columns": ["serialNum"]
         }
       },
       "policies": {},
@@ -1064,12 +993,8 @@
           "name": "WarehouseZone_warehouseId_Warehouse_id_fk",
           "tableFrom": "WarehouseZone",
           "tableTo": "Warehouse",
-          "columnsFrom": [
-            "warehouseId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["warehouseId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1169,12 +1094,8 @@
           "name": "ItemWarehouseStock_itemId_Item_id_fk",
           "tableFrom": "ItemWarehouseStock",
           "tableTo": "Item",
-          "columnsFrom": [
-            "itemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["itemId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1182,12 +1103,8 @@
           "name": "ItemWarehouseStock_warehouseId_Warehouse_id_fk",
           "tableFrom": "ItemWarehouseStock",
           "tableTo": "Warehouse",
-          "columnsFrom": [
-            "warehouseId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["warehouseId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1197,10 +1114,7 @@
         "ItemWarehouseStock_itemId_warehouseId_unique": {
           "name": "ItemWarehouseStock_itemId_warehouseId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "itemId",
-            "warehouseId"
-          ]
+          "columns": ["itemId", "warehouseId"]
         }
       },
       "policies": {},
@@ -1249,12 +1163,8 @@
           "name": "UnitOfMeasure_baseUomId_UnitOfMeasure_id_fk",
           "tableFrom": "UnitOfMeasure",
           "tableTo": "UnitOfMeasure",
-          "columnsFrom": [
-            "baseUomId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["baseUomId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1264,9 +1174,7 @@
         "UnitOfMeasure_code_unique": {
           "name": "UnitOfMeasure_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -1308,12 +1216,8 @@
           "name": "ItemAlternativeUom_itemId_Item_id_fk",
           "tableFrom": "ItemAlternativeUom",
           "tableTo": "Item",
-          "columnsFrom": [
-            "itemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["itemId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1321,12 +1225,8 @@
           "name": "ItemAlternativeUom_uomId_UnitOfMeasure_id_fk",
           "tableFrom": "ItemAlternativeUom",
           "tableTo": "UnitOfMeasure",
-          "columnsFrom": [
-            "uomId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["uomId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1386,12 +1286,8 @@
           "name": "Category_parentId_Category_id_fk",
           "tableFrom": "Category",
           "tableTo": "Category",
-          "columnsFrom": [
-            "parentId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parentId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1451,12 +1347,8 @@
           "name": "OrderHeader_partnerId_BusinessPartner_id_fk",
           "tableFrom": "OrderHeader",
           "tableTo": "BusinessPartner",
-          "columnsFrom": [
-            "partnerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["partnerId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1466,9 +1358,7 @@
         "OrderHeader_docNum_unique": {
           "name": "OrderHeader_docNum_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "docNum"
-          ]
+          "columns": ["docNum"]
         }
       },
       "policies": {},
@@ -1546,12 +1436,8 @@
           "name": "OrderLine_orderId_OrderHeader_id_fk",
           "tableFrom": "OrderLine",
           "tableTo": "OrderHeader",
-          "columnsFrom": [
-            "orderId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["orderId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1559,12 +1445,8 @@
           "name": "OrderLine_itemId_Item_id_fk",
           "tableFrom": "OrderLine",
           "tableTo": "Item",
-          "columnsFrom": [
-            "itemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["itemId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1572,12 +1454,8 @@
           "name": "OrderLine_uomId_UnitOfMeasure_id_fk",
           "tableFrom": "OrderLine",
           "tableTo": "UnitOfMeasure",
-          "columnsFrom": [
-            "uomId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["uomId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1585,12 +1463,8 @@
           "name": "OrderLine_taxGroupId_TaxGroup_id_fk",
           "tableFrom": "OrderLine",
           "tableTo": "TaxGroup",
-          "columnsFrom": [
-            "taxGroupId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["taxGroupId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1650,12 +1524,8 @@
           "name": "DeliveryHeader_partnerId_BusinessPartner_id_fk",
           "tableFrom": "DeliveryHeader",
           "tableTo": "BusinessPartner",
-          "columnsFrom": [
-            "partnerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["partnerId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1665,9 +1535,7 @@
         "DeliveryHeader_docNum_unique": {
           "name": "DeliveryHeader_docNum_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "docNum"
-          ]
+          "columns": ["docNum"]
         }
       },
       "policies": {},
@@ -1751,12 +1619,8 @@
           "name": "DeliveryLine_deliveryId_DeliveryHeader_id_fk",
           "tableFrom": "DeliveryLine",
           "tableTo": "DeliveryHeader",
-          "columnsFrom": [
-            "deliveryId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deliveryId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1764,12 +1628,8 @@
           "name": "DeliveryLine_itemId_Item_id_fk",
           "tableFrom": "DeliveryLine",
           "tableTo": "Item",
-          "columnsFrom": [
-            "itemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["itemId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1777,12 +1637,8 @@
           "name": "DeliveryLine_uomId_UnitOfMeasure_id_fk",
           "tableFrom": "DeliveryLine",
           "tableTo": "UnitOfMeasure",
-          "columnsFrom": [
-            "uomId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["uomId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1790,12 +1646,8 @@
           "name": "DeliveryLine_taxGroupId_TaxGroup_id_fk",
           "tableFrom": "DeliveryLine",
           "tableTo": "TaxGroup",
-          "columnsFrom": [
-            "taxGroupId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["taxGroupId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1803,12 +1655,8 @@
           "name": "DeliveryLine_baseLineId_OrderLine_id_fk",
           "tableFrom": "DeliveryLine",
           "tableTo": "OrderLine",
-          "columnsFrom": [
-            "baseLineId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["baseLineId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1868,12 +1716,8 @@
           "name": "InvoiceHeader_partnerId_BusinessPartner_id_fk",
           "tableFrom": "InvoiceHeader",
           "tableTo": "BusinessPartner",
-          "columnsFrom": [
-            "partnerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["partnerId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1883,9 +1727,7 @@
         "InvoiceHeader_docNum_unique": {
           "name": "InvoiceHeader_docNum_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "docNum"
-          ]
+          "columns": ["docNum"]
         }
       },
       "policies": {},
@@ -1963,12 +1805,8 @@
           "name": "InvoiceLine_invoiceId_InvoiceHeader_id_fk",
           "tableFrom": "InvoiceLine",
           "tableTo": "InvoiceHeader",
-          "columnsFrom": [
-            "invoiceId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invoiceId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1976,12 +1814,8 @@
           "name": "InvoiceLine_itemId_Item_id_fk",
           "tableFrom": "InvoiceLine",
           "tableTo": "Item",
-          "columnsFrom": [
-            "itemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["itemId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1989,12 +1823,8 @@
           "name": "InvoiceLine_uomId_UnitOfMeasure_id_fk",
           "tableFrom": "InvoiceLine",
           "tableTo": "UnitOfMeasure",
-          "columnsFrom": [
-            "uomId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["uomId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2002,12 +1832,8 @@
           "name": "InvoiceLine_taxGroupId_TaxGroup_id_fk",
           "tableFrom": "InvoiceLine",
           "tableTo": "TaxGroup",
-          "columnsFrom": [
-            "taxGroupId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["taxGroupId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2015,12 +1841,8 @@
           "name": "InvoiceLine_baseLineId_DeliveryLine_id_fk",
           "tableFrom": "InvoiceLine",
           "tableTo": "DeliveryLine",
-          "columnsFrom": [
-            "baseLineId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["baseLineId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2085,12 +1907,8 @@
           "name": "DocumentLineDist_orderLineId_OrderLine_id_fk",
           "tableFrom": "DocumentLineDist",
           "tableTo": "OrderLine",
-          "columnsFrom": [
-            "orderLineId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["orderLineId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2098,12 +1916,8 @@
           "name": "DocumentLineDist_deliveryLineId_DeliveryLine_id_fk",
           "tableFrom": "DocumentLineDist",
           "tableTo": "DeliveryLine",
-          "columnsFrom": [
-            "deliveryLineId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deliveryLineId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2111,12 +1925,8 @@
           "name": "DocumentLineDist_invoiceLineId_InvoiceLine_id_fk",
           "tableFrom": "DocumentLineDist",
           "tableTo": "InvoiceLine",
-          "columnsFrom": [
-            "invoiceLineId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invoiceLineId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2124,12 +1934,8 @@
           "name": "DocumentLineDist_batchId_ItemBatch_id_fk",
           "tableFrom": "DocumentLineDist",
           "tableTo": "ItemBatch",
-          "columnsFrom": [
-            "batchId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["batchId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2137,12 +1943,8 @@
           "name": "DocumentLineDist_serialId_ItemSerial_id_fk",
           "tableFrom": "DocumentLineDist",
           "tableTo": "ItemSerial",
-          "columnsFrom": [
-            "serialId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["serialId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2251,12 +2053,8 @@
           "name": "PurchaseOrder_seriesId_DocumentSeries_id_fk",
           "tableFrom": "PurchaseOrder",
           "tableTo": "DocumentSeries",
-          "columnsFrom": [
-            "seriesId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["seriesId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2264,12 +2062,8 @@
           "name": "PurchaseOrder_periodId_AccountingPeriod_id_fk",
           "tableFrom": "PurchaseOrder",
           "tableTo": "AccountingPeriod",
-          "columnsFrom": [
-            "periodId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["periodId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2277,12 +2071,8 @@
           "name": "PurchaseOrder_partnerId_BusinessPartner_id_fk",
           "tableFrom": "PurchaseOrder",
           "tableTo": "BusinessPartner",
-          "columnsFrom": [
-            "partnerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["partnerId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2290,12 +2080,8 @@
           "name": "PurchaseOrder_warehouseId_Warehouse_id_fk",
           "tableFrom": "PurchaseOrder",
           "tableTo": "Warehouse",
-          "columnsFrom": [
-            "warehouseId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["warehouseId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2384,12 +2170,8 @@
           "name": "PurchaseOrderLine_orderId_PurchaseOrder_id_fk",
           "tableFrom": "PurchaseOrderLine",
           "tableTo": "PurchaseOrder",
-          "columnsFrom": [
-            "orderId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["orderId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2397,12 +2179,8 @@
           "name": "PurchaseOrderLine_itemId_Item_id_fk",
           "tableFrom": "PurchaseOrderLine",
           "tableTo": "Item",
-          "columnsFrom": [
-            "itemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["itemId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2410,12 +2188,8 @@
           "name": "PurchaseOrderLine_warehouseId_Warehouse_id_fk",
           "tableFrom": "PurchaseOrderLine",
           "tableTo": "Warehouse",
-          "columnsFrom": [
-            "warehouseId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["warehouseId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2423,12 +2197,8 @@
           "name": "PurchaseOrderLine_taxGroupId_TaxGroup_id_fk",
           "tableFrom": "PurchaseOrderLine",
           "tableTo": "TaxGroup",
-          "columnsFrom": [
-            "taxGroupId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["taxGroupId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2531,12 +2301,8 @@
           "name": "PurchaseDeliveryNote_seriesId_DocumentSeries_id_fk",
           "tableFrom": "PurchaseDeliveryNote",
           "tableTo": "DocumentSeries",
-          "columnsFrom": [
-            "seriesId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["seriesId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2544,12 +2310,8 @@
           "name": "PurchaseDeliveryNote_periodId_AccountingPeriod_id_fk",
           "tableFrom": "PurchaseDeliveryNote",
           "tableTo": "AccountingPeriod",
-          "columnsFrom": [
-            "periodId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["periodId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2557,12 +2319,8 @@
           "name": "PurchaseDeliveryNote_partnerId_BusinessPartner_id_fk",
           "tableFrom": "PurchaseDeliveryNote",
           "tableTo": "BusinessPartner",
-          "columnsFrom": [
-            "partnerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["partnerId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2570,12 +2328,8 @@
           "name": "PurchaseDeliveryNote_orderId_PurchaseOrder_id_fk",
           "tableFrom": "PurchaseDeliveryNote",
           "tableTo": "PurchaseOrder",
-          "columnsFrom": [
-            "orderId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["orderId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2583,12 +2337,8 @@
           "name": "PurchaseDeliveryNote_warehouseId_Warehouse_id_fk",
           "tableFrom": "PurchaseDeliveryNote",
           "tableTo": "Warehouse",
-          "columnsFrom": [
-            "warehouseId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["warehouseId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2676,12 +2426,8 @@
           "name": "PurchaseDeliveryNoteLine_deliveryId_PurchaseDeliveryNote_id_fk",
           "tableFrom": "PurchaseDeliveryNoteLine",
           "tableTo": "PurchaseDeliveryNote",
-          "columnsFrom": [
-            "deliveryId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deliveryId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2689,12 +2435,8 @@
           "name": "PurchaseDeliveryNoteLine_itemId_Item_id_fk",
           "tableFrom": "PurchaseDeliveryNoteLine",
           "tableTo": "Item",
-          "columnsFrom": [
-            "itemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["itemId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2702,12 +2444,8 @@
           "name": "PurchaseDeliveryNoteLine_warehouseId_Warehouse_id_fk",
           "tableFrom": "PurchaseDeliveryNoteLine",
           "tableTo": "Warehouse",
-          "columnsFrom": [
-            "warehouseId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["warehouseId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2715,12 +2453,8 @@
           "name": "PurchaseDeliveryNoteLine_taxGroupId_TaxGroup_id_fk",
           "tableFrom": "PurchaseDeliveryNoteLine",
           "tableTo": "TaxGroup",
-          "columnsFrom": [
-            "taxGroupId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["taxGroupId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2811,12 +2545,8 @@
           "name": "PurchaseInvoice_seriesId_DocumentSeries_id_fk",
           "tableFrom": "PurchaseInvoice",
           "tableTo": "DocumentSeries",
-          "columnsFrom": [
-            "seriesId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["seriesId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2824,12 +2554,8 @@
           "name": "PurchaseInvoice_periodId_AccountingPeriod_id_fk",
           "tableFrom": "PurchaseInvoice",
           "tableTo": "AccountingPeriod",
-          "columnsFrom": [
-            "periodId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["periodId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2837,12 +2563,8 @@
           "name": "PurchaseInvoice_partnerId_BusinessPartner_id_fk",
           "tableFrom": "PurchaseInvoice",
           "tableTo": "BusinessPartner",
-          "columnsFrom": [
-            "partnerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["partnerId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2930,12 +2652,8 @@
           "name": "PurchaseInvoiceLine_invoiceId_PurchaseInvoice_id_fk",
           "tableFrom": "PurchaseInvoiceLine",
           "tableTo": "PurchaseInvoice",
-          "columnsFrom": [
-            "invoiceId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invoiceId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2943,12 +2661,8 @@
           "name": "PurchaseInvoiceLine_itemId_Item_id_fk",
           "tableFrom": "PurchaseInvoiceLine",
           "tableTo": "Item",
-          "columnsFrom": [
-            "itemId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["itemId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2956,12 +2670,8 @@
           "name": "PurchaseInvoiceLine_taxGroupId_TaxGroup_id_fk",
           "tableFrom": "PurchaseInvoiceLine",
           "tableTo": "TaxGroup",
-          "columnsFrom": [
-            "taxGroupId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["taxGroupId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3021,12 +2731,8 @@
           "name": "PurchaseDeliveryNoteLineBatch_deliveryLineId_PurchaseDeliveryNoteLine_id_fk",
           "tableFrom": "PurchaseDeliveryNoteLineBatch",
           "tableTo": "PurchaseDeliveryNoteLine",
-          "columnsFrom": [
-            "deliveryLineId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deliveryLineId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3086,12 +2792,8 @@
           "name": "PurchaseInvoiceLineBatch_invoiceLineId_PurchaseInvoiceLine_id_fk",
           "tableFrom": "PurchaseInvoiceLineBatch",
           "tableTo": "PurchaseInvoiceLine",
-          "columnsFrom": [
-            "invoiceLineId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invoiceLineId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

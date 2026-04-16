@@ -18,7 +18,10 @@ export interface CountryMeta {
  * Valida un NIF/CIF/TIN contra el regex del país. Si el país no tiene regex
  * o el país es desconocido, devuelve `true` (permisivo).
  */
-export function validateTaxId(taxId: string | null | undefined, country?: CountryMeta | null): boolean {
+export function validateTaxId(
+  taxId: string | null | undefined,
+  country?: CountryMeta | null,
+): boolean {
   if (!taxId) return false;
   if (!country?.taxIdRegex) return true;
   try {
@@ -31,7 +34,10 @@ export function validateTaxId(taxId: string | null | undefined, country?: Countr
 /**
  * Valida un código postal contra el regex del país.
  */
-export function validatePostalCode(code: string | null | undefined, country?: CountryMeta | null): boolean {
+export function validatePostalCode(
+  code: string | null | undefined,
+  country?: CountryMeta | null,
+): boolean {
   if (!code) return false;
   if (!country?.postalCodeRegex) return true;
   try {
@@ -47,7 +53,10 @@ export function validatePostalCode(code: string | null | undefined, country?: Co
  * - Si empieza por `00`, reemplaza por `+`.
  * - Si no, prefija con country.phonePrefix.
  */
-export function normalizePhone(phone: string | null | undefined, country?: CountryMeta | null): string {
+export function normalizePhone(
+  phone: string | null | undefined,
+  country?: CountryMeta | null,
+): string {
   if (!phone) return '';
   const clean = phone.trim().replace(/\s+/g, ' ');
   if (clean.startsWith('+')) return clean;
@@ -64,7 +73,10 @@ export function normalizePhone(phone: string | null | undefined, country?: Count
 /**
  * Extrae solo los dígitos del teléfono (sin prefijo) para edición.
  */
-export function stripPhonePrefix(phone: string | null | undefined, country?: CountryMeta | null): string {
+export function stripPhonePrefix(
+  phone: string | null | undefined,
+  country?: CountryMeta | null,
+): string {
   if (!phone) return '';
   let clean = phone.trim();
   if (country?.phonePrefix && clean.startsWith(country.phonePrefix)) {

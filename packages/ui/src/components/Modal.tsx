@@ -9,16 +9,16 @@ export interface ModalProps {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | 'full';
 }
 
-export const Modal: React.FC<ModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  title, 
-  subtitle, 
+export const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  subtitle,
   children,
-  maxWidth = 'md'
+  maxWidth = 'md',
 }) => {
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -35,24 +35,30 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   const maxWidthClass = {
-    'sm': 'max-w-sm',
-    'md': 'max-w-md',
-    'lg': 'max-w-lg',
-    'xl': 'max-w-xl',
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-xl',
     '2xl': 'max-w-2xl',
     '3xl': 'max-w-3xl',
     '4xl': 'max-w-4xl',
-    '5xl': 'max-w-5xl'
+    '5xl': 'max-w-5xl',
+    '6xl': 'max-w-6xl',
+    '7xl': 'max-w-7xl',
+    full: 'max-w-[95vw]',
   }[maxWidth];
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/70 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
       <Card
-        className={`w-full ${maxWidthClass} shadow-2xl border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-300`}
+        className={`w-full ${maxWidthClass} shadow-2xl border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-300 overflow-visible`}
         title={title}
         subtitle={subtitle}
         headerAction={
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 dark:text-slate-500 transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 dark:text-slate-500 transition-colors"
+          >
             <X size={20} />
           </button>
         }
@@ -60,6 +66,6 @@ export const Modal: React.FC<ModalProps> = ({
         {children}
       </Card>
     </div>,
-    document.body
+    document.body,
   );
 };

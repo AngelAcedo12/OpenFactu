@@ -1,0 +1,32 @@
+{
+  "name": "@openfactu/sdk",
+  "version": "0.0.2",
+  "description": "SDK oficial para integración con OpenFactu ERP — crea documentos, gestiona partners, items y más desde código externo.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "openfactu",
+    "erp",
+    "sdk",
+    "invoicing",
+    "inventory"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

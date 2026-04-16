@@ -5,14 +5,14 @@ interface SkeletonProps {
   count?: number;
 }
 
-export const Skeleton: React.FC<SkeletonProps> = ({ className = 'h-4 bg-slate-200 dark:bg-slate-800 rounded', count = 1 }) => {
+export const Skeleton: React.FC<SkeletonProps> = ({
+  className = 'h-4 bg-slate-200 dark:bg-slate-800 rounded',
+  count = 1,
+}) => {
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (
-        <div
-          key={i}
-          className={`${className} animate-pulse`}
-        />
+        <div key={i} className={`${className} animate-pulse`} />
       ))}
     </>
   );
@@ -21,7 +21,10 @@ export const Skeleton: React.FC<SkeletonProps> = ({ className = 'h-4 bg-slate-20
 export const SkeletonCard: React.FC<{ count?: number }> = ({ count = 1 }) => (
   <>
     {Array.from({ length: count }).map((_, i) => (
-      <div key={i} className="p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 space-y-4">
+      <div
+        key={i}
+        className="p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 space-y-4"
+      >
         <Skeleton className="h-6 w-2/3" />
         <div className="space-y-2">
           <Skeleton className="h-4 w-full" />
@@ -43,7 +46,10 @@ export const DashboardSkeleton: React.FC = () => (
     {/* KPI Cards Grid */}
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="p-6 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 space-y-4">
+        <div
+          key={i}
+          className="p-6 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 space-y-4"
+        >
           <Skeleton className="h-3 w-32" />
           <Skeleton className="h-8 w-40" />
           <div className="space-y-2">
@@ -78,7 +84,10 @@ export const DashboardSkeleton: React.FC = () => (
         {/* Stock Alerts Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="p-6 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 space-y-4">
+            <div
+              key={i}
+              className="p-6 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 space-y-4"
+            >
               <Skeleton className="h-6 w-40" />
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, j) => (
@@ -96,7 +105,10 @@ export const DashboardSkeleton: React.FC = () => (
       {/* Right Column */}
       <aside className="lg:col-span-4 space-y-6">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="p-6 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 space-y-4">
+          <div
+            key={i}
+            className="p-6 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 space-y-4"
+          >
             <Skeleton className="h-6 w-40" />
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, j) => (

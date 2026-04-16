@@ -28,13 +28,21 @@ export function FilterBar({
   onClear,
   config,
   className,
-  searchPlaceholder = "Buscar registros..."
+  searchPlaceholder = 'Buscar registros...',
 }: FilterBarProps) {
   return (
-    <div className={cn("flex flex-wrap items-center gap-3 p-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800", className)}>
+    <div
+      className={cn(
+        'flex flex-wrap items-center gap-3 p-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800',
+        className,
+      )}
+    >
       {/* Global Search */}
       <div className="relative flex-none w-full md:w-96">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
+        <Search
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
+          size={16}
+        />
         <input
           type="text"
           value={searchTerm}
@@ -80,13 +88,16 @@ export function FilterBar({
 
             {/* Indicator of active filter */}
             {filter.type === 'select' && (
-               <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 pointer-events-none" size={14} />
+              <Filter
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 pointer-events-none"
+                size={14}
+              />
             )}
           </div>
         ))}
 
         {/* Clear Button */}
-        {(searchTerm || Object.values(activeFilters).some(v => v !== '')) && (
+        {(searchTerm || Object.values(activeFilters).some((v) => v !== '')) && (
           <button
             onClick={onClear}
             className="flex items-center gap-1.5 px-3 h-10 text-xs font-black text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors uppercase tracking-widest"

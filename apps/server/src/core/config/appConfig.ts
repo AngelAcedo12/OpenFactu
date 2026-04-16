@@ -24,25 +24,25 @@ export interface FlagsConfig {
 
 export const BRANDING_DEFAULTS: BrandingConfig = {
   colorPrimary: '#2563eb',
-  colorAccent:  '#10b981',
-  logoUrl:      '',
-  appName:      'OpenFactu',
-  fontFamily:   'sans',
-  themeMode:    'light',
+  colorAccent: '#10b981',
+  logoUrl: '',
+  appName: 'OpenFactu',
+  fontFamily: 'sans',
+  themeMode: 'light',
 };
 
 export const FORMAT_DEFAULTS: FormatConfig = {
-  locale:            'es-ES',
-  dateFormat:        'dd/MM/yyyy',
-  decimalPrecision:  2,
+  locale: 'es-ES',
+  dateFormat: 'dd/MM/yyyy',
+  decimalPrecision: 2,
   quantityPrecision: 2,
 };
 
 export const FLAGS_DEFAULTS: FlagsConfig = {
-  allowNegativeStock:    false,
-  autoConfirmBatches:    false,
-  watermarkDraft:        true,
-  confirmBeforeCancel:   true,
+  allowNegativeStock: false,
+  autoConfirmBatches: false,
+  watermarkDraft: true,
+  confirmBeforeCancel: true,
   enforceWarehouseZones: false,
 };
 
