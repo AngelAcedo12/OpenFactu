@@ -564,6 +564,110 @@ export function registerPluginCommand(program: Command) {
       }
     });
 
+  // ── openfactu plugin watch ──
+  plugin
+    .command('watch [dir]')
+    .description('Vigila cambios en un plugin y los sube automaticamente al servidor')
+    .requiredOption('-s, --server <url>', 'URL del servidor')
+    .option('-t, --token <token>', 'Token JWT de admin')
+    .option('--client-id <id>', 'Client ID de la dev key')
+    .option('--client-secret <secret>', 'Client Secret de la dev key')
+    .action(async (dir: string | undefined, opts: any) => {
+      if (!opts.token && (!opts.clientId || !opts.clientSecret)) {
+        log.error('Necesitas --token o --client-id + --client-secret');
+        return;
+      }
+
+      const sourcePath = path.resolve(dir || process.cwd());
+      if (!fs.existsSync(sourcePath)) {
+        log.error(`Directorio no encontrado: ${sourcePath}`);
+        return;
+      }
+
+      const pluginName = path.basename(sourcePath);
+      log.info(`Vigilando: ${chalk.bold(pluginName)}`);
+      log.info(`Servidor:  ${chalk.dim(opts.server)}`);
+      log.blank();
+      log.dim('  Guardando cualquier archivo se subira automaticamente al servidor.');
+      log.dim('  Ctrl+C para parar.');
+      log.blank();
+
+      const authHeaders: Record<string, string> = opts.token
+        ? { 'Authorization': `Bearer ${opts.token}` }
+        : { 'X-Client-Id': opts.clientId, 'X-Client-Secret': opts.clientSecret };
+
+      // Funcion para subir un archivo al servidor
+      const pushFile = async (filePath: string) => {
+        const relativePath = path.relative(sourcePath, filePath);
+        const content = fs.readFileSync(filePath).toString('base64');
+
+        try {
+          const data = JSON.stringify({ files: [{ path: relativePath, content }] });
+          const urlObj = new (require('url').URL)(`${opts.server}/api/plugins/${pluginName}/push`);
+          const http = urlObj.protocol === 'https:' ? require('https') : require('http');
+
+          await new Promise<void>((resolve, reject) => {
+            const req = http.request({
+              hostname: urlObj.hostname,
+              port: urlObj.port,
+              path: urlObj.pathname,
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data),
+                ...authHeaders,
+              },
+            }, (res: any) => {
+              let body = '';
+              res.on('data', (chunk: string) => body += chunk);
+              res.on('end', () => {
+                if (res.statusCode === 200) resolve();
+                else reject(new Error(body));
+              });
+            });
+            req.on('error', reject);
+            req.write(data);
+            req.end();
+          });
+
+          log.success(`${chalk.dim(relativePath)} → subido y recargado`);
+        } catch (err: any) {
+          log.error(`${relativePath} → ${err.message}`);
+        }
+      };
+
+      // Watcher
+      const chokidar = require('chokidar');
+      const debounceTimers: Map<string, NodeJS.Timeout> = new Map();
+
+      const watcher = chokidar.watch(sourcePath, {
+        ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**'],
+        ignoreInitial: true,
+        persistent: true,
+      });
+
+      const handleChange = (filePath: string) => {
+        const existing = debounceTimers.get(filePath);
+        if (existing) clearTimeout(existing);
+
+        debounceTimers.set(filePath, setTimeout(() => {
+          debounceTimers.delete(filePath);
+          pushFile(filePath);
+        }, 300));
+      };
+
+      watcher.on('change', handleChange);
+      watcher.on('add', handleChange);
+
+      // Mantener el proceso vivo
+      process.on('SIGINT', () => {
+        watcher.close();
+        log.blank();
+        log.info('Watch detenido');
+        process.exit(0);
+      });
+    });
+
   // ── openfactu plugin dev ──
   plugin
     .command('dev [name]')
