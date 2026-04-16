@@ -373,4 +373,374 @@ export function registerPluginCommand(program: Command) {
         spinner.fail('Error: ' + err.message);
       }
     });
+
+  // ── openfactu plugin link ──
+  plugin
+    .command('link [dir]')
+    .description('Enlaza un plugin externo a la carpeta de plugins de OpenFactu')
+    .action(async (dir?: string) => {
+      const pluginsDir = getPluginsDir();
+      const sourcePath = path.resolve(dir || process.cwd());
+
+      // Verificar que el directorio existe
+      if (!fs.existsSync(sourcePath)) {
+        log.error(`Directorio no encontrado: ${sourcePath}`);
+        return;
+      }
+
+      // Verificar que tiene index.ts o index.js
+      const hasIndex = fs.existsSync(path.join(sourcePath, 'index.ts')) || fs.existsSync(path.join(sourcePath, 'index.js'));
+      if (!hasIndex) {
+        log.warn('No se encontro index.ts ni index.js en el directorio');
+        log.dim('  Asegurate de que es un plugin valido de OpenFactu');
+      }
+
+      const pluginName = path.basename(sourcePath);
+      const linkPath = path.join(pluginsDir, pluginName);
+
+      // Verificar si ya existe
+      if (fs.existsSync(linkPath)) {
+        const stat = fs.lstatSync(linkPath);
+        if (stat.isSymbolicLink()) {
+          log.warn(`El enlace "${pluginName}" ya existe → ${fs.readlinkSync(linkPath)}`);
+          return;
+        }
+        log.error(`Ya existe un plugin "${pluginName}" (no es un symlink). Eliminalo primero.`);
+        return;
+      }
+
+      // Crear directorio de plugins si no existe
+      if (!fs.existsSync(pluginsDir)) {
+        fs.mkdirSync(pluginsDir, { recursive: true });
+      }
+
+      // Crear symlink
+      try {
+        fs.symlinkSync(sourcePath, linkPath, 'dir');
+        log.success(`Plugin enlazado: ${chalk.bold(pluginName)}`);
+        log.dim(`  ${sourcePath} → ${linkPath}`);
+        log.blank();
+        log.dim('  Ahora puedes desarrollar el plugin desde su carpeta original.');
+        log.dim('  Los cambios se detectan automaticamente con el watcher.');
+        log.dim('  Para arrancar: openfactu plugin dev ' + pluginName);
+      } catch (err: any) {
+        log.error('Error al crear enlace: ' + err.message);
+        log.dim('  En Windows ejecuta como administrador');
+      }
+    });
+
+  // ── openfactu plugin unlink ──
+  plugin
+    .command('unlink <name>')
+    .description('Elimina el enlace de un plugin externo')
+    .action(async (name: string) => {
+      const linkPath = path.join(getPluginsDir(), name);
+
+      if (!fs.existsSync(linkPath)) {
+        log.error(`Plugin "${name}" no encontrado`);
+        return;
+      }
+
+      const stat = fs.lstatSync(linkPath);
+      if (!stat.isSymbolicLink()) {
+        log.error(`"${name}" no es un enlace simbolico. Usa 'plugin remove' para eliminarlo.`);
+        return;
+      }
+
+      fs.unlinkSync(linkPath);
+      log.success(`Enlace "${name}" eliminado`);
+      log.dim('  El directorio original no se ha tocado.');
+    });
+
+  // ── openfactu plugin push ──
+  plugin
+    .command('push [dir]')
+    .description('Sube un plugin a un servidor OpenFactu remoto')
+    .requiredOption('-s, --server <url>', 'URL del servidor (ej: http://192.168.1.100:3000)')
+    .option('-t, --token <token>', 'Token JWT de admin')
+    .option('--client-id <id>', 'Client ID de la dev key (ej: ofk_...)')
+    .option('--client-secret <secret>', 'Client Secret de la dev key (ej: ofs_...)')
+    .action(async (dir: string | undefined, opts: any) => {
+      // Validar autenticacion
+      if (!opts.token && (!opts.clientId || !opts.clientSecret)) {
+        log.error('Necesitas autenticarte con --token o --client-id + --client-secret');
+        log.dim('  Genera una dev key desde la UI: Plugins → Desarrollo → Generar API Key');
+        return;
+      }
+
+      const sourcePath = path.resolve(dir || process.cwd());
+
+      if (!fs.existsSync(sourcePath)) {
+        log.error(`Directorio no encontrado: ${sourcePath}`);
+        return;
+      }
+
+      const pluginName = path.basename(sourcePath);
+      const hasIndex = fs.existsSync(path.join(sourcePath, 'index.ts')) || fs.existsSync(path.join(sourcePath, 'index.js'));
+
+      if (!hasIndex) {
+        log.warn('No se encontro index.ts ni index.js. Seguro que es un plugin?');
+      }
+
+      log.info(`Plugin: ${chalk.bold(pluginName)}`);
+      log.info(`Servidor: ${chalk.dim(opts.server)}`);
+      log.blank();
+
+      // Recoger todos los archivos del plugin
+      const spinner = ora('Leyendo archivos...').start();
+      const files: Array<{ path: string; content: string }> = [];
+
+      function readDir(dirPath: string, basePath: string) {
+        const entries = fs.readdirSync(dirPath);
+        for (const entry of entries) {
+          if (entry === 'node_modules' || entry === '.git' || entry === 'dist') continue;
+          const fullPath = path.join(dirPath, entry);
+          const relativePath = path.relative(basePath, fullPath);
+          const stat = fs.statSync(fullPath);
+          if (stat.isDirectory()) {
+            readDir(fullPath, basePath);
+          } else {
+            files.push({
+              path: relativePath,
+              content: fs.readFileSync(fullPath).toString('base64'),
+            });
+          }
+        }
+      }
+
+      readDir(sourcePath, sourcePath);
+      spinner.succeed(`${files.length} archivo(s) encontrado(s)`);
+
+      // Enviar al servidor
+      const pushSpinner = ora('Subiendo al servidor...').start();
+      try {
+        const url = `${opts.server}/api/plugins/${pluginName}/push`;
+        const response = await new Promise<any>((resolve, reject) => {
+          const data = JSON.stringify({ files });
+          const urlObj = new (require('url').URL)(url);
+          const http = urlObj.protocol === 'https:' ? require('https') : require('http');
+
+          const req = http.request({
+            hostname: urlObj.hostname,
+            port: urlObj.port,
+            path: urlObj.pathname,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(data),
+              ...(opts.token
+                ? { 'Authorization': `Bearer ${opts.token}` }
+                : { 'X-Client-Id': opts.clientId, 'X-Client-Secret': opts.clientSecret }
+              ),
+            },
+          }, (res: any) => {
+            let body = '';
+            res.on('data', (chunk: string) => body += chunk);
+            res.on('end', () => {
+              try { resolve({ status: res.statusCode, body: JSON.parse(body) }); }
+              catch { resolve({ status: res.statusCode, body }); }
+            });
+          });
+
+          req.on('error', reject);
+          req.write(data);
+          req.end();
+        });
+
+        if (response.status === 200 && response.body?.success) {
+          pushSpinner.succeed('Plugin subido correctamente');
+          if (response.body.reloaded) {
+            log.success('Plugin recargado automaticamente en el servidor');
+          } else {
+            log.info('Reinicia el servidor remoto para cargar el plugin');
+          }
+        } else if (response.status === 403 || response.status === 401) {
+          pushSpinner.fail('No autorizado. Verifica el token de admin.');
+        } else {
+          pushSpinner.fail(`Error: ${response.body?.error || response.status}`);
+        }
+      } catch (err: any) {
+        pushSpinner.fail('Error de conexion: ' + err.message);
+      }
+    });
+
+  // ── openfactu plugin watch ──
+  plugin
+    .command('watch [dir]')
+    .description('Vigila cambios en un plugin y los sube automaticamente al servidor')
+    .requiredOption('-s, --server <url>', 'URL del servidor')
+    .option('-t, --token <token>', 'Token JWT de admin')
+    .option('--client-id <id>', 'Client ID de la dev key')
+    .option('--client-secret <secret>', 'Client Secret de la dev key')
+    .action(async (dir: string | undefined, opts: any) => {
+      if (!opts.token && (!opts.clientId || !opts.clientSecret)) {
+        log.error('Necesitas --token o --client-id + --client-secret');
+        return;
+      }
+
+      const sourcePath = path.resolve(dir || process.cwd());
+      if (!fs.existsSync(sourcePath)) {
+        log.error(`Directorio no encontrado: ${sourcePath}`);
+        return;
+      }
+
+      const pluginName = path.basename(sourcePath);
+      log.info(`Vigilando: ${chalk.bold(pluginName)}`);
+      log.info(`Servidor:  ${chalk.dim(opts.server)}`);
+      log.blank();
+      log.dim('  Guardando cualquier archivo se subira automaticamente al servidor.');
+      log.dim('  Ctrl+C para parar.');
+      log.blank();
+
+      const authHeaders: Record<string, string> = opts.token
+        ? { 'Authorization': `Bearer ${opts.token}` }
+        : { 'X-Client-Id': opts.clientId, 'X-Client-Secret': opts.clientSecret };
+
+      // Funcion para subir un archivo al servidor
+      const pushFile = async (filePath: string) => {
+        // Ignorar archivos temporales del editor
+        if (filePath.includes('.tmp') || filePath.endsWith('~') || filePath.includes('.swp') || filePath.includes('.swx')) return;
+        if (!fs.existsSync(filePath)) return;
+
+        const relativePath = path.relative(sourcePath, filePath);
+        const content = fs.readFileSync(filePath).toString('base64');
+
+        try {
+          const data = JSON.stringify({ files: [{ path: relativePath, content }] });
+          const urlObj = new (require('url').URL)(`${opts.server}/api/plugins/${pluginName}/push`);
+          const http = urlObj.protocol === 'https:' ? require('https') : require('http');
+
+          await new Promise<void>((resolve, reject) => {
+            const req = http.request({
+              hostname: urlObj.hostname,
+              port: urlObj.port,
+              path: urlObj.pathname,
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data),
+                ...authHeaders,
+              },
+            }, (res: any) => {
+              let body = '';
+              res.on('data', (chunk: string) => body += chunk);
+              res.on('end', () => {
+                if (res.statusCode === 200) resolve();
+                else reject(new Error(body));
+              });
+            });
+            req.on('error', reject);
+            req.write(data);
+            req.end();
+          });
+
+          log.success(`${chalk.dim(relativePath)} → subido y recargado`);
+        } catch (err: any) {
+          log.error(`${relativePath} → ${err.message}`);
+        }
+      };
+
+      // Watcher
+      const chokidar = require('chokidar');
+      const debounceTimers: Map<string, NodeJS.Timeout> = new Map();
+
+      const watcher = chokidar.watch(sourcePath, {
+        ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**'],
+        ignoreInitial: true,
+        persistent: true,
+      });
+
+      const handleChange = (filePath: string) => {
+        const existing = debounceTimers.get(filePath);
+        if (existing) clearTimeout(existing);
+
+        debounceTimers.set(filePath, setTimeout(() => {
+          debounceTimers.delete(filePath);
+          pushFile(filePath);
+        }, 300));
+      };
+
+      watcher.on('change', handleChange);
+      watcher.on('add', handleChange);
+
+      // Mantener el proceso vivo
+      process.on('SIGINT', () => {
+        watcher.close();
+        log.blank();
+        log.info('Watch detenido');
+        process.exit(0);
+      });
+    });
+
+  // ── openfactu plugin dev ──
+  plugin
+    .command('dev [name]')
+    .description('Arranca el servidor en modo desarrollo para plugins')
+    .action(async (name?: string) => {
+      const pluginsDir = getPluginsDir();
+
+      if (name) {
+        const pluginPath = path.join(pluginsDir, name);
+        if (!fs.existsSync(pluginPath)) {
+          log.error(`Plugin "${name}" no encontrado en ${pluginsDir}`);
+          return;
+        }
+        log.info(`Modo desarrollo para plugin: ${chalk.bold(name)}`);
+      } else {
+        log.info('Modo desarrollo para todos los plugins');
+      }
+
+      log.blank();
+      log.dim('  El servidor recargara los plugins automaticamente al detectar cambios.');
+      log.dim('  Los componentes UI se actualizan en el browser sin refrescar.');
+      log.blank();
+
+      const { getProjectRoot } = require('../utils/paths');
+      const root = getProjectRoot();
+
+      try {
+        const child = require('child_process').spawn('npm', ['run', 'dev:server'], {
+          cwd: root,
+          env: { ...process.env, NODE_ENV: 'development' },
+          stdio: ['inherit', 'pipe', 'pipe'],
+        });
+
+        child.stdout.on('data', (data: Buffer) => {
+          const line = data.toString().trim();
+          if (!line) return;
+
+          // Resaltar logs del plugin
+          if (name && line.includes(name)) {
+            console.log(chalk.cyan(line));
+          } else if (line.includes('[Plugins]') || line.includes('[PluginWatcher]') || line.includes('[DevSocket]') || line.includes('[HookManager]')) {
+            console.log(chalk.yellow(line));
+          } else {
+            console.log(chalk.dim(line));
+          }
+        });
+
+        child.stderr.on('data', (data: Buffer) => {
+          const line = data.toString().trim();
+          if (!line) return;
+          console.log(chalk.red(line));
+        });
+
+        child.on('close', (code: number) => {
+          log.blank();
+          if (code === 0) {
+            log.info('Servidor detenido');
+          } else {
+            log.error(`Servidor terminado con codigo ${code}`);
+          }
+        });
+
+        // Capturar Ctrl+C
+        process.on('SIGINT', () => {
+          child.kill('SIGINT');
+        });
+      } catch (err: any) {
+        log.error('Error al arrancar: ' + err.message);
+        log.dim(`  Ejecuta manualmente: cd ${root} && npm run dev:server`);
+      }
+    });
 }

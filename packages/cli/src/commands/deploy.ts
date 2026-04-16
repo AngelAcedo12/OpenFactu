@@ -386,4 +386,136 @@ networks:
         log.dim('  ' + err.message);
       }
     });
+
+  // ── openfactu rebuild ──
+  program
+    .command('rebuild')
+    .description('Reconstruye y reinicia los contenedores Docker')
+    .option('--service <name>', 'Reconstruir solo un servicio (web, server, db)')
+    .option('--no-cache', 'Construir sin cache de Docker')
+    .action(async (opts) => {
+      try {
+        const root = getProjectRoot();
+        const prodCompose = path.join(root, 'docker-compose.prod.yml');
+        const composeFile = fs.existsSync(prodCompose) ? 'docker-compose.prod.yml' : 'docker-compose.yml';
+
+        const service = opts.service || '';
+        const noCache = opts.cache === false ? ' --no-cache' : '';
+
+        log.info(`Usando: ${chalk.dim(composeFile)}`);
+        log.blank();
+
+        const buildSpinner = ora(`Construyendo${service ? ' ' + service : ' todos los servicios'}...`).start();
+        try {
+          execSync(`docker compose -f ${composeFile} build${noCache} ${service}`, {
+            cwd: root,
+            stdio: 'pipe',
+            timeout: 600000,
+          });
+          buildSpinner.succeed('Build completado');
+        } catch (err: any) {
+          buildSpinner.fail('Error en el build');
+          // Mostrar output del error
+          const output = err.stdout?.toString() || err.stderr?.toString() || err.message;
+          const errorLines = output.split('\n').filter((l: string) => l.includes('error') || l.includes('Error') || l.includes('>>>'));
+          if (errorLines.length > 0) {
+            log.blank();
+            for (const line of errorLines.slice(0, 10)) {
+              log.error(line.trim());
+            }
+          }
+          return;
+        }
+
+        const upSpinner = ora('Reiniciando servicios...').start();
+        try {
+          execSync(`docker compose -f ${composeFile} up -d ${service}`, {
+            cwd: root,
+            stdio: 'pipe',
+            timeout: 60000,
+          });
+          upSpinner.succeed('Servicios levantados');
+        } catch (err: any) {
+          upSpinner.fail('Error al levantar: ' + err.message);
+          return;
+        }
+
+        log.blank();
+        log.success('Rebuild completado');
+
+        // Mostrar URLs
+        const envPath = path.join(root, '.env');
+        const env = readEnv(envPath);
+        const host = env.HOST || 'localhost';
+        const webPort = env.WEB_PORT || '8080';
+        const serverPort = env.SERVER_PORT || '3000';
+        log.info(`Web: ${chalk.cyan(`http://${host}:${webPort}`)}`);
+        log.info(`API: ${chalk.cyan(`http://${host}:${serverPort}`)}`);
+      } catch (err: any) {
+        log.error(err.message);
+        process.exitCode = 1;
+      }
+    });
+
+  // ── openfactu logs ──
+  program
+    .command('logs')
+    .description('Muestra los logs de los servicios Docker')
+    .option('--service <name>', 'Logs de un servicio especifico (web, server, db)')
+    .option('-n, --lines <number>', 'Numero de lineas', '50')
+    .action(async (opts) => {
+      try {
+        const root = getProjectRoot();
+        const prodCompose = path.join(root, 'docker-compose.prod.yml');
+        const composeFile = fs.existsSync(prodCompose) ? 'docker-compose.prod.yml' : 'docker-compose.yml';
+
+        const service = opts.service || '';
+        const lines = opts.lines || '50';
+
+        execSync(`docker compose -f ${composeFile} logs --tail ${lines} ${service}`, {
+          cwd: root,
+          stdio: 'inherit',
+        });
+      } catch (err: any) {
+        log.error(err.message);
+      }
+    });
+
+  // ── openfactu stop ──
+  program
+    .command('stop')
+    .description('Para todos los servicios Docker')
+    .action(async () => {
+      try {
+        const root = getProjectRoot();
+        const prodCompose = path.join(root, 'docker-compose.prod.yml');
+        const composeFile = fs.existsSync(prodCompose) ? 'docker-compose.prod.yml' : 'docker-compose.yml';
+
+        const spinner = ora('Parando servicios...').start();
+        execSync(`docker compose -f ${composeFile} down`, { cwd: root, stdio: 'pipe' });
+        spinner.succeed('Servicios parados');
+      } catch (err: any) {
+        log.error(err.message);
+      }
+    });
+
+  // ── openfactu restart ──
+  program
+    .command('restart')
+    .description('Reinicia los servicios Docker (sin rebuild)')
+    .option('--service <name>', 'Reiniciar solo un servicio')
+    .action(async (opts) => {
+      try {
+        const root = getProjectRoot();
+        const prodCompose = path.join(root, 'docker-compose.prod.yml');
+        const composeFile = fs.existsSync(prodCompose) ? 'docker-compose.prod.yml' : 'docker-compose.yml';
+
+        const service = opts.service || '';
+        const spinner = ora('Reiniciando...').start();
+        execSync(`docker compose -f ${composeFile} restart ${service}`, { cwd: root, stdio: 'pipe' });
+        spinner.succeed('Servicios reiniciados');
+      } catch (err: any) {
+        log.error(err.message);
+      }
+    });
 }

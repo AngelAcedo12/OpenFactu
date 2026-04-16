@@ -5,9 +5,14 @@ ARG VITE_API_URL=http://localhost:3000
 WORKDIR /app
 COPY package*.json ./
 COPY packages ./packages
-COPY apps/web/package*.json ./apps/web/
-RUN npm install
 COPY apps/web ./apps/web
+
+RUN npm install
+
+# Compilar paquetes compartidos antes de la web
+RUN cd packages/pdf && npm run build || true
+RUN cd packages/common && npm run build || true
+RUN cd packages/ui && npm run build || true
 
 ENV VITE_API_URL=$VITE_API_URL
 WORKDIR /app/apps/web
