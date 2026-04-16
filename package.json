@@ -20,5 +20,9 @@
   "devDependencies": {
     "concurrently": "^9.2.1",
     "prettier": "3.8.3"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.2",
+    "drizzle-orm": "^0.45.2"
   }
 }
