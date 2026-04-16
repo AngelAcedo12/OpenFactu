@@ -373,4 +373,76 @@ export function registerPluginCommand(program: Command) {
         spinner.fail('Error: ' + err.message);
       }
     });
+
+  // ── openfactu plugin dev ──
+  plugin
+    .command('dev [name]')
+    .description('Arranca el servidor en modo desarrollo para plugins')
+    .action(async (name?: string) => {
+      const pluginsDir = getPluginsDir();
+
+      if (name) {
+        const pluginPath = path.join(pluginsDir, name);
+        if (!fs.existsSync(pluginPath)) {
+          log.error(`Plugin "${name}" no encontrado en ${pluginsDir}`);
+          return;
+        }
+        log.info(`Modo desarrollo para plugin: ${chalk.bold(name)}`);
+      } else {
+        log.info('Modo desarrollo para todos los plugins');
+      }
+
+      log.blank();
+      log.dim('  El servidor recargara los plugins automaticamente al detectar cambios.');
+      log.dim('  Los componentes UI se actualizan en el browser sin refrescar.');
+      log.blank();
+
+      const { getProjectRoot } = require('../utils/paths');
+      const root = getProjectRoot();
+
+      try {
+        const child = require('child_process').spawn('npm', ['run', 'dev:server'], {
+          cwd: root,
+          env: { ...process.env, NODE_ENV: 'development' },
+          stdio: ['inherit', 'pipe', 'pipe'],
+        });
+
+        child.stdout.on('data', (data: Buffer) => {
+          const line = data.toString().trim();
+          if (!line) return;
+
+          // Resaltar logs del plugin
+          if (name && line.includes(name)) {
+            console.log(chalk.cyan(line));
+          } else if (line.includes('[Plugins]') || line.includes('[PluginWatcher]') || line.includes('[DevSocket]') || line.includes('[HookManager]')) {
+            console.log(chalk.yellow(line));
+          } else {
+            console.log(chalk.dim(line));
+          }
+        });
+
+        child.stderr.on('data', (data: Buffer) => {
+          const line = data.toString().trim();
+          if (!line) return;
+          console.log(chalk.red(line));
+        });
+
+        child.on('close', (code: number) => {
+          log.blank();
+          if (code === 0) {
+            log.info('Servidor detenido');
+          } else {
+            log.error(`Servidor terminado con codigo ${code}`);
+          }
+        });
+
+        // Capturar Ctrl+C
+        process.on('SIGINT', () => {
+          child.kill('SIGINT');
+        });
+      } catch (err: any) {
+        log.error('Error al arrancar: ' + err.message);
+        log.dim(`  Ejecuta manualmente: cd ${root} && npm run dev:server`);
+      }
+    });
 }
