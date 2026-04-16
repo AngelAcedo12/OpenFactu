@@ -1,12 +1,15 @@
 FROM node:20-alpine AS builder
 
+ARG VITE_API_URL=http://localhost:3000
+
 WORKDIR /app
 COPY package*.json ./
 COPY packages ./packages
 COPY apps/web/package*.json ./apps/web/
-# Instalar todo en el root y common
 RUN npm install
 COPY apps/web ./apps/web
+
+ENV VITE_API_URL=$VITE_API_URL
 WORKDIR /app/apps/web
 RUN npm run build
 

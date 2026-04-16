@@ -201,9 +201,7 @@ export function registerDeployCommand(program: Command) {
         const prodComposePath = path.join(root, 'docker-compose.prod.yml');
         const prodSpinner = ora('Generando docker-compose.prod.yml...').start();
 
-        let composeContent = `version: '3.8'
-
-services:
+        let composeContent = `services:
   web:
     build:
       context: .
