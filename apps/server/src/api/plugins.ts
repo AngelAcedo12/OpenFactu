@@ -1,13 +1,18 @@
 import { Router } from 'express';
+import multer from 'multer';
+import AdmZip from 'adm-zip';
 import { MigrationEngine } from '../core/plugins/MigrationEngine';
 import { TenantPluginCache } from '../core/plugins/TenantPluginCache';
 import { ClientFactory } from '../core/tenant/ClientFactory';
 import * as schema from '../db/schema';
 import path from 'path';
 import fs from 'fs';
-import { activePlugins, activePluginManifests } from '../plugins/loader';
+import { activePlugins, activePluginManifests, pluginsDir } from '../plugins/loader';
 import { transpilePluginFile } from '../plugins/transpiler';
 import { eq } from 'drizzle-orm';
+import { adminMiddleware } from './middleware/adminAuth';
+
+const upload = multer({ dest: '/tmp/openfactu-uploads/', limits: { fileSize: 50 * 1024 * 1024 } });
 
 const router = Router();
 
@@ -198,10 +203,135 @@ router.post('/:pluginId/deactivate', async (req: any, res) => {
 });
 
 /**
+ * POST /api/plugins/upload
+ * Sube un plugin como archivo ZIP y lo instala/actualiza.
+ * Body: multipart/form-data con campo 'plugin' (archivo .zip)
+ */
+router.post('/upload', adminMiddleware, upload.single('plugin'), async (req: any, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No se recibio ningun archivo' });
+  }
+
+  try {
+    const zip = new AdmZip(req.file.path);
+    const entries = zip.getEntries();
+
+    if (entries.length === 0) {
+      return res.status(400).json({ error: 'El archivo ZIP esta vacio' });
+    }
+
+    // Detectar nombre del plugin: carpeta raiz del zip o nombre del archivo
+    let pluginName = '';
+    const firstEntry = entries[0].entryName;
+    if (firstEntry.includes('/')) {
+      pluginName = firstEntry.split('/')[0];
+    } else {
+      pluginName = path.basename(req.file.originalname, '.zip');
+    }
+
+    if (!pluginName) {
+      return res.status(400).json({ error: 'No se pudo determinar el nombre del plugin' });
+    }
+
+    const targetDir = path.join(pluginsDir, pluginName);
+
+    // Extraer
+    zip.extractAllTo(pluginsDir, true);
+
+    // Limpiar archivo temporal
+    fs.unlinkSync(req.file.path);
+
+    // Recargar el plugin si ya estaba cargado
+    if (activePlugins.includes(pluginName)) {
+      const { reloadPlugin } = await import('../plugins/loader');
+      await reloadPlugin(pluginName);
+
+      const { broadcastPluginReload } = await import('../plugins/devSocket');
+      broadcastPluginReload(pluginName);
+    }
+
+    // Verificar estructura
+    const hasIndex = fs.existsSync(path.join(targetDir, 'index.ts')) || fs.existsSync(path.join(targetDir, 'index.js'));
+    const hasManifest = fs.existsSync(path.join(targetDir, 'manifest.json'));
+
+    res.json({
+      success: true,
+      pluginId: pluginName,
+      hasIndex,
+      hasManifest,
+      message: activePlugins.includes(pluginName) ? 'Plugin actualizado y recargado' : 'Plugin instalado. Reinicia el servidor para cargarlo.',
+    });
+  } catch (err: any) {
+    // Limpiar archivo temporal
+    try { fs.unlinkSync(req.file.path); } catch {}
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/plugins/:pluginId/push
+ * Recibe archivos individuales de un plugin (para sync incremental).
+ * Body JSON: { files: [{ path: "relative/path.ts", content: "base64..." }] }
+ */
+router.post('/:pluginId/push', adminMiddleware, async (req: any, res) => {
+  const { pluginId } = req.params;
+  const { files } = req.body;
+
+  if (!files || !Array.isArray(files)) {
+    return res.status(400).json({ error: 'Se requiere un array de files' });
+  }
+
+  const targetDir = path.join(pluginsDir, pluginId);
+
+  try {
+    // Crear directorio si no existe
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
+    // Escribir archivos
+    for (const file of files) {
+      const filePath = path.join(targetDir, file.path);
+      const dir = path.dirname(filePath);
+
+      // Seguridad: no permitir path traversal
+      if (!filePath.startsWith(targetDir)) {
+        return res.status(400).json({ error: `Ruta no permitida: ${file.path}` });
+      }
+
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      const content = Buffer.from(file.content, 'base64');
+      fs.writeFileSync(filePath, content);
+    }
+
+    // Recargar si ya estaba cargado
+    if (activePlugins.includes(pluginId)) {
+      const { reloadPlugin } = await import('../plugins/loader');
+      await reloadPlugin(pluginId);
+
+      const { broadcastPluginReload } = await import('../plugins/devSocket');
+      broadcastPluginReload(pluginId);
+    }
+
+    res.json({
+      success: true,
+      pluginId,
+      filesWritten: files.length,
+      reloaded: activePlugins.includes(pluginId),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/plugins/:pluginId/reload
  * Recarga un plugin en caliente (hot reload).
  */
-router.post('/:pluginId/reload', async (req: any, res) => {
+router.post('/:pluginId/reload', adminMiddleware, async (req: any, res) => {
   const { pluginId } = req.params;
 
   if (!activePlugins.includes(pluginId)) {
