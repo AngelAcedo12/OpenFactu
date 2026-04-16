@@ -198,6 +198,32 @@ router.post('/:pluginId/deactivate', async (req: any, res) => {
 });
 
 /**
+ * POST /api/plugins/:pluginId/reload
+ * Recarga un plugin en caliente (hot reload).
+ */
+router.post('/:pluginId/reload', async (req: any, res) => {
+  const { pluginId } = req.params;
+
+  if (!activePlugins.includes(pluginId)) {
+    return res.status(404).json({ error: `Plugin "${pluginId}" no esta instalado` });
+  }
+
+  try {
+    const { reloadPlugin } = await import('../plugins/loader');
+    const result = await reloadPlugin(pluginId);
+
+    if (result.success) {
+      const { broadcastPluginReload } = await import('../plugins/devSocket');
+      broadcastPluginReload(pluginId);
+    }
+
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * GET /api/plugins/load/:pluginId/*
  * Carga dinámica y transpilación on-the-fly.
  */
