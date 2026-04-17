@@ -155,6 +155,39 @@ const start = async () => {
           "userId" TEXT REFERENCES "GlobalUser"("id"), "oldValue" JSONB, "newValue" JSONB,
           "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS "PluginField" (
+          "id" TEXT PRIMARY KEY, "pluginId" TEXT NOT NULL, "tableName" TEXT NOT NULL,
+          "fieldName" TEXT NOT NULL, "fieldType" TEXT NOT NULL, "label" TEXT NOT NULL,
+          "isManaged" BOOLEAN NOT NULL DEFAULT TRUE,
+          "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS "PluginTable" (
+          "id" TEXT PRIMARY KEY, "pluginId" TEXT NOT NULL, "tableName" TEXT NOT NULL,
+          "definition" TEXT NOT NULL,
+          "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS "TenantPlugin" (
+          "id" TEXT PRIMARY KEY,
+          "tenantId" TEXT NOT NULL REFERENCES "Tenant"("id") ON DELETE CASCADE,
+          "pluginId" TEXT NOT NULL,
+          "isActive" BOOLEAN NOT NULL DEFAULT FALSE,
+          "config" TEXT,
+          "activatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          "deactivatedAt" TIMESTAMP,
+          UNIQUE ("tenantId", "pluginId")
+        );
+        CREATE TABLE IF NOT EXISTS "DevApiKey" (
+          "id" TEXT PRIMARY KEY,
+          "clientId" TEXT UNIQUE NOT NULL,
+          "clientSecret" TEXT NOT NULL,
+          "name" TEXT NOT NULL,
+          "createdBy" TEXT NOT NULL REFERENCES "GlobalUser"("id"),
+          "tenantId" TEXT REFERENCES "Tenant"("id"),
+          "permissions" TEXT DEFAULT 'plugin:push,plugin:reload',
+          "isActive" BOOLEAN NOT NULL DEFAULT TRUE,
+          "lastUsedAt" TIMESTAMP,
+          "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
       `));
       console.log('[Bootstrap] Tablas del schema publico verificadas.');
     } catch (err: any) {

@@ -48,6 +48,16 @@ export const PluginManager: React.FC = () => {
     'x-tenant-id': user?.tenantId || '',
   };
 
+  const parseArray = async <T,>(res: Response): Promise<T[]> => {
+    if (!res.ok) return [];
+    try {
+      const data = await res.json();
+      return Array.isArray(data) ? (data as T[]) : [];
+    } catch {
+      return [];
+    }
+  };
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -56,9 +66,9 @@ export const PluginManager: React.FC = () => {
         fetch('/api/plugins/fields', { headers }),
         fetch('/api/plugins/tables', { headers }),
       ]);
-      setPlugins(await pluginsRes.json());
-      setFields(await fieldsRes.json());
-      setTables(await tablesRes.json());
+      setPlugins(await parseArray<PluginInfo>(pluginsRes));
+      setFields(await parseArray<PluginField>(fieldsRes));
+      setTables(await parseArray<PluginTable>(tablesRes));
     } catch (err) {
       toast.error('Error al cargar datos de plugins');
     } finally {
@@ -98,8 +108,8 @@ export const PluginManager: React.FC = () => {
         fetch('/api/plugins/fields', { headers }),
         fetch('/api/plugins/tables', { headers }),
       ]);
-      setFields(await fieldsRes.json());
-      setTables(await tablesRes.json());
+      setFields(await parseArray<PluginField>(fieldsRes));
+      setTables(await parseArray<PluginTable>(tablesRes));
 
       toast.success(
         currentlyActive

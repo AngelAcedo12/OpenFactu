@@ -69,12 +69,16 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     fetchManifests();
   }, [fetchManifests]);
 
-  // WebSocket de desarrollo para hot reload
+  // WebSocket de desarrollo para hot reload — solo en dev
   useEffect(() => {
-    // Solo conectar en desarrollo
+    if (import.meta.env.PROD) return;
+
     const wsUrl = `ws://${window.location.hostname}:3000/ws/plugins`;
+    let stopped = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const connect = () => {
+      if (stopped) return;
       try {
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
@@ -84,34 +88,34 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const data = JSON.parse(event.data);
             if (data.type === 'plugin:reload') {
               console.log(`[HotReload] Plugin ${data.pluginId} recargado`);
-              // Actualizar manifests directamente si vienen en el mensaje
               if (data.manifests) {
                 setManifests(data.manifests);
               } else {
                 fetchManifests();
               }
-              // Actualizar timestamp para que los componentes se refresquen
               setReloadTimestamp(Date.now());
             }
           } catch {}
         };
 
         ws.onclose = () => {
-          // Reconectar en 3 segundos
-          setTimeout(connect, 3000);
+          if (stopped) return;
+          reconnectTimer = setTimeout(connect, 3000);
         };
 
         ws.onerror = () => {
           ws.close();
         };
       } catch {
-        // WebSocket no disponible (produccion o servidor apagado)
+        /* noop */
       }
     };
 
     connect();
 
     return () => {
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       wsRef.current?.close();
     };
   }, [fetchManifests]);
