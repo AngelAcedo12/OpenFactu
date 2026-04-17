@@ -6,7 +6,7 @@
 
 ## Objetivo
 
-Extraer los 6 paquetes publicables del monorepo `OpenFactu` a repositorios Git independientes bajo una organización nueva `openfactu` en GitHub, de modo que cada paquete tenga su propio ciclo de vida (issues, PRs, CI, releases). Las aplicaciones (`apps/server`, `apps/web`) pasarán a consumirlos desde npm como cualquier dependencia externa.
+Extraer los 6 paquetes publicables del monorepo `OpenFactu` a repositorios Git independientes bajo la organización `OpenFactu` en GitHub, de modo que cada paquete tenga su propio ciclo de vida (issues, PRs, CI, releases). Las aplicaciones (`apps/server`, `apps/web`) pasarán a consumirlos desde npm como cualquier dependencia externa.
 
 ## Motivación
 
@@ -31,9 +31,9 @@ Extraer los 6 paquetes publicables del monorepo `OpenFactu` a repositorios Git i
 |---|---|---|
 | Forma de separación | Repos Git independientes, apps consumen desde npm | Los paquetes ya están publicados en npm; no hay fricción |
 | Preservación de historial | Sí, con `git filter-repo --path packages/<nombre>` | Mantiene blame y trazabilidad |
-| Host | GitHub, org nueva `openfactu` (a crear) | Coincide con el scope npm `@openfactu/*` |
+| Host | GitHub, org `OpenFactu` (ya existe) | Coincide con el scope npm `@openfactu/*` |
 | Qué queda en repo principal | `apps/` + `plugins/` + infra | Los plugins son runtime del ERP, no librerías publicables |
-| Monorepo principal | Se transfiere a `openfactu/platform` | Unificar todo bajo la org |
+| Monorepo principal | Se transfiere a `OpenFactu/platform` | Unificar todo bajo la org |
 | Workspaces | Se reducen a `apps/*` y `plugins/*` en el root post-split | `packages/*` desaparece |
 | Código en npm vs local | Todos los paquetes publicados están al día | No hace falta bump-and-publish previo |
 
@@ -43,20 +43,20 @@ Extraer los 6 paquetes publicables del monorepo `OpenFactu` a repositorios Git i
 
 | Ubicación actual | Repo nuevo | Paquete npm (ya existe) |
 |---|---|---|
-| `AngelAcedo12/OpenFactu` (monorepo, queda `apps/` + `plugins/`) | `openfactu/platform` | — |
-| `packages/cli` | `openfactu/cli` | `@openfactu/cli` |
-| `packages/common` | `openfactu/common` | `@openfactu/common` |
-| `packages/openfactu-sdk` | `openfactu/sdk` (renombrado) | `@openfactu/sdk` |
-| `packages/pdf` | `openfactu/pdf` | `@openfactu/pdf` |
-| `packages/plugin-sdk` | `openfactu/plugin-sdk` | `@openfactu/plugin-sdk` |
-| `packages/ui` | `openfactu/ui` | `@openfactu/ui` |
+| `AngelAcedo12/OpenFactu` (monorepo, queda `apps/` + `plugins/`) | `OpenFactu/platform` | — |
+| `packages/cli` | `OpenFactu/cli` | `@openfactu/cli` |
+| `packages/common` | `OpenFactu/common` | `@openfactu/common` |
+| `packages/openfactu-sdk` | `OpenFactu/sdk` (renombrado) | `@openfactu/sdk` |
+| `packages/pdf` | `OpenFactu/pdf` | `@openfactu/pdf` |
+| `packages/plugin-sdk` | `OpenFactu/plugin-sdk` | `@openfactu/plugin-sdk` |
+| `packages/ui` | `OpenFactu/ui` | `@openfactu/ui` |
 
-La carpeta `packages/openfactu-sdk/` se renombra a nivel repo → `openfactu/sdk` (el paquete npm siempre se llamó `@openfactu/sdk`).
+La carpeta `packages/openfactu-sdk/` se renombra a nivel repo → `OpenFactu/sdk` (el paquete npm siempre se llamó `@openfactu/sdk`).
 
 ### Contenido del repo principal tras el split
 
 ```
-openfactu/platform/
+OpenFactu/platform/
 ├── apps/
 │   ├── server/
 │   └── web/
@@ -86,8 +86,8 @@ Para cada uno de los 6 paquetes, se ejecutan estos pasos:
    - Añadir `LICENSE` (MIT, a confirmar).
    - Verificar/actualizar `README.md`.
    - Verificar `.gitignore` adecuado (`node_modules/`, `dist/`).
-6. **Crear repo vacío en GitHub** `openfactu/<nombre>` (sin README ni licencia inicial).
-7. **Empujar**: `git remote add origin git@github.com:openfactu/<nombre>.git && git push -u origin main`.
+6. **Crear repo vacío en GitHub** `OpenFactu/<nombre>` (sin README ni licencia inicial).
+7. **Empujar**: `git remote add origin git@github.com:OpenFactu/<nombre>.git && git push -u origin main`.
 8. **CI mínimo** (opcional en esta fase, pero recomendado): GitHub Action con `tsc --noEmit` en push a main y `npm publish` al crear un tag `v*`.
 
 ### Orden de ejecución
@@ -101,7 +101,7 @@ Los 6 paquetes no tienen apenas dependencias internas entre sí (verificado en `
 5. `ui` (cero deps internas; depende de `react-router-dom`, `lucide-react` — externas)
 6. `cli` (cero deps internas; depende de `drizzle-orm`, `pg` — externas)
 7. **Cleanup del monorepo principal** (PR único, ver siguiente sección)
-8. **Transferir `AngelAcedo12/OpenFactu` → `openfactu/platform`** (GitHub Settings → Transfer ownership).
+8. **Transferir `AngelAcedo12/OpenFactu` → `OpenFactu/platform`** (GitHub Settings → Transfer ownership).
 
 ## Cleanup del monorepo principal (PR único)
 
@@ -126,19 +126,19 @@ Sin pasos adicionales. `npm install` desde el root del monorepo principal baja l
 
 ```bash
 # Terminal 1 — en el repo del paquete
-cd ~/dev/openfactu-ui
+cd ~/dev/OpenFactu-ui
 npm run build    # o npm run dev si tiene watcher
 npm link
 
 # Terminal 2 — en el repo de la app
-cd ~/dev/openfactu-platform/apps/web
+cd ~/dev/OpenFactu-platform/apps/web
 npm link @openfactu/ui
 
 # Cuando acabas:
-cd ~/dev/openfactu-ui
+cd ~/dev/OpenFactu-ui
 npm version patch && npm publish
 
-cd ~/dev/openfactu-platform
+cd ~/dev/OpenFactu-platform
 npm install @openfactu/ui@latest
 git commit -am "chore: bump @openfactu/ui"
 ```
@@ -148,14 +148,14 @@ git commit -am "chore: bump @openfactu/ui"
 Si algún día se prefiere un flujo más estricto (por ejemplo, para validar antes de publicar estable):
 
 ```bash
-cd ~/dev/openfactu-ui
+cd ~/dev/OpenFactu-ui
 npm version prerelease --preid=rc
 npm publish --tag next
 
-cd ~/dev/openfactu-platform
+cd ~/dev/OpenFactu-platform
 npm install @openfactu/ui@next
 # Probar, validar
-cd ~/dev/openfactu-ui
+cd ~/dev/OpenFactu-ui
 npm version patch   # promueve a estable
 npm publish         # --tag latest por defecto
 ```
@@ -172,16 +172,16 @@ npm publish         # --tag latest por defecto
 
 ## Criterios de aceptación
 
-- [ ] 6 repos nuevos en `github.com/openfactu/*` con historial filtrado y contenido en el root.
+- [ ] 6 repos nuevos en `github.com/OpenFactu/*` con historial filtrado y contenido en el root.
 - [ ] `docker compose up -d` arranca y funciona sin `packages/` en el árbol.
 - [ ] Login, creación de factura, activación de plugin y carga del dashboard funcionan tras el split (smoke test).
-- [ ] `AngelAcedo12/OpenFactu` transferido a `openfactu/platform`.
+- [ ] `AngelAcedo12/OpenFactu` transferido a `OpenFactu/platform`.
 - [ ] Commit de cleanup en `main` con mensaje en español y merge `--no-ff` (según preferencia del usuario).
 
 ## Tareas pendientes del usuario (pre-ejecución)
 
-- [ ] **Crear la organización GitHub `openfactu`** (todavía no existe).
-- [ ] Confirmar nombre del repo principal: propuesta `openfactu/platform` (alternativas: `core`, `app`, `erp`, `openfactu`).
+- [x] **Organización GitHub `OpenFactu` creada.**
+- [ ] Confirmar nombre del repo principal: propuesta `OpenFactu/platform` (alternativas: `core`, `app`, `erp`, `openfactu`).
 - [ ] Confirmar licencia para los paquetes nuevos (propuesta: MIT).
 
 ## Follow-ups fuera de este spec
@@ -189,4 +189,4 @@ npm publish         # --tag latest por defecto
 - CI completo por paquete (lint, tests, publish-on-tag firmado).
 - Documentar el proceso de contribución externa en cada repo.
 - Considerar `changesets` o similar si el versionado manual se vuelve una molestia.
-- Evaluar mover `plugins/` a `openfactu/plugins-official` si crecen mucho.
+- Evaluar mover `plugins/` a `OpenFactu/plugins-official` si crecen mucho.
