@@ -181,8 +181,8 @@ npm publish         # --tag latest por defecto
 ## Tareas pendientes del usuario (pre-ejecución)
 
 - [x] **Organización GitHub `OpenFactu` creada.**
-- [ ] Confirmar nombre del repo principal: propuesta `OpenFactu/platform` (alternativas: `core`, `app`, `erp`, `openfactu`).
-- [ ] Confirmar licencia para los paquetes nuevos (propuesta: MIT).
+- [x] Nombre del repo principal confirmado: `OpenFactu/platform`.
+- [x] Licencia por defecto: MIT (se puede cambiar en cualquier paquete si hace falta).
 
 ## Follow-ups fuera de este spec
 
