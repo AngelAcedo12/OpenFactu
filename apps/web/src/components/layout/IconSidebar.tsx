@@ -43,7 +43,7 @@ export const IconSidebar: React.FC = () => {
   return (
     <aside
       className={cn(
-        'w-[60px] flex-shrink-0 flex flex-col items-center py-3 z-50',
+        'w-[60px] flex-shrink-0 flex flex-col items-center py-3 z-20',
         'bg-white dark:bg-slate-900',
         'border-r border-slate-200 dark:border-slate-800',
       )}
