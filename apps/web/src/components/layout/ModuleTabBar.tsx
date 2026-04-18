@@ -9,9 +9,9 @@ import { PluginIcon } from '../PluginIcon';
  * Aparece justo debajo del TopHeader y antes del TabBar de pestañas dinámicas.
  */
 export const ModuleTabBar: React.FC = () => {
-  const active = useActiveModule();
   const { openTab, tabs, activeTabId } = useTabs();
   const activeTabPath = tabs.find((t) => t.id === activeTabId)?.path?.split('?')[0] || '/';
+  const active = useActiveModule(activeTabPath);
 
   if (!active || active.subTabs.length === 0) return null;
 

@@ -15,8 +15,9 @@ import { TenantSwitcher } from '../TenantSwitcher';
  */
 export const IconSidebar: React.FC = () => {
   const modules = useModules();
-  const active = useActiveModule();
-  const { openTab } = useTabs();
+  const { openTab, tabs, activeTabId } = useTabs();
+  const pathname = tabs.find((t) => t.id === activeTabId)?.path?.split('?')[0] || '/';
+  const active = useActiveModule(pathname);
   const { user, logout } = useAuth();
   const [tenantOpen, setTenantOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
@@ -48,7 +49,7 @@ export const IconSidebar: React.FC = () => {
       )}
     >
       {/* Módulos */}
-      <div className="flex-1 flex flex-col items-center gap-1.5 w-full overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center gap-1.5 w-full overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {modules.map((mod) => {
           const isActive = active?.id === mod.id;
           return (

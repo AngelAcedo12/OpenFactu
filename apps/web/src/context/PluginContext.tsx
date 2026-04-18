@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { CORE_MODULES, findActiveModule, type Module, type SubTab } from '../modules/registry';
-import { useTabs } from './TabsContext';
 
 interface PluginRoute {
   path: string;
@@ -220,12 +219,13 @@ export const useModules = (): Module[] => {
   return modules;
 };
 
-/** Devuelve el módulo activo según la pestaña actual del TabsContext. */
-export const useActiveModule = (): Module | null => {
+/**
+ * Devuelve el módulo activo dado un pathname.
+ * El pathname se pasa explícitamente para evitar acoplar este hook a TabsContext
+ * (los consumidores leen useTabs() ellos mismos).
+ */
+export const useActiveModule = (pathname: string): Module | null => {
   const modules = useModules();
-  const { tabs, activeTabId } = useTabs();
-  const activeTab = tabs.find((t) => t.id === activeTabId);
-  const pathname = activeTab?.path?.split('?')[0] || '/';
   return findActiveModule(modules, pathname);
 };
 
