@@ -290,21 +290,21 @@ export const Partners: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('general')}
-              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'general' ? 'border-blue-500 text-blue-600 dark:text-blue-300 bg-blue-50/50' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-100'}`}
+              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'general' ? 'border-primary text-primary bg-white dark:bg-slate-800' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-100'}`}
             >
               <FileText size={16} /> General
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('contact')}
-              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'contact' ? 'border-blue-500 text-blue-600 dark:text-blue-300 bg-blue-50/50' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-100'}`}
+              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'contact' ? 'border-primary text-primary bg-white dark:bg-slate-800' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-100'}`}
             >
               <Contact size={16} /> Contacto
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('addresses')}
-              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'addresses' ? 'border-blue-500 text-blue-600 dark:text-blue-300 bg-blue-50/50' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-100'}`}
+              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'addresses' ? 'border-primary text-primary bg-white dark:bg-slate-800' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-100'}`}
             >
               <MapPin size={16} /> Direcciones{' '}
               <Badge variant="neutral" className="ml-1 scale-75">

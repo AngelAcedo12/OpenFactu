@@ -125,9 +125,9 @@ const PermToggle: React.FC<{
   onChange: (v: boolean) => void;
 }> = ({ active, color, label, icon, disabled, onChange }) => {
   const activeClass = {
-    emerald: 'bg-emerald-100 text-emerald-700 dark:text-emerald-200 ring-1 ring-emerald-300',
-    blue: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-200 ring-1 ring-blue-300',
-    rose: 'bg-rose-100 text-rose-700 dark:text-rose-200 ring-1 ring-rose-300',
+    emerald: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 ring-1 ring-emerald-300 dark:ring-emerald-500/40',
+    blue: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-200 ring-1 ring-blue-300 dark:ring-blue-500/40',
+    rose: 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-200 ring-1 ring-rose-300 dark:ring-rose-500/40',
   }[color];
 
   return (
@@ -136,10 +136,10 @@ const PermToggle: React.FC<{
       disabled={disabled}
       onClick={() => onChange(!active)}
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide transition-all
- ${active ? activeClass : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'}
+ ${active ? activeClass : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 ring-1 ring-slate-200 dark:ring-slate-700'}
  ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:opacity-80 active:scale-95'}`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${active ? `bg-current` : 'bg-slate-300'}`} />
+      <span className={`w-1.5 h-1.5 rounded-full ${active ? `bg-current` : 'bg-slate-400 dark:bg-slate-600'}`} />
       {icon}
       {label}
     </button>
@@ -180,7 +180,7 @@ const PermissionsEditor: React.FC<{
             className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden"
           >
             {/* Header del grupo */}
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/50">
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-100 dark:bg-slate-800">
               <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                 <Icon size={11} />
                 {group.group}
@@ -214,7 +214,7 @@ const PermissionsEditor: React.FC<{
               </div>
             </div>
             {/* Filas de ítems */}
-            <div className="divide-y divide-slate-50">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
               {group.items.map((item) => {
                 const p = permissions[item.path] || EMPTY_PERM;
                 return (
