@@ -255,7 +255,7 @@ export const Dashboard: React.FC = () => {
                       color: isDark ? '#f1f5f9' : '#0f172a',
                       fontSize: 12,
                     }}
-                    formatter={(v: number) => fmt.money(v)}
+                    formatter={(v: any) => fmt.money(Number(v))}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Line
@@ -360,7 +360,7 @@ export const Dashboard: React.FC = () => {
                       color: isDark ? '#f1f5f9' : '#0f172a',
                       fontSize: 12,
                     }}
-                    formatter={(v: number) => fmt.money(v)}
+                    formatter={(v: any) => fmt.money(Number(v))}
                   />
                   <Bar dataKey="total" fill="#10b981" radius={[0, 4, 4, 0]} />
                 </BarChart>
@@ -402,7 +402,7 @@ export const Dashboard: React.FC = () => {
                       color: isDark ? '#f1f5f9' : '#0f172a',
                       fontSize: 12,
                     }}
-                    formatter={(v: number) => fmt.money(v)}
+                    formatter={(v: any) => fmt.money(Number(v))}
                   />
                   <Bar dataKey="total" fill="#3b82f6" radius={[0, 4, 4, 0]} />
                 </BarChart>
