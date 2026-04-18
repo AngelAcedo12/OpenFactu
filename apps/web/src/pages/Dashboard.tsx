@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Slot } from '../components/Slot';
 import { Card, Badge, DashboardSkeleton } from '@openfactu/ui';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { useFormat } from '../hooks/useFormat';
 import {
   TrendingUp,
@@ -15,10 +16,24 @@ import {
   ShoppingCart,
   ChevronRight,
   CalendarDays,
-  Users,
   Truck,
   FileText,
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 
 interface DashboardSummary {
   period: { id: string; code: string; name: string; startDate: string; endDate: string } | null;
@@ -50,6 +65,8 @@ interface DashboardSummary {
     customers: { id: string; name: string; total: number }[];
     suppliers: { id: string; name: string; total: number }[];
   };
+  monthlyTrend: { month: string; sales: number; purchases: number }[];
+  invoiceStatus: { status: string; label: string; count: number }[];
 }
 
 const computeDelta = (current: number, previous: number) => {
@@ -64,7 +81,6 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   salesDeliveryNote: 'Albarán venta',
   purchaseDeliveryNote: 'Albarán compra',
 };
-
 const DOC_TYPE_ICONS: Record<string, any> = {
   salesInvoice: FileText,
   purchaseInvoice: FileText,
@@ -72,13 +88,25 @@ const DOC_TYPE_ICONS: Record<string, any> = {
   purchaseDeliveryNote: Truck,
 };
 
+const STATUS_COLORS: Record<string, string> = {
+  Abiertas: '#f59e0b', // amber
+  Cerradas: '#10b981', // emerald
+  Parcial: '#3b82f6', // blue
+  Anuladas: '#94a3b8', // slate
+};
+
 export const Dashboard: React.FC = () => {
   const { token, user } = useAuth();
+  const { branding } = useTheme();
   const fmt = useFormat();
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const isDark = branding.themeMode === 'dark';
+  const axisColor = isDark ? '#94a3b8' : '#64748b';
+  const gridColor = isDark ? '#1e293b' : '#e2e8f0';
 
   useEffect(() => {
     if (!user?.tenantId) return;
@@ -101,9 +129,20 @@ export const Dashboard: React.FC = () => {
     load();
   }, [user?.tenantId, token]);
 
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
+  const monthlyData = useMemo(() => {
+    if (!data?.monthlyTrend) return [];
+    return data.monthlyTrend.map((m) => {
+      const [y, mo] = m.month.split('-');
+      const d = new Date(Number(y), Number(mo) - 1, 1);
+      return {
+        month: d.toLocaleDateString('es-ES', { month: 'short' }),
+        Ventas: m.sales,
+        Compras: m.purchases,
+      };
+    });
+  }, [data]);
+
+  if (loading) return <DashboardSkeleton />;
 
   if (error || !data) {
     return (
@@ -120,18 +159,24 @@ export const Dashboard: React.FC = () => {
     ? `${data.period.name} · ${fmt.date(data.period.startDate)} – ${fmt.date(data.period.endDate)}`
     : 'Sin periodo activo';
 
+  const topCustomersBars = data.topPartners.customers.map((c) => ({
+    name: c.name.length > 18 ? c.name.slice(0, 16) + '…' : c.name,
+    total: c.total,
+  }));
+  const topSuppliersBars = data.topPartners.suppliers.map((s) => ({
+    name: s.name.length > 18 ? s.name.slice(0, 16) + '…' : s.name,
+    total: s.total,
+  }));
+
   return (
-    <div className="p-4 w-full space-y-8 duration-500">
+    <div className="p-4 w-full space-y-6 duration-500">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tighter font-display">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tighter font-display">
             Business Overview
           </h1>
           <p className="text-slate-500 dark:text-slate-400 font-medium text-sm flex items-center gap-2">
-            <CalendarDays
-              size={14}
-              className="text-slate-400 dark:text-slate-400"
-            />
+            <CalendarDays size={14} className="text-slate-400 dark:text-slate-400" />
             {periodLabel}
           </p>
         </div>
@@ -140,7 +185,8 @@ export const Dashboard: React.FC = () => {
         </Badge>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           label="Ventas del periodo"
           value={fmt.money(data.sales.total)}
@@ -177,142 +223,314 @@ export const Dashboard: React.FC = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 space-y-6">
-          <Card title="Documentos recientes" subtitle="Últimas facturas y albaranes registrados.">
-            {data.recentDocs.length === 0 ? (
+      {/* Línea: tendencia mensual + Donut: estado de facturas */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card
+          className="lg:col-span-2"
+          title="Tendencia 12 meses"
+          subtitle="Ventas vs compras facturadas."
+        >
+          <div className="h-72 -ml-2">
+            {monthlyData.every((m) => m.Ventas === 0 && m.Compras === 0) ? (
               <EmptyState
-                icon={ShoppingCart}
-                title="Sin documentos"
-                hint="Crea una factura o un albarán para verlo aquí."
+                icon={TrendingUp}
+                title="Sin datos"
+                hint="Aún no hay facturas para mostrar."
               />
             ) : (
-              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                {data.recentDocs.map((d) => {
-                  const Icon = DOC_TYPE_ICONS[d.type] || FileText;
-                  return (
-                    <li key={`${d.type}-${d.id}`}>
-                      <button
-                        onClick={() => navigate(d.route)}
-                        className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800/50 rounded-lg px-2 transition-colors text-left"
-                      >
-                        <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                          <Icon size={16} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-slate-400 dark:text-slate-400 font-bold uppercase tracking-wide">
-                            {DOC_TYPE_LABELS[d.type] || d.type}
-                          </p>
-                          <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
-                            {d.code}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                            {d.partnerName || '—'}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                            {fmt.money(d.total)}
-                          </p>
-                          <p className="text-[11px] text-slate-400 dark:text-slate-400">
-                            {fmt.date(d.date)}
-                          </p>
-                        </div>
-                        <ChevronRight
-                          size={14}
-                          className="text-slate-300 dark:text-slate-300"
-                        />
-                      </button>
-                    </li>
-                  );
-                })}
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" stroke={axisColor} fontSize={11} />
+                  <YAxis
+                    stroke={axisColor}
+                    fontSize={11}
+                    tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: isDark ? '#0f172a' : '#fff',
+                      border: `1px solid ${gridColor}`,
+                      borderRadius: 8,
+                      color: isDark ? '#f1f5f9' : '#0f172a',
+                      fontSize: 12,
+                    }}
+                    formatter={(v: number) => fmt.money(v)}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Line
+                    type="monotone"
+                    dataKey="Ventas"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="Compras"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </Card>
+
+        <Card title="Estado de facturas" subtitle="Distribución global.">
+          <div className="h-72">
+            {data.invoiceStatus.length === 0 ? (
+              <EmptyState
+                icon={FileText}
+                title="Sin facturas"
+                hint="Todavía no hay facturas registradas."
+              />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data.invoiceStatus}
+                    dataKey="count"
+                    nameKey="label"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={85}
+                    paddingAngle={2}
+                  >
+                    {data.invoiceStatus.map((entry, idx) => (
+                      <Cell
+                        key={`cell-${idx}`}
+                        fill={STATUS_COLORS[entry.label] || '#94a3b8'}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: isDark ? '#0f172a' : '#fff',
+                      border: `1px solid ${gridColor}`,
+                      borderRadius: 8,
+                      color: isDark ? '#f1f5f9' : '#0f172a',
+                      fontSize: 12,
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} verticalAlign="bottom" />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Barras: top clientes y proveedores */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card title="Top clientes" subtitle="Mayor facturación del periodo.">
+          <div className="h-64">
+            {topCustomersBars.length === 0 ? (
+              <EmptyState
+                icon={ShoppingCart}
+                title="Sin clientes"
+                hint="Aún no hay facturación de clientes."
+              />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topCustomersBars} layout="vertical" margin={{ left: 16, right: 16 }}>
+                  <CartesianGrid stroke={gridColor} strokeDasharray="3 3" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    stroke={axisColor}
+                    fontSize={10}
+                    tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)}
+                  />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    stroke={axisColor}
+                    fontSize={11}
+                    width={120}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: isDark ? '#0f172a' : '#fff',
+                      border: `1px solid ${gridColor}`,
+                      borderRadius: 8,
+                      color: isDark ? '#f1f5f9' : '#0f172a',
+                      fontSize: 12,
+                    }}
+                    formatter={(v: number) => fmt.money(v)}
+                  />
+                  <Bar dataKey="total" fill="#10b981" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </Card>
+
+        <Card title="Top proveedores" subtitle="Mayor compra del periodo.">
+          <div className="h-64">
+            {topSuppliersBars.length === 0 ? (
+              <EmptyState
+                icon={Truck}
+                title="Sin proveedores"
+                hint="Aún no hay facturación de proveedores."
+              />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topSuppliersBars} layout="vertical" margin={{ left: 16, right: 16 }}>
+                  <CartesianGrid stroke={gridColor} strokeDasharray="3 3" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    stroke={axisColor}
+                    fontSize={10}
+                    tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)}
+                  />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    stroke={axisColor}
+                    fontSize={11}
+                    width={120}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: isDark ? '#0f172a' : '#fff',
+                      border: `1px solid ${gridColor}`,
+                      borderRadius: 8,
+                      color: isDark ? '#f1f5f9' : '#0f172a',
+                      fontSize: 12,
+                    }}
+                    formatter={(v: number) => fmt.money(v)}
+                  />
+                  <Bar dataKey="total" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Documentos recientes + alertas de stock */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card
+          className="lg:col-span-2"
+          title="Documentos recientes"
+          subtitle="Últimas facturas y albaranes registrados."
+        >
+          {data.recentDocs.length === 0 ? (
+            <EmptyState
+              icon={ShoppingCart}
+              title="Sin documentos"
+              hint="Crea una factura o un albarán para verlo aquí."
+            />
+          ) : (
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+              {data.recentDocs.map((d) => {
+                const Icon = DOC_TYPE_ICONS[d.type] || FileText;
+                return (
+                  <li key={`${d.type}-${d.id}`}>
+                    <button
+                      onClick={() => navigate(d.route)}
+                      className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg px-2 transition-colors text-left"
+                    >
+                      <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        <Icon size={16} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-slate-400 dark:text-slate-400 font-bold uppercase tracking-wide">
+                          {DOC_TYPE_LABELS[d.type] || d.type}
+                        </p>
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                          {d.code}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          {d.partnerName || '—'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                          {fmt.money(d.total)}
+                        </p>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-400">
+                          {fmt.date(d.date)}
+                        </p>
+                      </div>
+                      <ChevronRight size={14} className="text-slate-300 dark:text-slate-300" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+
+        <div className="space-y-4">
+          <Card title="Stock crítico" subtitle="Artículos por debajo del mínimo.">
+            {data.stockAlerts.lowStock.length === 0 ? (
+              <EmptyState
+                icon={Package}
+                title="Sin alertas"
+                hint="Todos los stocks están en orden."
+              />
+            ) : (
+              <ul className="space-y-2">
+                {data.stockAlerts.lowStock.map((it) => (
+                  <li key={it.id} className="flex items-center justify-between text-sm">
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-800 dark:text-slate-100 truncate">
+                        {it.name}
+                      </p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-400">{it.code}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-rose-600 dark:text-rose-300">
+                        {Number(it.stock).toFixed(2)}
+                      </p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-400">
+                        min {Number(it.minStock).toFixed(2)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
               </ul>
             )}
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card title="Stock crítico" subtitle="Artículos por debajo del mínimo.">
-              {data.stockAlerts.lowStock.length === 0 ? (
-                <EmptyState
-                  icon={Package}
-                  title="Sin alertas"
-                  hint="Todos los stocks están en orden."
-                />
-              ) : (
-                <ul className="space-y-2">
-                  {data.stockAlerts.lowStock.map((it) => (
-                    <li key={it.id} className="flex items-center justify-between text-sm">
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-800 dark:text-slate-100 truncate">
-                          {it.name}
-                        </p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-400">
-                          {it.code}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-rose-600 dark:text-rose-300">
-                          {Number(it.stock).toFixed(2)}
-                        </p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-400">
-                          min {Number(it.minStock).toFixed(2)}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-
-            <Card title="Lotes próximos a caducar" subtitle="Próximos 30 días.">
-              {data.stockAlerts.expiringBatches.length === 0 ? (
-                <EmptyState
-                  icon={AlertTriangle}
-                  title="Sin caducidades"
-                  hint="Ningún lote a punto de caducar."
-                />
-              ) : (
-                <ul className="space-y-2">
-                  {data.stockAlerts.expiringBatches.map((b) => (
-                    <li key={b.id} className="flex items-center justify-between text-sm">
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-800 dark:text-slate-100 truncate">
-                          {b.itemName}
-                        </p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-400">
-                          Lote {b.batchNum}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-amber-600 dark:text-amber-300">
-                          {fmt.date(b.expiryDate)}
-                        </p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-400">
-                          {Number(b.quantity).toFixed(2)} ud
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          </div>
+          <Card title="Lotes próximos a caducar" subtitle="Próximos 30 días.">
+            {data.stockAlerts.expiringBatches.length === 0 ? (
+              <EmptyState
+                icon={AlertTriangle}
+                title="Sin caducidades"
+                hint="Ningún lote a punto de caducar."
+              />
+            ) : (
+              <ul className="space-y-2">
+                {data.stockAlerts.expiringBatches.map((b) => (
+                  <li key={b.id} className="flex items-center justify-between text-sm">
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-800 dark:text-slate-100 truncate">
+                        {b.itemName}
+                      </p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-400">
+                        Lote {b.batchNum}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-amber-600 dark:text-amber-300">
+                        {fmt.date(b.expiryDate)}
+                      </p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-400">
+                        {Number(b.quantity).toFixed(2)} ud
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
         </div>
-
-        <aside className="lg:col-span-4 space-y-6">
-          <Card title="Top clientes" subtitle="Mayor facturación del periodo.">
-            <PartnerRanking
-              items={data.topPartners.customers}
-              accent="text-emerald-600 dark:text-emerald-300"
-            />
-          </Card>
-          <Card title="Top proveedores" subtitle="Mayor compra del periodo.">
-            <PartnerRanking
-              items={data.topPartners.suppliers}
-              accent="text-blue-600 dark:text-blue-300"
-            />
-          </Card>
-        </aside>
       </div>
 
       <Slot name="dashboard:main:bottom" />
@@ -347,7 +565,7 @@ const KpiCard: React.FC<KpiCardProps> = ({
         : 'text-rose-600 dark:text-rose-400';
   const DeltaIcon = delta == null ? Clock : delta >= 0 ? ArrowUpRight : ArrowDownLeft;
   return (
-    <Card className="relative group transition-all hover: hover:">
+    <Card className="relative group transition-all">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-400 tracking-widest leading-none mb-2">
@@ -356,9 +574,7 @@ const KpiCard: React.FC<KpiCardProps> = ({
           <p className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tighter truncate">
             {value}
           </p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-            {subtitle}
-          </p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{subtitle}</p>
           <p className={`text-[11px] font-bold mt-2 flex items-center gap-1 ${deltaColor}`}>
             <DeltaIcon size={12} />
             {delta == null ? 'sin comparativa' : `${delta > 0 ? '+' : ''}${delta}% vs anterior`}
@@ -372,49 +588,16 @@ const KpiCard: React.FC<KpiCardProps> = ({
   );
 };
 
-const PartnerRanking: React.FC<{
-  items: { id: string; name: string; total: number }[];
-  accent: string;
-}> = ({ items, accent }) => {
-  const fmt = useFormat();
-  if (items.length === 0) {
-    return (
-      <p className="text-xs text-slate-400 dark:text-slate-400 italic">
-        Sin datos en el periodo
-      </p>
-    );
-  }
-  return (
-    <ul className="space-y-3">
-      {items.map((p, idx) => (
-        <li key={p.id} className="flex items-center gap-3">
-          <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-[11px] flex items-center justify-center">
-            {idx + 1}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
-              {p.name}
-            </p>
-          </div>
-          <p className={`text-sm font-bold ${accent}`}>{fmt.money(p.total)}</p>
-        </li>
-      ))}
-    </ul>
-  );
-};
-
 const EmptyState: React.FC<{ icon: any; title: string; hint: string }> = ({
   icon: Icon,
   title,
   hint,
 }) => (
-  <div className="py-8 text-center space-y-2">
+  <div className="h-full flex flex-col items-center justify-center text-center space-y-2">
     <div className="mx-auto w-12 h-12 bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-center text-slate-300 dark:text-slate-300">
       <Icon size={20} />
     </div>
     <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{title}</p>
-    <p className="text-xs text-slate-400 dark:text-slate-400">
-      {hint}
-    </p>
+    <p className="text-xs text-slate-400 dark:text-slate-400">{hint}</p>
   </div>
 );

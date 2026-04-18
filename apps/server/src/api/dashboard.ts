@@ -195,6 +195,80 @@ router.get('/summary', async (req: any, res) => {
     const customers = await topPartners(schema.salesInvoices);
     const suppliers = await topPartners(schema.purchaseInvoices);
 
+    // 9. Tendencia mensual de ventas y compras (últimos 12 meses)
+    const monthlyTrend = await (async () => {
+      const sales12 = await db.execute(sql`
+        SELECT
+          to_char(date_trunc('month', "date"), 'YYYY-MM') AS month,
+          COALESCE(SUM("total"), 0)::float AS total
+        FROM ${schema.salesInvoices}
+        WHERE "date" >= date_trunc('month', CURRENT_DATE) - interval '11 months'
+        GROUP BY 1
+        ORDER BY 1
+      `);
+      const purchases12 = await db.execute(sql`
+        SELECT
+          to_char(date_trunc('month', "date"), 'YYYY-MM') AS month,
+          COALESCE(SUM("total"), 0)::float AS total
+        FROM ${schema.purchaseInvoices}
+        WHERE "date" >= date_trunc('month', CURRENT_DATE) - interval '11 months'
+        GROUP BY 1
+        ORDER BY 1
+      `);
+
+      // Construir 12 meses contiguos rellenando con 0
+      const now = new Date();
+      const months: { month: string; sales: number; purchases: number }[] = [];
+      const salesMap = new Map<string, number>(
+        (sales12.rows || []).map((r: any) => [r.month, Number(r.total)]),
+      );
+      const purchasesMap = new Map<string, number>(
+        (purchases12.rows || []).map((r: any) => [r.month, Number(r.total)]),
+      );
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        months.push({
+          month: key,
+          sales: salesMap.get(key) || 0,
+          purchases: purchasesMap.get(key) || 0,
+        });
+      }
+      return months;
+    })();
+
+    // 10. Distribución de facturas por estado (ventas + compras combinadas)
+    const invoiceStatus = await (async () => {
+      const aggByStatus = async (table: any) => {
+        const rows = await db
+          .select({
+            status: table.status,
+            count: sql<string>`COUNT(*)`,
+          })
+          .from(table)
+          .groupBy(table.status);
+        return rows;
+      };
+      const salesByStatus = await aggByStatus(schema.salesInvoices);
+      const purchasesByStatus = await aggByStatus(schema.purchaseInvoices);
+      const merged: Record<string, number> = {};
+      for (const r of [...salesByStatus, ...purchasesByStatus]) {
+        const key = (r as any).status || 'unknown';
+        merged[key] = (merged[key] || 0) + Number((r as any).count);
+      }
+      const STATUS_LABELS: Record<string, string> = {
+        O: 'Abiertas',
+        C: 'Cerradas',
+        P: 'Parcial',
+        X: 'Anuladas',
+      };
+      return Object.entries(merged).map(([status, count]) => ({
+        status,
+        label: STATUS_LABELS[status] || status,
+        count,
+      }));
+    })();
+
     res.json({
       period: {
         id: period.id,
@@ -210,6 +284,8 @@ router.get('/summary', async (req: any, res) => {
       topPartners: { customers, suppliers },
       receivables,
       payables,
+      monthlyTrend,
+      invoiceStatus,
     });
   } catch (error: any) {
     console.error('[Dashboard] Error:', error);
