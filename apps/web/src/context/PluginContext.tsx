@@ -1,22 +1,45 @@
-import React, { createContext, useContext, useCallback, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useState, useRef, useMemo } from 'react';
+import { CORE_MODULES, findActiveModule, type Module, type SubTab } from '../modules/registry';
+import { useTabs } from './TabsContext';
+
+interface PluginRoute {
+  path: string;
+  title: string;
+  type: 'table' | 'form' | 'custom' | 'dashboard';
+  icon?: string;
+  config?: any;
+}
+
+interface PluginMenuItem {
+  label: string;
+  path: string;
+  icon: string;
+}
+
+interface PluginModuleManifest {
+  id: string;
+  label: string;
+  icon: string;
+  subTabs?: Array<{ label: string; path: string; icon?: string }>;
+}
+
+interface PluginSubTabManifest {
+  moduleId: string;
+  label: string;
+  path: string;
+  icon?: string;
+}
 
 interface PluginManifest {
   id: string;
   name: string;
   logo?: string;
   ui: {
-    routes: Array<{
-      path: string;
-      title: string;
-      type: 'table' | 'form' | 'custom';
-      icon?: string;
-      config: any;
-    }>;
-    menuItems: Array<{
-      label: string;
-      path: string;
-      icon: string;
-    }>;
+    routes?: PluginRoute[];
+    /** @deprecated mapped al módulo "plugins" */
+    menuItems?: PluginMenuItem[];
+    modules?: PluginModuleManifest[];
+    subTabs?: PluginSubTabManifest[];
   };
 }
 
@@ -26,6 +49,8 @@ interface PluginContextType {
   reload: () => void;
   /** Timestamp del ultimo reload — los componentes lo usan para cache-bust */
   reloadTimestamp: number;
+  /** Módulos core + de plugins ya mergeados. */
+  modules: Module[];
 }
 
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
@@ -125,8 +150,59 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setReloadTimestamp(Date.now());
   }, [fetchManifests]);
 
+  // Mergear módulos core + módulos/sub-tabs aportados por plugins
+  const modules = useMemo<Module[]>(() => {
+    // Clone para no mutar
+    const merged: Module[] = CORE_MODULES.map((m) => ({ ...m, subTabs: [...m.subTabs] }));
+
+    for (const manifest of manifests) {
+      // 1) Módulos top-level del plugin → añadir si no existen ya
+      for (const pmod of manifest.ui?.modules || []) {
+        if (merged.some((m) => m.id === pmod.id)) continue;
+        merged.push({
+          id: pmod.id,
+          label: pmod.label,
+          icon: pmod.icon,
+          subTabs: (pmod.subTabs || []).map((s) => ({
+            id: `${manifest.id}__${s.path}`,
+            label: s.label,
+            path: s.path,
+            icon: s.icon,
+          })),
+        });
+      }
+
+      // 2) Sub-tabs inyectados en módulos existentes
+      for (const sub of manifest.ui?.subTabs || []) {
+        const target = merged.find((m) => m.id === sub.moduleId);
+        if (!target) continue;
+        target.subTabs.push({
+          id: `${manifest.id}__${sub.path}`,
+          label: sub.label,
+          path: sub.path,
+          icon: sub.icon,
+        });
+      }
+
+      // 3) Legacy menuItems → mapear todos al módulo "plugins"
+      const legacyTarget = merged.find((m) => m.id === 'plugins');
+      if (legacyTarget) {
+        for (const item of manifest.ui?.menuItems || []) {
+          legacyTarget.subTabs.push({
+            id: `${manifest.id}__legacy__${item.path}`,
+            label: item.label,
+            path: item.path,
+            icon: item.icon,
+          });
+        }
+      }
+    }
+
+    return merged;
+  }, [manifests]);
+
   return (
-    <PluginContext.Provider value={{ manifests, loading, reload, reloadTimestamp }}>
+    <PluginContext.Provider value={{ manifests, loading, reload, reloadTimestamp, modules }}>
       {children}
     </PluginContext.Provider>
   );
@@ -137,3 +213,20 @@ export const usePlugins = () => {
   if (!context) throw new Error('usePlugins must be used within PluginProvider');
   return context;
 };
+
+/** Devuelve la lista combinada de módulos core + plugins. */
+export const useModules = (): Module[] => {
+  const { modules } = usePlugins();
+  return modules;
+};
+
+/** Devuelve el módulo activo según la pestaña actual del TabsContext. */
+export const useActiveModule = (): Module | null => {
+  const modules = useModules();
+  const { tabs, activeTabId } = useTabs();
+  const activeTab = tabs.find((t) => t.id === activeTabId);
+  const pathname = activeTab?.path?.split('?')[0] || '/';
+  return findActiveModule(modules, pathname);
+};
+
+export type { SubTab };

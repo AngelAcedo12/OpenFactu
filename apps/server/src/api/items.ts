@@ -3,6 +3,7 @@ import * as schema from '../db/schema';
 import { eq, desc, like, sql, and } from 'drizzle-orm';
 import crypto from 'crypto';
 import { logAudit } from '../utils/audit';
+import { HookManager } from '../core/plugins/HookManager';
 
 const router = Router();
 
@@ -11,7 +12,7 @@ const router = Router();
  */
 router.get('/', async (req: any, res) => {
   try {
-    const results = await req.tenantClient
+    const rows = await req.tenantClient
       .select({
         id: schema.items.id,
         code: schema.items.code,
@@ -30,7 +31,18 @@ router.get('/', async (req: any, res) => {
       .from(schema.items)
       .leftJoin(schema.unitsOfMeasure, eq(schema.items.uomId, schema.unitsOfMeasure.id))
       .orderBy(desc(schema.items.createdAt));
-    res.json(results);
+
+    // Permitir a plugins inyectar/mutar filas
+    const hookCtx = {
+      tenantId: req.tenantId,
+      entity: 'items',
+      filters: req.query || {},
+      rows,
+      db: req.tenantClient,
+    };
+    await HookManager.trigger('items.list.afterFetch', hookCtx);
+
+    res.json(hookCtx.rows);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
