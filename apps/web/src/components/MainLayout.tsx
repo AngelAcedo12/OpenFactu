@@ -94,7 +94,7 @@ const NavItem: React.FC<NavItemProps> = ({
       <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
         <ChevronRight
           size={12}
-          className="text-slate-600 dark:text-slate-300 dark:text-slate-600"
+          className="text-slate-600 dark:text-slate-300"
         />
       </div>
     )}
@@ -221,7 +221,7 @@ export const MainLayout: React.FC = () => {
           <div className="relative group/search">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg
-                className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400 dark:text-slate-500 group-focus-within/search:text-blue-500 transition-colors"
+                className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400 group-focus-within/search:text-blue-500 transition-colors"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -296,14 +296,14 @@ export const MainLayout: React.FC = () => {
                 <p className="text-xs font-black text-slate-100 truncate tracking-tight">
                   {user?.username || 'Administrador'}
                 </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold uppercase truncate tracking-widest">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase truncate tracking-widest">
                   {user?.role || 'USER'}
                 </p>
               </div>
             </div>
             <button
               onClick={logout}
-              className="p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
+              className="p-2 text-slate-500 dark:text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
             >
               <LogOut size={16} />
             </button>
@@ -334,7 +334,7 @@ export const MainLayout: React.FC = () => {
             <div className="h-5 w-[1px] bg-slate-200 dark:bg-slate-700" />
 
             {/* Notifications */}
-            <button className="p-2 text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:text-slate-100 dark:hover:text-slate-100 transition-colors relative">
+            <button className="p-2 text-slate-400 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 dark:hover:text-slate-100 transition-colors relative">
               <Zap size={20} />
               <div className="absolute top-1 right-1 w-2 h-2 bg-rose-500 border-2 border-white dark:border-slate-900 rounded-full" />
             </button>
@@ -356,7 +356,7 @@ const Badge = ({ label, color }: { label: string; color: string }) => (
       'px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-[0.15em]',
       color === 'emerald'
         ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border border-emerald-100 dark:border-emerald-500/20'
-        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 dark:text-slate-500',
+        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
     )}
   >
     {label}

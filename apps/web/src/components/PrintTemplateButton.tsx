@@ -105,7 +105,7 @@ export const PrintTemplateButton: React.FC<Props> = ({
       {open && templates && templates.length > 1 && (
         <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl z-50 overflow-hidden">
           <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 dark:text-slate-500">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Elige una plantilla
             </p>
           </div>
@@ -114,7 +114,7 @@ export const PrintTemplateButton: React.FC<Props> = ({
               <li key={t.id}>
                 <button
                   onClick={() => doDownload(t.id)}
-                  className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-50 dark:bg-slate-800/50 transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <FileCode size={14} className="text-slate-400 dark:text-slate-500" />
                   <span className="flex-1 text-sm text-slate-700 dark:text-slate-200 truncate">

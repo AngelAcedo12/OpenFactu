@@ -131,7 +131,7 @@ export const AccountingPeriods: React.FC = () => {
           <Calendar className="text-blue-600 dark:text-blue-300" size={32} />
           Periodos Contables
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 font-medium">
+        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">
           Define los ejercicios o años fiscales para acotar la contabilidad y series.
         </p>
       </div>

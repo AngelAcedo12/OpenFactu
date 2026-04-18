@@ -164,7 +164,7 @@ export const DocumentSeries: React.FC = () => {
           <FileDigit className="text-blue-600 dark:text-blue-300" size={32} />
           Series Documentales
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 font-medium">
+        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">
           Configura los rangos de numeración para cada tipo de documento del sistema.
         </p>
       </div>
@@ -175,7 +175,7 @@ export const DocumentSeries: React.FC = () => {
           className="p-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end"
         >
           <div className="md:col-span-1">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase">
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
               Nombre Serie
             </label>
             <Input
@@ -186,7 +186,7 @@ export const DocumentSeries: React.FC = () => {
             />
           </div>
           <div className="md:col-span-1">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase">
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
               Tipo Documento
             </label>
             <select
@@ -205,7 +205,7 @@ export const DocumentSeries: React.FC = () => {
             </select>
           </div>
           <div className="md:col-span-1">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase">
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
               Aplica al Periodo
             </label>
             <select
@@ -223,7 +223,7 @@ export const DocumentSeries: React.FC = () => {
             </select>
           </div>
           <div className="md:col-span-1">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase">
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
               Prefijo Visual
             </label>
             <Input
@@ -233,7 +233,7 @@ export const DocumentSeries: React.FC = () => {
             />
           </div>
           <div className="md:col-span-1">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase">
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
               Inicio de Rango
             </label>
             <Input
@@ -244,7 +244,7 @@ export const DocumentSeries: React.FC = () => {
             />
           </div>
           <div className="md:col-span-1">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase">
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
               Límite Final
             </label>
             <Input

@@ -53,7 +53,7 @@ export const PluginFields: React.FC<PluginFieldsProps> = ({
       </div>
       {fields.map((f) => (
         <div key={f.id} className="space-y-1">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-tight">
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">
             {f.label}
           </label>
           {f.fieldType === 'BOOLEAN' ? (
@@ -65,7 +65,7 @@ export const PluginFields: React.FC<PluginFieldsProps> = ({
                 disabled={disabled}
                 className="w-4 h-4 accent-blue-600"
               />
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-300 dark:text-slate-600">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
                 Activar
               </span>
             </div>

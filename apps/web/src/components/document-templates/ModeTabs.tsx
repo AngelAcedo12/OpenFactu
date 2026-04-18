@@ -18,7 +18,7 @@ export const ModeTabs: React.FC<Props> = ({ mode, onVisual, onAdvanced }) => (
         'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all',
         mode === 'visual'
           ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm'
-          : 'text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-200',
+          : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200',
       )}
     >
       <Palette size={14} /> Modo Visual
@@ -29,7 +29,7 @@ export const ModeTabs: React.FC<Props> = ({ mode, onVisual, onAdvanced }) => (
         'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all',
         mode === 'advanced'
           ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm'
-          : 'text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-200',
+          : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200',
       )}
     >
       <Code2 size={14} /> Modo Avanzado (HTML)

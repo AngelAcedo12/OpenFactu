@@ -106,7 +106,7 @@ export const TemplatesList: React.FC<Props> = ({
             </div>
             Plantillas de Documento
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2 font-medium ml-1">
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium ml-1">
             Formatos PDF personalizables para facturas, albaranes y pedidos.
           </p>
         </div>

@@ -184,7 +184,7 @@ export const Warehouses: React.FC = () => {
             <Globe className="text-blue-600 dark:text-blue-300" size={32} />
             Logistics Command Center
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 font-medium text-sm">
+          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium text-sm">
             Gestión industrial de almacenes y mallas de ubicación.
           </p>
         </div>

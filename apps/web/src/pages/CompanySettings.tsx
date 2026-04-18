@@ -175,7 +175,7 @@ export const CompanySettings: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             Configuración de Empresa
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Datos fiscales, branding, formato y comportamiento.
           </p>
         </div>
@@ -190,7 +190,7 @@ export const CompanySettings: React.FC = () => {
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
               activeTab === t.id
                 ? 'text-primary border-primary'
-                : 'text-slate-500 dark:text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-700 dark:hover:text-slate-200 dark:hover:text-slate-200'
+                : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200 dark:hover:text-slate-200'
             }`}
           >
             <t.icon size={14} />
@@ -337,12 +337,12 @@ export const CompanySettings: React.FC = () => {
 
           <Card>
             <div className="p-6 space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Preferencias
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                     Moneda
                   </label>
                   <select
@@ -356,7 +356,7 @@ export const CompanySettings: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                     Inicio del año fiscal (MM-DD)
                   </label>
                   <Input
@@ -382,12 +382,12 @@ export const CompanySettings: React.FC = () => {
         <div className="space-y-6">
           <Card>
             <div className="p-6 space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Colores
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                     Color primario
                   </label>
                   <div className="flex gap-2 items-center">
@@ -408,7 +408,7 @@ export const CompanySettings: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                     Color acento
                   </label>
                   <div className="flex gap-2 items-center">
@@ -434,11 +434,11 @@ export const CompanySettings: React.FC = () => {
 
           <Card>
             <div className="p-6 space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Marca
               </h2>
               <div>
-                <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+                <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                   Nombre de la aplicación
                 </label>
                 <Input
@@ -447,7 +447,7 @@ export const CompanySettings: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+                <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                   URL del logo
                 </label>
                 <Input
@@ -457,7 +457,7 @@ export const CompanySettings: React.FC = () => {
                 />
                 {brandingDraft.logoUrl && (
                   <div className="mt-3 flex items-center gap-3">
-                    <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
                       Vista previa:
                     </span>
                     <img
@@ -473,12 +473,12 @@ export const CompanySettings: React.FC = () => {
 
           <Card>
             <div className="p-6 space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Apariencia
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                     Familia tipográfica
                   </label>
                   <select
@@ -494,7 +494,7 @@ export const CompanySettings: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                     Modo
                   </label>
                   <select
@@ -532,12 +532,12 @@ export const CompanySettings: React.FC = () => {
         <div className="space-y-6">
           <Card>
             <div className="p-6 space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Regionalización
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                     Locale
                   </label>
                   <select
@@ -557,7 +557,7 @@ export const CompanySettings: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                     Formato de fecha
                   </label>
                   <select
@@ -572,7 +572,7 @@ export const CompanySettings: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                     Decimales importes
                   </label>
                   <Input
@@ -589,7 +589,7 @@ export const CompanySettings: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                     Decimales cantidades
                   </label>
                   <Input
@@ -608,12 +608,12 @@ export const CompanySettings: React.FC = () => {
               </div>
 
               <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                <p className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 dark:text-slate-500 tracking-wide mb-2">
+                <p className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-wide mb-2">
                   Vista previa
                 </p>
                 <div className="space-y-1 text-sm text-slate-800 dark:text-slate-200">
                   <p>
-                    <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                    <span className="text-slate-500 dark:text-slate-400">
                       Importe:
                     </span>{' '}
                     <span className="font-bold">
@@ -621,7 +621,7 @@ export const CompanySettings: React.FC = () => {
                     </span>
                   </p>
                   <p>
-                    <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                    <span className="text-slate-500 dark:text-slate-400">
                       Fecha:
                     </span>{' '}
                     <span className="font-bold">{formatDate(new Date(), formatDraft)}</span>
@@ -647,7 +647,7 @@ export const CompanySettings: React.FC = () => {
         <div className="space-y-6">
           <Card>
             <div className="p-6 space-y-1">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-4">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-4">
                 Flags de comportamiento
               </h2>
               <FlagRow
@@ -713,7 +713,7 @@ const FlagRow: React.FC<{
     />
     <div className="flex-1">
       <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{label}</p>
-      <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">{hint}</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400">{hint}</p>
     </div>
   </label>
 );

@@ -114,7 +114,7 @@ export const Uom: React.FC = () => {
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight text-display">
             Unidades de Medida
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
             Define las dimensiones y conversiones globales para tus artículos.
           </p>
         </div>
@@ -282,7 +282,7 @@ export const Uom: React.FC = () => {
                           </span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold text-xs">
+                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-bold text-xs">
                           <span className="text-slate-900 dark:text-slate-100">1 {u.code}</span>
                           <ArrowRightLeft
                             size={10}
@@ -311,7 +311,7 @@ export const Uom: React.FC = () => {
                       <button
                         onClick={() => canWrite && setEditingId(u.id)}
                         disabled={!canWrite}
-                        className={`p-2 transition-all rounded-xl ${canWrite ? 'text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10' : 'text-slate-100 cursor-not-allowed grayscale'}`}
+                        className={`p-2 transition-all rounded-xl ${canWrite ? 'text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10' : 'text-slate-100 cursor-not-allowed grayscale'}`}
                       >
                         <Plus size={16} className="rotate-45" />
                       </button>

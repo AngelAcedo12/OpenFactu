@@ -81,7 +81,7 @@ export const TenantSwitcher: React.FC = () => {
           <Building size={14} />
         </div>
         <div className="flex-1 min-w-0 text-left">
-          <p className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 dark:text-slate-500 tracking-widest leading-none">
+          <p className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest leading-none">
             Empresa activa
           </p>
           <p className="text-xs font-bold text-slate-100 truncate mt-0.5">
@@ -90,24 +90,24 @@ export const TenantSwitcher: React.FC = () => {
         </div>
         <ChevronsUpDown
           size={14}
-          className="text-slate-500 dark:text-slate-400 dark:text-slate-500 group-hover:text-slate-300 dark:text-slate-600 transition-colors"
+          className="text-slate-500 dark:text-slate-400 group-hover:text-slate-300 dark:hover:text-slate-600 transition-colors"
         />
       </button>
 
       {open && (
         <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-900 border border-slate-800 rounded-xl dark:shadow-none overflow-hidden z-50">
           <div className="px-3 py-2 border-b border-slate-800">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Tus empresas
             </p>
           </div>
           <ul className="max-h-64 overflow-auto py-1">
             {tenants === null ? (
-              <li className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 italic">
+              <li className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 italic">
                 Cargando…
               </li>
             ) : tenants.length === 0 ? (
-              <li className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 italic">
+              <li className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 italic">
                 Sin empresas accesibles
               </li>
             ) : (

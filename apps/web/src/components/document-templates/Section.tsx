@@ -32,13 +32,13 @@ export const Section: React.FC<Props> = ({
         onClick={() => setExpanded((e) => !e)}
         className={cn(
           'w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors',
-          'hover:bg-slate-50 dark:bg-slate-800/50',
+          'hover:bg-slate-50 dark:hover:bg-slate-800/50',
           expanded && 'bg-slate-50 dark:bg-slate-800/50',
         )}
       >
         <div className="flex items-center gap-2.5">
           {icon && (
-            <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500 flex-shrink-0">
+            <span className="text-slate-500 dark:text-slate-400 flex-shrink-0">
               {icon}
             </span>
           )}

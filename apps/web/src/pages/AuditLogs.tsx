@@ -101,11 +101,11 @@ const DiffModal: React.FC<{ log: AuditLog; onClose: () => void }> = ({ log, onCl
                   const changed = JSON.stringify(old[k]) !== JSON.stringify(next[k]);
                   return (
                     <tr key={k} className={changed ? 'bg-amber-50/50' : ''}>
-                      <td className="py-2 font-medium text-slate-600 dark:text-slate-300 dark:text-slate-600">
+                      <td className="py-2 font-medium text-slate-600 dark:text-slate-300">
                         {k}
                       </td>
                       <td
-                        className={`py-2 font-mono text-xs ${changed ? 'text-rose-600 dark:text-rose-300' : 'text-slate-500 dark:text-slate-400 dark:text-slate-500'}`}
+                        className={`py-2 font-mono text-xs ${changed ? 'text-rose-600 dark:text-rose-300' : 'text-slate-500 dark:text-slate-400'}`}
                       >
                         {old[k] === null || old[k] === undefined ? (
                           <span className="opacity-30 italic">null</span>
@@ -114,7 +114,7 @@ const DiffModal: React.FC<{ log: AuditLog; onClose: () => void }> = ({ log, onCl
                         )}
                       </td>
                       <td
-                        className={`py-2 font-mono text-xs ${changed ? 'text-emerald-700 dark:text-emerald-200 font-semibold' : 'text-slate-500 dark:text-slate-400 dark:text-slate-500'}`}
+                        className={`py-2 font-mono text-xs ${changed ? 'text-emerald-700 dark:text-emerald-200 font-semibold' : 'text-slate-500 dark:text-slate-400'}`}
                       >
                         {next[k] === null || next[k] === undefined ? (
                           <span className="opacity-30 italic">null</span>
@@ -205,7 +205,7 @@ export const AuditLogs: React.FC = () => {
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             Registros de Auditoría
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
             Histórico completo de creaciones, modificaciones y eliminaciones.
           </p>
         </div>
@@ -296,7 +296,7 @@ export const AuditLogs: React.FC = () => {
             <Button
               variant="secondary"
               onClick={handleReset}
-              className="h-10 gap-2 text-slate-500 dark:text-slate-400 dark:text-slate-500"
+              className="h-10 gap-2 text-slate-500 dark:text-slate-400"
             >
               <RotateCcw size={14} />
             </Button>
@@ -379,12 +379,12 @@ export const AuditLogs: React.FC = () => {
                       </span>
                     </td>
                     <td className="p-4">
-                      <span className="font-mono text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
+                      <span className="font-mono text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
                         {log.entityId.slice(0, 12)}…
                       </span>
                     </td>
                     <td className="p-4">
-                      <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                         {log.userId ? (
                           log.userId.slice(0, 12) + '…'
                         ) : (
@@ -411,7 +411,7 @@ export const AuditLogs: React.FC = () => {
         {/* Paginación */}
         {!loading && total > limit && (
           <div className="flex items-center justify-between p-4 pl-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-            <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               Mostrando {(page - 1) * limit + 1}–{Math.min(page * limit, total)} de{' '}
               {total.toLocaleString()} registros
             </p>
@@ -419,7 +419,7 @@ export const AuditLogs: React.FC = () => {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <ChevronLeft size={16} />
               </button>
@@ -429,7 +429,7 @@ export const AuditLogs: React.FC = () => {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <ChevronRight size={16} />
               </button>

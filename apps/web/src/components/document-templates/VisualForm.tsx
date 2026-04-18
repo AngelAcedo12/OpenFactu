@@ -22,7 +22,7 @@ interface Props {
 // -------------------- Field helpers --------------------
 
 const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 dark:text-slate-600 uppercase tracking-wider">
+  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
     {children}
   </label>
 );
@@ -87,7 +87,7 @@ const RangeField: React.FC<{
   <div className="space-y-1">
     <div className="flex items-center justify-between">
       <FieldLabel>{label}</FieldLabel>
-      <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300 dark:text-slate-600">
+      <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300">
         {value}
       </span>
     </div>
@@ -121,7 +121,7 @@ const CheckboxRow: React.FC<{
   title: string;
   description?: string;
 }> = ({ checked, onChange, title, description }) => (
-  <label className="flex items-center gap-3 p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:bg-slate-800/50 cursor-pointer">
+  <label className="flex items-center gap-3 p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
     <input
       type="checkbox"
       checked={checked}

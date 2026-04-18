@@ -107,7 +107,7 @@ export const Dashboard: React.FC = () => {
 
   if (error || !data) {
     return (
-      <div className="p-12 text-center text-slate-500 dark:text-slate-400 dark:text-slate-500">
+      <div className="p-12 text-center text-slate-500 dark:text-slate-400">
         {error || 'Sin datos disponibles'}
       </div>
     );
@@ -127,10 +127,10 @@ export const Dashboard: React.FC = () => {
           <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tighter font-display">
             Business Overview
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium text-sm flex items-center gap-2">
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-sm flex items-center gap-2">
             <CalendarDays
               size={14}
-              className="text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500"
+              className="text-slate-400 dark:text-slate-400"
             />
             {periodLabel}
           </p>
@@ -196,17 +196,17 @@ export const Dashboard: React.FC = () => {
                         onClick={() => navigate(d.route)}
                         className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800/50 rounded-lg px-2 transition-colors text-left"
                       >
-                        <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 dark:text-slate-600">
+                        <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                           <Icon size={16} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide">
+                          <p className="text-xs text-slate-400 dark:text-slate-400 font-bold uppercase tracking-wide">
                             {DOC_TYPE_LABELS[d.type] || d.type}
                           </p>
                           <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
                             {d.code}
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 truncate">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                             {d.partnerName || '—'}
                           </p>
                         </div>
@@ -214,13 +214,13 @@ export const Dashboard: React.FC = () => {
                           <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
                             {fmt.money(d.total)}
                           </p>
-                          <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                          <p className="text-[11px] text-slate-400 dark:text-slate-400">
                             {fmt.date(d.date)}
                           </p>
                         </div>
                         <ChevronRight
                           size={14}
-                          className="text-slate-300 dark:text-slate-600 dark:text-slate-300 dark:text-slate-600"
+                          className="text-slate-300 dark:text-slate-300"
                         />
                       </button>
                     </li>
@@ -246,7 +246,7 @@ export const Dashboard: React.FC = () => {
                         <p className="font-bold text-slate-800 dark:text-slate-100 truncate">
                           {it.name}
                         </p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                        <p className="text-[11px] text-slate-400 dark:text-slate-400">
                           {it.code}
                         </p>
                       </div>
@@ -254,7 +254,7 @@ export const Dashboard: React.FC = () => {
                         <p className="font-bold text-rose-600 dark:text-rose-300">
                           {Number(it.stock).toFixed(2)}
                         </p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                        <p className="text-[11px] text-slate-400 dark:text-slate-400">
                           min {Number(it.minStock).toFixed(2)}
                         </p>
                       </div>
@@ -279,7 +279,7 @@ export const Dashboard: React.FC = () => {
                         <p className="font-bold text-slate-800 dark:text-slate-100 truncate">
                           {b.itemName}
                         </p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                        <p className="text-[11px] text-slate-400 dark:text-slate-400">
                           Lote {b.batchNum}
                         </p>
                       </div>
@@ -287,7 +287,7 @@ export const Dashboard: React.FC = () => {
                         <p className="font-bold text-amber-600 dark:text-amber-300">
                           {fmt.date(b.expiryDate)}
                         </p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                        <p className="text-[11px] text-slate-400 dark:text-slate-400">
                           {Number(b.quantity).toFixed(2)} ud
                         </p>
                       </div>
@@ -341,7 +341,7 @@ const KpiCard: React.FC<KpiCardProps> = ({
 }) => {
   const deltaColor =
     delta == null
-      ? 'text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500'
+      ? 'text-slate-400 dark:text-slate-400'
       : delta >= 0
         ? 'text-emerald-600 dark:text-emerald-400'
         : 'text-rose-600 dark:text-rose-400';
@@ -350,13 +350,13 @@ const KpiCard: React.FC<KpiCardProps> = ({
     <Card className="relative group transition-all hover: hover:">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 tracking-widest leading-none mb-2">
+          <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-400 tracking-widest leading-none mb-2">
             {label}
           </p>
           <p className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tighter truncate">
             {value}
           </p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
             {subtitle}
           </p>
           <p className={`text-[11px] font-bold mt-2 flex items-center gap-1 ${deltaColor}`}>
@@ -379,7 +379,7 @@ const PartnerRanking: React.FC<{
   const fmt = useFormat();
   if (items.length === 0) {
     return (
-      <p className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 italic">
+      <p className="text-xs text-slate-400 dark:text-slate-400 italic">
         Sin datos en el periodo
       </p>
     );
@@ -388,7 +388,7 @@ const PartnerRanking: React.FC<{
     <ul className="space-y-3">
       {items.map((p, idx) => (
         <li key={p.id} className="flex items-center gap-3">
-          <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold text-[11px] flex items-center justify-center">
+          <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-[11px] flex items-center justify-center">
             {idx + 1}
           </div>
           <div className="flex-1 min-w-0">
@@ -409,11 +409,11 @@ const EmptyState: React.FC<{ icon: any; title: string; hint: string }> = ({
   hint,
 }) => (
   <div className="py-8 text-center space-y-2">
-    <div className="mx-auto w-12 h-12 bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-center text-slate-300 dark:text-slate-600 dark:text-slate-300 dark:text-slate-600">
+    <div className="mx-auto w-12 h-12 bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-center text-slate-300 dark:text-slate-300">
       <Icon size={20} />
     </div>
     <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{title}</p>
-    <p className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">
+    <p className="text-xs text-slate-400 dark:text-slate-400">
       {hint}
     </p>
   </div>

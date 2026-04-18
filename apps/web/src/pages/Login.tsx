@@ -312,7 +312,7 @@ export const Login: React.FC = () => {
                   </label>
                   <button
                     type="button"
-                    className="text-[11px] font-bold text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:text-blue-200 hover:underline transition"
+                    className="text-[11px] font-bold text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-200 hover:underline transition"
                   >
                     ¿Olvidó su contraseña?
                   </button>
@@ -332,7 +332,7 @@ export const Login: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-4 flex items-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:text-blue-300 transition-colors"
+                    className="absolute inset-y-0 right-4 flex items-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>

@@ -173,7 +173,7 @@ const POList: React.FC<{
             </div>
             Pedidos de Compra
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2 font-medium ml-1">
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium ml-1">
             Gestión de aprovisionamiento y órdenes a proveedores.
           </p>
           {doc.state.mastersError && (
@@ -388,7 +388,7 @@ const POForm: React.FC<{
             </h4>
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   Serie de Pedido *
                 </label>
                 <SearchableSelect
@@ -401,7 +401,7 @@ const POForm: React.FC<{
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   Periodo Contable *
                 </label>
                 <SearchableSelect

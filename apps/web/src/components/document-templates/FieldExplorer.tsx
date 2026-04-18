@@ -109,10 +109,10 @@ export const FieldExplorer: React.FC<Props> = ({ onInsert, insertMode }) => {
         {filteredGroups.map((group) => (
           <div key={group.group} className="border-b border-slate-50">
             <div className="sticky top-0 px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
-              <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              <span className="text-slate-500 dark:text-slate-400">
                 {GROUP_ICON[group.icon]}
               </span>
-              <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 dark:text-slate-600 uppercase tracking-wider">
+              <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                 {group.label}
               </span>
             </div>
@@ -127,7 +127,7 @@ export const FieldExplorer: React.FC<Props> = ({ onInsert, insertMode }) => {
                   key={field.path}
                   type="button"
                   onClick={() => handleFieldClick(field)}
-                  className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:bg-slate-800/50 border-b border-slate-50 last:border-b-0 group transition-colors"
+                  className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 border-b border-slate-50 last:border-b-0 group transition-colors"
                 >
                   <div className="flex items-start gap-2">
                     <div className="flex-1 min-w-0">
@@ -139,13 +139,13 @@ export const FieldExplorer: React.FC<Props> = ({ onInsert, insertMode }) => {
                           className={cn(
                             'text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border inline-flex items-center gap-0.5 flex-shrink-0',
                             TYPE_COLORS[field.type] ||
-                              'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 dark:text-slate-600 border-slate-200 dark:border-slate-700',
+                              'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700',
                           )}
                         >
                           {TYPE_ICON[field.type]} {field.type}
                         </span>
                       </div>
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
                         {field.description}
                       </div>
                       {field.example && (
@@ -178,7 +178,7 @@ export const FieldExplorer: React.FC<Props> = ({ onInsert, insertMode }) => {
               <code className="text-[11px] font-mono font-semibold text-indigo-700 block break-all">
                 {helper.usage}
               </code>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-0.5">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                 {helper.description}
               </div>
             </div>
