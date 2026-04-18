@@ -11,7 +11,8 @@
     "db:push:public": "ts-node src/scripts/push-public.ts"
   },
   "dependencies": {
-    "@openfactu/pdf": "*",
+    "@openfactu/common": "^0.0.2",
+    "@openfactu/pdf": "^0.0.2",
     "@types/adm-zip": "^0.5.8",
     "@types/multer": "^2.1.0",
     "adm-zip": "^0.5.17",

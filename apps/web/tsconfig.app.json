@@ -20,14 +20,7 @@
     "noUnusedParameters": false,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
-    "paths": {
-      "@openfactu/common": ["../../packages/common/src/index.ts"],
-      "@openfactu/common/*": ["../../packages/common/src/*"],
-      "@openfactu/ui": ["../../packages/ui/src/index.ts"],
-      "@openfactu/ui/*": ["../../packages/ui/src/*"]
-    }
+    "ignoreDeprecations": "5.0"
   },
   "include": ["src"]
 }
