@@ -13,7 +13,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@openfactu/common": "^0.0.2",
     "@openfactu/pdf": "^0.0.2",
-    "@openfactu/ui": "^0.0.2",
+    "@openfactu/ui": "^0.1.1",
     "lucide-react": "^1.8.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
