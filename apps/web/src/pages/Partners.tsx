@@ -253,14 +253,14 @@ export const Partners: React.FC = () => {
   ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="p-4 space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-3 tracking-tight">
             <Users className="text-blue-600 dark:text-blue-300" size={32} />
             Datos Maestros Interlocutor
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 font-medium">
+          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">
             Gestión avanzada y centralizada de Clientes y Proveedores.
           </p>
         </div>
@@ -286,25 +286,25 @@ export const Partners: React.FC = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* TABS */}
-          <div className="flex border-b text-sm font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500">
+          <div className="flex border-b text-sm font-bold text-slate-500 dark:text-slate-400">
             <button
               type="button"
               onClick={() => setActiveTab('general')}
-              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'general' ? 'border-blue-500 text-blue-600 dark:text-blue-300 bg-blue-50/50' : 'border-transparent hover:text-slate-800 dark:text-slate-100'}`}
+              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'general' ? 'border-primary text-primary bg-white dark:bg-slate-800' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-100'}`}
             >
               <FileText size={16} /> General
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('contact')}
-              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'contact' ? 'border-blue-500 text-blue-600 dark:text-blue-300 bg-blue-50/50' : 'border-transparent hover:text-slate-800 dark:text-slate-100'}`}
+              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'contact' ? 'border-primary text-primary bg-white dark:bg-slate-800' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-100'}`}
             >
               <Contact size={16} /> Contacto
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('addresses')}
-              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'addresses' ? 'border-blue-500 text-blue-600 dark:text-blue-300 bg-blue-50/50' : 'border-transparent hover:text-slate-800 dark:text-slate-100'}`}
+              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'addresses' ? 'border-primary text-primary bg-white dark:bg-slate-800' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-100'}`}
             >
               <MapPin size={16} /> Direcciones{' '}
               <Badge variant="neutral" className="ml-1 scale-75">
@@ -319,7 +319,7 @@ export const Partners: React.FC = () => {
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-1 block">
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                       Grupo de Socios *
                     </label>
                     <select
@@ -337,14 +337,14 @@ export const Partners: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-1 block">
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                       Código (Autogenerado por Sistema)
                     </label>
                     <Input
                       placeholder="Se asignará automáticamente al guardar..."
                       value={formData.code}
                       readOnly
-                      className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono"
+                      className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-mono"
                     />
                   </div>
                 </div>
@@ -378,7 +378,7 @@ export const Partners: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-1 block">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                     Nombre Extranjero / Comercial
                   </label>
                   <Input
@@ -388,7 +388,7 @@ export const Partners: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-1 block">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                     Tarifa Comercial Asociada
                   </label>
                   <select
@@ -433,7 +433,7 @@ export const Partners: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-1 block">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
                     Sitio Web
                   </label>
                   <Input
@@ -479,7 +479,7 @@ export const Partners: React.FC = () => {
                         </button>
                         <div className="grid grid-cols-12 gap-3 mb-3">
                           <div className="col-span-4">
-                            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                               ID Nombre
                             </label>
                             <Input
@@ -490,7 +490,7 @@ export const Partners: React.FC = () => {
                             />
                           </div>
                           <div className="col-span-3">
-                            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                               Tipo
                             </label>
                             <select

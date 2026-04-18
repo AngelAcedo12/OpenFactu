@@ -22,7 +22,7 @@ export const DocumentDetailLayout: React.FC<Props> = ({
   children,
 }) => {
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-300">
+    <div className="p-4 space-y-6 animate-in fade-in duration-300">
       <div className="space-y-3 pb-6 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center justify-between gap-4">
           <button

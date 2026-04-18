@@ -203,7 +203,7 @@ const PDNList: React.FC<{
   ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-8">
         <div>
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-4 tracking-tighter">
@@ -212,7 +212,7 @@ const PDNList: React.FC<{
             </div>
             Entradas (Albaranes)
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2 font-medium ml-1">
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium ml-1">
             Registro físico de entrada de productos y trazabilidad.
           </p>
           {doc.state.mastersError && (
@@ -329,12 +329,12 @@ const PDNForm: React.FC<{
   );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-8">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
-            className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 transition-all shadow-sm"
+            className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 dark:hover:text-slate-600 transition-all shadow-sm"
           >
             <ArrowLeft size={20} />
           </button>
@@ -350,7 +350,7 @@ const PDNForm: React.FC<{
                 </Badge>
               )}
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 font-medium ml-1 flex items-center gap-2">
+            <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium ml-1 flex items-center gap-2">
               <PlusSquare size={14} className="text-emerald-500" />
               Documento de recepción de mercancía y control de stock.
             </p>
@@ -415,7 +415,7 @@ const PDNForm: React.FC<{
             </h4>
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   Serie de Albarán *
                 </label>
                 <SearchableSelect
@@ -428,7 +428,7 @@ const PDNForm: React.FC<{
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   Periodo Contable *
                 </label>
                 <SearchableSelect
@@ -456,19 +456,19 @@ const PDNForm: React.FC<{
             <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-1 shadow-sm">
               <button
                 onClick={() => Array(1).fill(0).forEach(actions.addLine)}
-                className="h-8 min-w-[36px] px-2 rounded-lg text-[10px] font-black bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300 dark:text-slate-600 border border-transparent hover:border-slate-200 dark:border-slate-700 transition-all"
+                className="h-8 min-w-[36px] px-2 rounded-lg text-[10px] font-black bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all"
               >
                 +1
               </button>
               <button
                 onClick={() => Array(5).fill(0).forEach(actions.addLine)}
-                className="h-8 min-w-[36px] px-2 rounded-lg text-[10px] font-black bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300 dark:text-slate-600 border border-transparent hover:border-slate-200 dark:border-slate-700 transition-all"
+                className="h-8 min-w-[36px] px-2 rounded-lg text-[10px] font-black bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all"
               >
                 +5
               </button>
               <button
                 onClick={() => Array(10).fill(0).forEach(actions.addLine)}
-                className="h-8 min-w-[36px] px-2 rounded-lg text-[10px] font-black bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300 dark:text-slate-600 border border-transparent hover:border-slate-200 dark:border-slate-700 transition-all"
+                className="h-8 min-w-[36px] px-2 rounded-lg text-[10px] font-black bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all"
               >
                 +10
               </button>
@@ -485,7 +485,7 @@ const PDNForm: React.FC<{
           <div className="flex flex-col items-end min-w-[240px] space-y-2 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
             <div className="flex justify-between w-full text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">
               <span>Base Imponible:</span>
-              <span className="text-slate-600 dark:text-slate-300 dark:text-slate-600">
+              <span className="text-slate-600 dark:text-slate-300">
                 {computations.subtotal.toFixed(2)} €
               </span>
             </div>

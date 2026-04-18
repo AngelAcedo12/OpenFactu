@@ -148,7 +148,7 @@ export const SetupWizard: React.FC = () => {
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 dark:text-blue-300 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
                 onClick={() => setShowDbPass(!showDbPass)}
               >
                 {showDbPass ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -192,7 +192,7 @@ export const SetupWizard: React.FC = () => {
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 dark:text-blue-300 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
                 onClick={() => setShowAdminPass(!showAdminPass)}
               >
                 {showAdminPass ? <EyeOff size={20} /> : <Eye size={20} />}

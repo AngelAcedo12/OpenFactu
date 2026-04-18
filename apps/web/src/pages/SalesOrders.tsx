@@ -167,7 +167,7 @@ const SOList: React.FC<{
   ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-8">
         <div>
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-4 tracking-tighter">
@@ -176,7 +176,7 @@ const SOList: React.FC<{
             </div>
             Pedidos de Venta
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2 font-medium ml-1">
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium ml-1">
             Gestión de preventas y órdenes de clientes.
           </p>
           {doc.state.mastersError && (
@@ -300,7 +300,7 @@ const SOForm: React.FC<{
   );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
@@ -403,7 +403,7 @@ const SOForm: React.FC<{
             </h4>
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   Serie de Pedido *
                 </label>
                 <SearchableSelect
@@ -416,7 +416,7 @@ const SOForm: React.FC<{
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   Periodo Contable *
                 </label>
                 <SearchableSelect

@@ -125,9 +125,9 @@ const PermToggle: React.FC<{
   onChange: (v: boolean) => void;
 }> = ({ active, color, label, icon, disabled, onChange }) => {
   const activeClass = {
-    emerald: 'bg-emerald-100 text-emerald-700 dark:text-emerald-200 ring-1 ring-emerald-300',
-    blue: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-200 ring-1 ring-blue-300',
-    rose: 'bg-rose-100 text-rose-700 dark:text-rose-200 ring-1 ring-rose-300',
+    emerald: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 ring-1 ring-emerald-300 dark:ring-emerald-500/40',
+    blue: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-200 ring-1 ring-blue-300 dark:ring-blue-500/40',
+    rose: 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-200 ring-1 ring-rose-300 dark:ring-rose-500/40',
   }[color];
 
   return (
@@ -136,10 +136,10 @@ const PermToggle: React.FC<{
       disabled={disabled}
       onClick={() => onChange(!active)}
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide transition-all
- ${active ? activeClass : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'}
+ ${active ? activeClass : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 ring-1 ring-slate-200 dark:ring-slate-700'}
  ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:opacity-80 active:scale-95'}`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${active ? `bg-current` : 'bg-slate-300'}`} />
+      <span className={`w-1.5 h-1.5 rounded-full ${active ? `bg-current` : 'bg-slate-400 dark:bg-slate-600'}`} />
       {icon}
       {label}
     </button>
@@ -180,8 +180,8 @@ const PermissionsEditor: React.FC<{
             className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden"
           >
             {/* Header del grupo */}
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/50">
-              <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-100 dark:bg-slate-800">
+              <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                 <Icon size={11} />
                 {group.group}
               </span>
@@ -203,7 +203,7 @@ const PermissionsEditor: React.FC<{
          write: 'bg-blue-500 text-white',
          delete: 'bg-rose-500 text-white',
        }[key]
-     : 'bg-slate-200 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-300'
+     : 'bg-slate-200 text-slate-500 dark:text-slate-400 hover:bg-slate-300'
  }
  ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}`}
                     >
@@ -214,12 +214,12 @@ const PermissionsEditor: React.FC<{
               </div>
             </div>
             {/* Filas de ítems */}
-            <div className="divide-y divide-slate-50">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
               {group.items.map((item) => {
                 const p = permissions[item.path] || EMPTY_PERM;
                 return (
                   <div key={item.path} className="flex items-center justify-between px-3 py-1.5">
-                    <span className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-600 font-medium">
+                    <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
                       {item.label}
                     </span>
                     <div className="flex gap-1.5">
@@ -486,7 +486,7 @@ export const Users: React.FC = () => {
   const activeMemberships = memberships.filter((m) => !m.isDeleted);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <header className="flex items-end justify-between gap-4">
         <div className="space-y-1">
@@ -501,7 +501,7 @@ export const Users: React.FC = () => {
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             Usuarios
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
             Gestiona accesos, roles y permisos por empresa.
           </p>
         </div>
@@ -596,7 +596,7 @@ export const Users: React.FC = () => {
                     )}
                   </select>
                 ) : (
-                  <div className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2 px-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold">
+                  <div className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2 px-3 text-sm text-slate-500 dark:text-slate-400 font-bold">
                     {globalRole}
                   </div>
                 )}
@@ -665,7 +665,7 @@ export const Users: React.FC = () => {
                         </span>
                         <button
                           type="button"
-                          className="ml-auto text-rose-400 hover:text-rose-600 dark:text-rose-300"
+                          className="ml-auto text-rose-400 hover:text-rose-600 dark:hover:text-rose-300"
                           onClick={() => updateMembership(idx, { isDeleted: false })}
                         >
                           <X size={14} />
@@ -685,7 +685,7 @@ export const Users: React.FC = () => {
                       {/* Cabecera de la membership */}
                       <div className="flex items-center gap-3 p-4">
                         <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center ${m.isNew ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 dark:text-slate-500'}`}
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center ${m.isNew ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}
                         >
                           <Building2 size={18} />
                         </div>
@@ -833,7 +833,7 @@ export const Users: React.FC = () => {
                 >
                   <td className="p-4 pl-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-xs font-black text-slate-600 dark:text-slate-300 dark:text-slate-600">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-xs font-black text-slate-600 dark:text-slate-300">
                         {u.username?.charAt(0).toUpperCase()}
                       </div>
                       <span className="font-black text-slate-800 dark:text-slate-100">
@@ -841,7 +841,7 @@ export const Users: React.FC = () => {
                       </span>
                     </div>
                   </td>
-                  <td className="p-4 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                  <td className="p-4 text-sm text-slate-500 dark:text-slate-400">
                     {u.email}
                   </td>
                   <td className="p-4">
@@ -866,7 +866,7 @@ export const Users: React.FC = () => {
                         </span>
                       </div>
                     ) : u.tenantName ? (
-                      <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                         {u.tenantName}
                       </span>
                     ) : (
@@ -878,7 +878,7 @@ export const Users: React.FC = () => {
                       <button
                         onClick={() => startEdit(u)}
                         disabled={!canWrite}
-                        className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all disabled:opacity-30"
+                        className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all disabled:opacity-30"
                       >
                         <Edit2 size={15} />
                       </button>
@@ -886,7 +886,7 @@ export const Users: React.FC = () => {
                         <button
                           onClick={() => canDelete && handleDelete(u.id)}
                           disabled={!canDelete}
-                          className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-30"
+                          className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-30"
                         >
                           <Trash2 size={15} />
                         </button>

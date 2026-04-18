@@ -23,7 +23,7 @@ export const TabBar: React.FC = () => {
   return (
     <div
       role="tablist"
-      className="flex items-stretch h-10 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 overflow-x-auto scrollbar-hide shrink-0 z-30"
+      className="flex items-stretch h-10 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 overflow-x-auto scrollbar-hide shrink-0 z-0"
     >
       {tabs.map((tab) => {
         const Icon = resolveIcon(tab.iconName);

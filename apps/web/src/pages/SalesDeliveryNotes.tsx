@@ -101,7 +101,7 @@ const SDNList: React.FC<{
           <span className="font-bold text-slate-900 dark:text-slate-100 leading-none">
             {item.seriesPrefix}-{item.periodCode}-{String(item.docNum).padStart(6, '0')}
           </span>
-          <span className="text-[10px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono mt-1">
+          <span className="text-[10px] text-slate-400 dark:text-slate-400 font-mono mt-1">
             ID: {item.id.substring(0, 8)}
           </span>
         </div>
@@ -121,7 +121,7 @@ const SDNList: React.FC<{
             {item.orderPrefix}-{item.periodCode}-{String(item.orderDocNum).padStart(6, '0')}
           </Badge>
         ) : (
-          <span className="text-[10px] text-slate-300 dark:text-slate-600 dark:text-slate-300 dark:text-slate-600 font-bold italic">
+          <span className="text-[10px] text-slate-300 dark:text-slate-300 font-bold italic">
             Directo
           </span>
         ),
@@ -193,7 +193,7 @@ const SDNList: React.FC<{
   ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-8">
         <div>
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-4 tracking-tighter">
@@ -202,7 +202,7 @@ const SDNList: React.FC<{
             </div>
             Salidas (Albaranes)
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2 font-medium ml-1">
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium ml-1">
             Registro físico de salida de productos y control de expedición.
           </p>
           {doc.state.mastersError && (
@@ -311,12 +311,12 @@ const SDNForm: React.FC<{
   );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-8">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
-            className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 transition-all shadow-sm"
+            className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 dark:hover:text-slate-600 dark:hover:text-slate-300 dark:hover:text-slate-600 transition-all shadow-sm"
           >
             <ArrowLeft size={20} />
           </button>
@@ -332,7 +332,7 @@ const SDNForm: React.FC<{
                 </Badge>
               )}
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 font-medium ml-1 flex items-center gap-2">
+            <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium ml-1 flex items-center gap-2">
               <PlusSquare size={14} className="text-emerald-500" />
               Documento de expedición y control de stock de salida.
             </p>
@@ -354,7 +354,7 @@ const SDNForm: React.FC<{
         <Card className="p-6 md:col-span-2 space-y-6 border-t-4 border-t-emerald-500">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+              <label className="text-xs font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">
                 Cliente *
               </label>
               <SearchableSelect
@@ -365,7 +365,7 @@ const SDNForm: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+              <label className="text-xs font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">
                 Almacén de Salida *
               </label>
               <SearchableSelect
@@ -377,7 +377,7 @@ const SDNForm: React.FC<{
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
             <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+              <label className="text-xs font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">
                 Fecha Albarán *
               </label>
               <Input
@@ -392,12 +392,12 @@ const SDNForm: React.FC<{
 
         <div className="space-y-6">
           <Card className="p-6 space-y-6 bg-slate-50/50 dark:bg-slate-800/50">
-            <h4 className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 tracking-widest border-b pb-2">
+            <h4 className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-400 tracking-widest border-b pb-2">
               Logística y Series
             </h4>
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   Serie de Albarán *
                 </label>
                 <SearchableSelect
@@ -410,7 +410,7 @@ const SDNForm: React.FC<{
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   Periodo Contable *
                 </label>
                 <SearchableSelect
@@ -447,7 +447,7 @@ const SDNForm: React.FC<{
           <div className="flex flex-col items-end min-w-[240px] space-y-2 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
             <div className="flex justify-between w-full text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">
               <span>Base Imponible:</span>
-              <span className="text-slate-600 dark:text-slate-300 dark:text-slate-600">
+              <span className="text-slate-600 dark:text-slate-300">
                 {computations.subtotal.toFixed(2)} €
               </span>
             </div>
