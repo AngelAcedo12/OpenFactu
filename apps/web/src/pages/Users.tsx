@@ -486,7 +486,7 @@ export const Users: React.FC = () => {
   const activeMemberships = memberships.filter((m) => !m.isDeleted);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <header className="flex items-end justify-between gap-4">
         <div className="space-y-1">

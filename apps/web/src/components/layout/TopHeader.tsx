@@ -1,20 +1,14 @@
 import React from 'react';
-import { Boxes, LogOut, Sun, Moon } from 'lucide-react';
-import { cn } from '@openfactu/ui';
-import { useAuth } from '../../context/AuthContext';
+import { Boxes, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
-import { TenantSwitcher } from '../TenantSwitcher';
 import { GlobalSearch } from '../GlobalSearch';
 
 /**
- * Header superior con: logo + branding, búsqueda global, tenant switcher,
- * toggle tema, y avatar/usuario con logout.
+ * Header superior compacto: logo + branding, búsqueda global, toggle tema.
  *
- * Reemplaza la sección de logo+search del header viejo y mueve aquí los
- * controles que estaban en la parte inferior del sidebar.
+ * El tenant switcher y el menú de usuario ahora viven en el IconSidebar (al pie).
  */
 export const TopHeader: React.FC = () => {
-  const { user, logout } = useAuth();
   const { branding, update } = useTheme();
   const isDark = branding.themeMode === 'dark';
   const toggleTheme = () =>
@@ -45,11 +39,6 @@ export const TopHeader: React.FC = () => {
         <GlobalSearch />
       </div>
 
-      {/* Tenant switcher */}
-      <div className="hidden md:block">
-        <TenantSwitcher />
-      </div>
-
       {/* Toggle tema */}
       <button
         onClick={toggleTheme}
@@ -58,35 +47,6 @@ export const TopHeader: React.FC = () => {
       >
         {isDark ? <Sun size={16} /> : <Moon size={16} />}
       </button>
-
-      {/* Avatar + usuario + logout */}
-      <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
-        <div className="relative">
-          <div className="w-8 h-8 bg-gradient-to-br from-slate-700 to-slate-900 rounded-lg flex items-center justify-center text-xs font-bold text-white">
-            {user?.username?.charAt(0)?.toUpperCase() || 'A'}
-          </div>
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
-        </div>
-        <div className="hidden lg:block min-w-0">
-          <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate leading-tight">
-            {user?.username || 'Admin'}
-          </p>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
-            {user?.role || 'USER'}
-          </p>
-        </div>
-        <button
-          onClick={logout}
-          className={cn(
-            'p-2 rounded-md text-slate-400 dark:text-slate-500',
-            'hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10',
-            'transition-colors',
-          )}
-          aria-label="Cerrar sesión"
-        >
-          <LogOut size={16} />
-        </button>
-      </div>
     </header>
   );
 };

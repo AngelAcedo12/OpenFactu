@@ -189,7 +189,7 @@ export const AuditLogs: React.FC = () => {
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="p-4 space-y-6 animate-in fade-in duration-500">
       {selectedLog && <DiffModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
 
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">

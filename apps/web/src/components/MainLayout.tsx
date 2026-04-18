@@ -21,7 +21,7 @@ export const MainLayout: React.FC = () => {
         <TopHeader />
         <ModuleTabBar />
         <TabBar />
-        <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 min-h-0">
+        <main className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 min-h-0">
           <TabsHost />
         </main>
       </div>

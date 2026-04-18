@@ -121,7 +121,7 @@ export const Dashboard: React.FC = () => {
     : 'Sin periodo activo';
 
   return (
-    <div className="p-8 max-w-7xl mx-auto w-full space-y-8 duration-500">
+    <div className="p-4 w-full space-y-8 duration-500">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tighter font-display">

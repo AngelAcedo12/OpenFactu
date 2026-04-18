@@ -158,7 +158,7 @@ export const DocumentSeries: React.FC = () => {
   ];
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <div>
         <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-3 tracking-tight">
           <FileDigit className="text-blue-600 dark:text-blue-300" size={32} />
