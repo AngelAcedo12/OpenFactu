@@ -31,6 +31,7 @@ import {
   type CanvasElement,
   type ElementKind,
 } from '../components/document-templates/canvas/types';
+import { compileCanvas } from '../components/document-templates/canvas/compileCanvas';
 
 const BAND_LABELS: Record<BandKind, string> = {
   pageHeader: 'Cabecera de página',
@@ -140,10 +141,16 @@ export const DocumentTemplateDesigner: React.FC = () => {
     if (!template) return;
     setSaving(true);
     try {
+      const html = compileCanvas(layout, { docType: template.docType });
       const res = await fetch(`/api/document-templates/${template.id}`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify({ ...template, canvasLayout: layout, legacyHtml: false }),
+        body: JSON.stringify({
+          ...template,
+          canvasLayout: layout,
+          html,
+          legacyHtml: false,
+        }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       toast.success('Plantilla guardada');

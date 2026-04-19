@@ -12,12 +12,12 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
 };
 
 export const DOC_TYPE_COLORS: Record<DocType, string> = {
-  SINV: 'bg-amber-50 text-amber-700 border-amber-200',
-  PINV: 'bg-amber-50 text-amber-700 border-amber-200',
-  SDN: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  PDN: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  SO: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  PO: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  SINV: 'bg-amber-50 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-600',
+  PINV: 'bg-amber-50 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-600',
+  SDN: 'bg-emerald-50 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-600',
+  PDN: 'bg-emerald-50 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-600',
+  SO: 'bg-indigo-50 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-600',
+  PO: 'bg-indigo-50 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-600',
 };
 
 export const DOC_TYPE_OPTIONS = (Object.keys(DOC_TYPE_LABELS) as DocType[]).map((v) => ({
@@ -32,4 +32,7 @@ export interface TemplateRow {
   isDefault: boolean;
   updatedAt?: string;
   html?: string;
+  canvasLayout?: unknown;
+  layoutVersion?: number;
+  legacyHtml?: boolean;
 }
