@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { DocumentActionBar } from '../components/DocumentActionBar';
 import { DocumentDetailLayout } from '../components/DocumentDetailLayout';
+import { AttachmentsPanel } from '../components/AttachmentsPanel';
 import { DocumentTotalsBlock } from '../components/DocumentTotalsBlock';
 import {
   buildDetailLineColumns,
@@ -598,6 +599,8 @@ const PDNDetail: React.FC<{
         <DocumentActionBar
           docType="PDN"
           pdfUrl={`/api/purchases/delivery-notes/${pdn.id}/pdf`}
+          docId={pdn.id}
+          docCode={`${pdn.seriesPrefix}-${pdn.periodCode}-${String(pdn.docNum).padStart(6, '0')}`}
           onCancel={() => onCancel(pdn.id)}
           showCancel={pdn.status === 'O'}
           primary={
@@ -671,6 +674,8 @@ const PDNDetail: React.FC<{
           totalLabel="Total Albarán"
         />
       </Card>
+
+      <AttachmentsPanel entityType="PurchaseDeliveryNote" entityId={pdn.id} />
     </DocumentDetailLayout>
   );
 };

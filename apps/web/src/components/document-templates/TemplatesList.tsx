@@ -126,7 +126,7 @@ export const TemplatesList: React.FC<Props> = ({
           return (
             <Card
               key={docType}
-              className="overflow-hidden shadow-lg border-slate-100 dark:border-slate-800"
+              className="overflow-hidden shadow-lg dark:bg-transparent border-slate-100 dark:border-slate-800"
               noPadding
             >
               <div

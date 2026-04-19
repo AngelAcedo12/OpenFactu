@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { DocumentActionBar } from '../components/DocumentActionBar';
 import { DocumentDetailLayout } from '../components/DocumentDetailLayout';
+import { AttachmentsPanel } from '../components/AttachmentsPanel';
 import { DocumentTotalsBlock } from '../components/DocumentTotalsBlock';
 import {
   buildDetailLineColumns,
@@ -520,6 +521,8 @@ const SODetail: React.FC<{
         <DocumentActionBar
           docType="SO"
           pdfUrl={`/api/sales/${order.id}/pdf`}
+          docId={order.id}
+          docCode={`${order.seriesPrefix}-${order.periodCode}-${String(order.docNum).padStart(6, '0')}`}
           onCancel={() => onCancel(order.id)}
           showCancel={canBeCancelled}
           primary={
@@ -612,6 +615,8 @@ const SODetail: React.FC<{
           totalLabel="Total Pedido"
         />
       </Card>
+
+      <AttachmentsPanel entityType="SalesOrder" entityId={order.id} />
     </DocumentDetailLayout>
   );
 };

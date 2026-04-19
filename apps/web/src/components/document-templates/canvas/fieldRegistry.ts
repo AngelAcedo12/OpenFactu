@@ -45,6 +45,10 @@ export function flattenFields(groups: FieldGroup[] = FIELD_SCHEMA): FieldDef[] {
  */
 export function inferDefaultFormat(field: FieldDef): FieldElement['format'] | undefined {
   if (field.type === 'date') return 'date';
+  // Los campos marcados como objeto en el schema (direcciones estructuradas)
+  // se formatean con el helper `formatAddress` por defecto para evitar
+  // imprimir "[object Object]".
+  if (field.type === 'object') return 'address';
   if (field.type !== 'number') return undefined;
   // Heurística por nombre: totales y precios → currency; el resto de números → number.
   const p = field.path.toLowerCase();

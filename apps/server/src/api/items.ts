@@ -16,6 +16,7 @@ router.get('/', async (req: any, res) => {
       .select({
         id: schema.items.id,
         code: schema.items.code,
+        barcode: schema.items.barcode,
         name: schema.items.name,
         description: schema.items.description,
         uomId: schema.items.uomId,

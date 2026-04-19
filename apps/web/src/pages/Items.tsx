@@ -5,6 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import { Package, Plus, Trash2, Search, Settings2, Boxes, Scale, Tag } from 'lucide-react';
 import { SearchableSelect } from '@openfactu/ui';
 import { PluginFieldsPanel } from '../components/PluginFieldsPanel';
+import { LabelPrintButton } from '../components/LabelPrintButton';
+import { AttachmentsPanel } from '../components/AttachmentsPanel';
+import { validateBarcode, generateEan13 } from '../utils/barcodeValidation';
 
 const AlternativeUomsPanel: React.FC<{
   itemId?: string;
@@ -215,6 +218,7 @@ export const Items: React.FC = () => {
   // Form State
   const [showItemModal, setShowItemModal] = useState(false);
   const [code, setCode] = useState('');
+  const [barcode, setBarcode] = useState('');
   const [name, setName] = useState('');
   const [uomId, setUomId] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -259,6 +263,7 @@ export const Items: React.FC = () => {
   useEffect(() => {
     if (selectedItem) {
       setCode(selectedItem.code || '');
+      setBarcode(selectedItem.barcode || '');
       setName(selectedItem.name || '');
       setUomId(selectedItem.uomId || '');
       setCategoryId(selectedItem.categoryId || '');
@@ -267,6 +272,7 @@ export const Items: React.FC = () => {
       setActiveTab('generales');
     } else {
       setCode('');
+      setBarcode('');
       setName('');
       setUomId('');
       setCategoryId('');
@@ -277,6 +283,18 @@ export const Items: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Aviso (no bloqueante) si el barcode tiene formato inválido. El usuario
+    // puede confirmar para guardarlo igualmente — algunos códigos legacy o
+    // internos no siguen EAN/UPC y siguen siendo válidos para imprimir.
+    if (barcode.trim()) {
+      const v = validateBarcode(barcode);
+      if (!v.valid) {
+        const ok = confirm(
+          `El código de barras parece inválido (${v.format}: ${v.reason}). ¿Guardar de todos modos?`,
+        );
+        if (!ok) return;
+      }
+    }
     setIsSubmitting(true);
     try {
       const method = selectedItem ? 'PATCH' : 'POST';
@@ -290,6 +308,7 @@ export const Items: React.FC = () => {
         },
         body: JSON.stringify({
           code,
+          barcode: barcode.trim() || null,
           name,
           uomId,
           categoryId: categoryId || null,
@@ -299,8 +318,24 @@ export const Items: React.FC = () => {
       });
 
       if (res.ok) {
+        // Verificación adicional: leemos lo que devolvió el backend y nos
+        // aseguramos de que el barcode realmente quedó guardado igual a lo que
+        // mandamos. Si difiere (NULL, recortado, etc.) avisamos al usuario.
+        let saved: any = null;
+        try {
+          saved = await res.clone().json();
+        } catch {
+          /* el endpoint puede devolver vacío en algunos métodos */
+        }
+        const sentBarcode = barcode.trim() || null;
+        if (saved && 'barcode' in saved && saved.barcode !== sentBarcode) {
+          toast.error(
+            `Guardado, pero el barcode quedó como ${JSON.stringify(saved.barcode)} (enviaste ${JSON.stringify(sentBarcode)})`,
+          );
+        }
         if (!selectedItem) {
           setCode('');
+          setBarcode('');
           setName('');
           setBasePrice('0');
         } else {
@@ -309,11 +344,16 @@ export const Items: React.FC = () => {
         fetchData();
         toast.success(selectedItem ? 'Artículo actualizado' : 'Artículo maestro creado');
       } else {
-        const errData = await res.json();
-        toast.error(errData.error || 'Error en la operación');
+        const errData = await res.json().catch(() => ({}));
+        // Mostramos el mensaje completo del backend (puede traer el error
+        // SQL real: "column ... does not exist", "duplicate key", etc.).
+        const detailed = errData.error || errData.message || `HTTP ${res.status}`;
+        console.error('[Items.handleSubmit] error:', errData);
+        toast.error(`Error: ${detailed}`);
       }
-    } catch (err) {
-      toast.error('Error de conexión');
+    } catch (err: any) {
+      console.error('[Items.handleSubmit] network/parse error:', err);
+      toast.error(`Error de conexión: ${err?.message || err}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -425,6 +465,12 @@ export const Items: React.FC = () => {
           >
             <Boxes size={14} />
           </button>
+          <LabelPrintButton
+            params={{ itemId: i.id }}
+            title="Imprimir etiqueta del artículo"
+            className="p-2 text-slate-300 dark:text-slate-600 hover:text-purple-600 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-lg transition-all"
+            triggerLabel={<Tag size={14} />}
+          />
           <button
             onClick={() => canWrite && setSelectedItem(i)}
             disabled={!canWrite}
@@ -740,6 +786,73 @@ export const Items: React.FC = () => {
                     />
                   </div>
                 </div>
+                <div>
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Input
+                        label="Código de Barras (EAN / UPC / Code128)"
+                        placeholder="Ej: 8412345678905 — vacío si el artículo no tiene"
+                        value={barcode}
+                        onChange={(e) => setBarcode(e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Si ya hay algo numérico parcial (8/11/12 dígitos sin
+                        // check), completamos preservando lo que escribió. Si
+                        // está vacío o no es numérico, generamos uno nuevo
+                        // determinista a partir del code/name del artículo.
+                        const seed =
+                          barcode.trim() ||
+                          code ||
+                          name ||
+                          (selectedItem?.id ?? '');
+                        const generated = generateEan13(seed);
+                        setBarcode(generated);
+                      }}
+                      title="Generar EAN-13 válido (a partir del código del artículo si está vacío)"
+                      className="h-9 px-3 text-xs font-bold rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-900/50"
+                    >
+                      Generar
+                    </button>
+                  </div>
+                  {(() => {
+                    if (!barcode.trim()) {
+                      return (
+                        <div className="text-[10px] text-slate-400 mt-1 ml-1">
+                          Sin código de barras. Pulsa <strong>Generar</strong> para crear uno.
+                        </div>
+                      );
+                    }
+                    const v = validateBarcode(barcode);
+                    if (v.valid) {
+                      return (
+                        <div className="text-[10px] mt-1 ml-1 flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                          <span>✓</span>
+                          <span>Formato detectado: {v.format}</span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="text-[10px] mt-1 ml-1 text-rose-500 dark:text-rose-400 flex flex-wrap items-center gap-1">
+                        <span>⚠</span>
+                        <span>
+                          {v.format} inválido — {v.reason}
+                        </span>
+                        {v.suggested && (
+                          <button
+                            type="button"
+                            onClick={() => setBarcode(v.suggested!)}
+                            className="ml-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 font-mono"
+                          >
+                            Usar {v.suggested}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
                     Categoría (Define Prefijo)
@@ -837,6 +950,12 @@ export const Items: React.FC = () => {
                 token={token}
                 tenantId={user?.tenantId || ''}
               />
+            )}
+
+            {selectedItem?.id && (
+              <div className="mt-4">
+                <AttachmentsPanel entityType="Item" entityId={selectedItem.id} />
+              </div>
             )}
 
             <div className="flex justify-end gap-3 pt-6 mt-4 border-t border-slate-100 dark:border-slate-800">

@@ -1,8 +1,9 @@
 import React from 'react';
-import { Barcode, Plus, Trash2, Copy as CopyIcon } from 'lucide-react';
+import { Barcode, Plus, Trash2, Copy as CopyIcon, Tag } from 'lucide-react';
 import { Button, Input, SearchableSelect } from '@openfactu/ui';
 import type { TableColumn } from '@openfactu/ui';
 import { DocKind, DocSide, DocStatus } from '@openfactu/common';
+import { LabelPrintButton } from './LabelPrintButton';
 
 export type { DocKind, DocSide } from '@openfactu/common';
 
@@ -207,6 +208,24 @@ export function buildDetailLineColumns(opts: BuilderOpts): TableColumn<any>[] {
       const lineTotal = l.lineTotal != null ? Number(l.lineTotal) : qty * price;
       return strongMoneyCell(lineTotal, fmt);
     },
+  });
+
+  // Acciones por línea: imprimir etiqueta del artículo. El modal se abre con
+  // params.itemId precargado a partir de la línea y muestra las plantillas
+  // FREE disponibles para que el usuario elija una.
+  columns.push({
+    header: '',
+    width: '40px',
+    align: 'right',
+    cell: (l: any) =>
+      l.itemId ? (
+        <LabelPrintButton
+          params={{ itemId: l.itemId }}
+          title="Imprimir etiqueta del artículo"
+          className="p-1.5 text-slate-300 dark:text-slate-600 hover:text-purple-600 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-lg transition-all inline-flex"
+          triggerLabel={<Tag size={13} />}
+        />
+      ) : null,
   });
 
   return columns;

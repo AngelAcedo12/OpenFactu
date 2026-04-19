@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { DocumentActionBar } from '../components/DocumentActionBar';
 import { DocumentDetailLayout } from '../components/DocumentDetailLayout';
+import { AttachmentsPanel } from '../components/AttachmentsPanel';
 import { DocumentTotalsBlock } from '../components/DocumentTotalsBlock';
 import {
   buildDetailLineColumns,
@@ -563,6 +564,8 @@ const SDNDetail: React.FC<{
         <DocumentActionBar
           docType="SDN"
           pdfUrl={`/api/sales/delivery-notes/${sdn.id}/pdf`}
+          docId={sdn.id}
+          docCode={`${sdn.seriesPrefix}-${sdn.periodCode}-${String(sdn.docNum).padStart(6, '0')}`}
           onCancel={() => onCancel(sdn.id)}
           showCancel={sdn.status === 'O'}
           primary={
@@ -636,6 +639,8 @@ const SDNDetail: React.FC<{
           totalLabel="Total Albarán"
         />
       </Card>
+
+      <AttachmentsPanel entityType="SalesDeliveryNote" entityId={sdn.id} />
     </DocumentDetailLayout>
   );
 };

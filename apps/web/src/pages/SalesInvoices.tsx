@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { DocumentActionBar } from '../components/DocumentActionBar';
 import { DocumentDetailLayout } from '../components/DocumentDetailLayout';
+import { AttachmentsPanel } from '../components/AttachmentsPanel';
 import { DocumentTotalsBlock } from '../components/DocumentTotalsBlock';
 import {
   buildDetailLineColumns,
@@ -492,6 +493,8 @@ const InvoiceDetail: React.FC<{
         <DocumentActionBar
           docType="SINV"
           pdfUrl={`/api/sales/invoices/${invoice.id}/pdf`}
+          docId={invoice.id}
+          docCode={`${invoice.seriesPrefix}-${invoice.periodCode}-${String(invoice.docNum).padStart(6, '0')}`}
           onCancel={onCancel}
           showCancel={(invoice.status === 'O' || invoice.status === 'D') && canDelete}
           isCancelling={isCancelling}
@@ -575,6 +578,8 @@ const InvoiceDetail: React.FC<{
           totalLabel="Total Factura"
         />
       </Card>
+
+      <AttachmentsPanel entityType="SalesInvoice" entityId={invoice.id} />
     </DocumentDetailLayout>
   );
 };

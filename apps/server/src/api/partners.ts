@@ -135,7 +135,16 @@ router.post('/', async (req: any, res) => {
       newValue: partner,
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    // Drizzle envuelve el error de pg en `Failed query: ...` ocultando la
+    // causa real. Extraemos `error.cause.message` cuando existe para devolver
+    // un mensaje útil ("duplicate key", "null violates not-null", etc.).
+    const detail =
+      (error?.cause?.detail as string | undefined) ||
+      (error?.cause?.message as string | undefined) ||
+      error?.message ||
+      'Error desconocido';
+    console.error('[Partners.create] error:', detail, '\nfull:', error?.stack || error);
+    res.status(500).json({ error: detail });
   }
 });
 

@@ -10,6 +10,7 @@ import { TaxIdInput } from '../components/geo/TaxIdInput';
 import { PostalCodeInput } from '../components/geo/PostalCodeInput';
 import { PhoneInput } from '../components/geo/PhoneInput';
 import { PluginFieldsPanel } from '../components/PluginFieldsPanel';
+import { AttachmentsPanel } from '../components/AttachmentsPanel';
 
 export const Partners: React.FC = () => {
   const { token, user } = useAuth();
@@ -580,6 +581,12 @@ export const Partners: React.FC = () => {
               </div>
             )}
           </div>
+
+          {editingId && (
+            <div className="mt-4">
+              <AttachmentsPanel entityType="BusinessPartner" entityId={editingId} />
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="secondary" type="button" onClick={() => setIsModalOpen(false)}>

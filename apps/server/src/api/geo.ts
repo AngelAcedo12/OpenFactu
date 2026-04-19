@@ -1,13 +1,33 @@
 import { Router } from 'express';
-import { eq, and, ilike, asc } from 'drizzle-orm';
+import { eq, and, ilike, asc, sql } from 'drizzle-orm';
 import { ClientFactory } from '../core/tenant/ClientFactory';
 import * as schema from '../db/schema';
+import { seedGeo } from '../core/geo/seedGeo';
 
 const router = Router();
 
 // Las tablas geográficas viven en el schema `public`. Usamos el cliente público
 // directamente para todas las lecturas, independientemente del tenant activo.
 const publicDb = () => ClientFactory.getClient('public');
+
+/**
+ * POST /api/geo/seed — fuerza la ejecución del seed geográfico (países,
+ * regiones, subregiones, localidades). Útil cuando la primera vez falló
+ * porque faltaba `geo.json` en `dist/seed-data/` o si se actualiza la fuente
+ * sin reiniciar el server. Idempotente: hace upsert de países y salta
+ * regiones si ya hay datos.
+ */
+router.post('/seed', async (_req, res) => {
+  try {
+    await seedGeo(publicDb());
+    const result: any = await publicDb().execute(sql.raw(`SELECT COUNT(*)::int AS count FROM "Country"`));
+    const count = result?.rows?.[0]?.count ?? 0;
+    res.json({ ok: true, countries: count });
+  } catch (e: any) {
+    console.error('[Geo] seed manual falló:', e?.stack || e?.message || e);
+    res.status(500).json({ error: e?.message || 'Error al sembrar geografía' });
+  }
+});
 
 router.get('/countries', async (_req, res) => {
   try {

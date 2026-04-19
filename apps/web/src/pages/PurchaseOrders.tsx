@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { DocumentActionBar } from '../components/DocumentActionBar';
 import { DocumentDetailLayout } from '../components/DocumentDetailLayout';
+import { AttachmentsPanel } from '../components/AttachmentsPanel';
 import { DocumentTotalsBlock } from '../components/DocumentTotalsBlock';
 import {
   buildDetailLineColumns,
@@ -492,6 +493,8 @@ const PODetail: React.FC<{
         <DocumentActionBar
           docType="PO"
           pdfUrl={`/api/purchases/orders/${order.id}/pdf`}
+          docId={order.id}
+          docCode={`${order.seriesPrefix}-${order.periodCode}-${String(order.docNum).padStart(6, '0')}`}
           onCancel={onCancel ? () => onCancel(order.id) : undefined}
           showCancel={canBeCancelled && !!onCancel}
           primary={
@@ -584,6 +587,8 @@ const PODetail: React.FC<{
           totalLabel="Total Pedido"
         />
       </Card>
+
+      <AttachmentsPanel entityType="PurchaseOrder" entityId={order.id} />
     </DocumentDetailLayout>
   );
 };

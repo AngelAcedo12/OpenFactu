@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '@openfactu/ui';
-import { Trash2, type LucideIcon } from 'lucide-react';
+import { Trash2, Tag, type LucideIcon } from 'lucide-react';
 import { PrintTemplateButton } from './PrintTemplateButton';
+import { LabelPrintButton } from './LabelPrintButton';
 
 export interface PrimaryAction {
   label: string;
@@ -14,6 +15,18 @@ export interface PrimaryAction {
 interface Props {
   docType: string;
   pdfUrl: string;
+  /**
+   * Si se le pasa, aparece un botón "Etiqueta" que abre el modal de impresión
+   * de etiquetas FREE pasando `{ docId }` como placeholder. La plantilla FREE
+   * puede usar `:docId` en sus queries para leer los datos del documento.
+   */
+  docId?: string;
+  /**
+   * Texto del documento para imprimir como código de barras directamente
+   * (cuando la etiqueta no necesita una query — ej. el código del albarán).
+   * Se envía como `params.docCode` además del `docId`.
+   */
+  docCode?: string;
   onCancel?: () => void;
   showCancel?: boolean;
   cancelLabel?: string;
@@ -24,6 +37,8 @@ interface Props {
 export const DocumentActionBar: React.FC<Props> = ({
   docType,
   pdfUrl,
+  docId,
+  docCode,
   onCancel,
   showCancel = true,
   cancelLabel = 'Cancelar',
@@ -43,6 +58,20 @@ export const DocumentActionBar: React.FC<Props> = ({
           <Trash2 size={16} />
           <span>{cancelLabel}</span>
         </Button>
+      )}
+      {docId && (
+        <LabelPrintButton
+          params={{ docId, ...(docCode ? { docCode } : {}) }}
+          title="Imprimir etiqueta del documento"
+          variant="full"
+          triggerLabel={
+            <>
+              <Tag size={14} />
+              <span>Etiqueta</span>
+            </>
+          }
+          className="inline-flex items-center gap-1.5 h-10 px-3 text-xs font-bold rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-900/50"
+        />
       )}
       <PrintTemplateButton docType={docType} pdfUrl={pdfUrl} variant="secondary" />
       {primary && PrimaryIcon && (

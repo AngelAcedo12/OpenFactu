@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { DocumentActionBar } from '../components/DocumentActionBar';
 import { DocumentDetailLayout } from '../components/DocumentDetailLayout';
+import { AttachmentsPanel } from '../components/AttachmentsPanel';
 import { DocumentTotalsBlock } from '../components/DocumentTotalsBlock';
 import {
   buildDetailLineColumns,
@@ -511,6 +512,8 @@ const InvoiceDetail: React.FC<{
         <DocumentActionBar
           docType="PINV"
           pdfUrl={`/api/purchases/invoices/${invoice.id}/pdf`}
+          docId={invoice.id}
+          docCode={`${invoice.seriesPrefix}-${invoice.periodCode}-${String(invoice.docNum).padStart(6, '0')}`}
           onCancel={() => onCancel(invoice.id)}
           showCancel={(invoice.status === 'O' || invoice.status === 'D') && !!canDelete}
           primary={
@@ -601,6 +604,8 @@ const InvoiceDetail: React.FC<{
           totalLabel="Total Factura"
         />
       </Card>
+
+      <AttachmentsPanel entityType="PurchaseInvoice" entityId={invoice.id} />
     </DocumentDetailLayout>
   );
 };
