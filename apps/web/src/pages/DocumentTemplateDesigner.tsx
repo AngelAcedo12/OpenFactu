@@ -1,7 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useToast } from '@openfactu/ui';
-import { ArrowLeft, Save, FileDown, FileUp, Undo, Redo, Eye } from 'lucide-react';
+import {
+  ArrowLeft,
+  Save,
+  FileDown,
+  FileUp,
+  Undo,
+  Redo,
+  Eye,
+  Maximize2,
+  Minimize2,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { TemplateRow } from '../components/document-templates/constants';
 import {
@@ -36,6 +46,23 @@ export const DocumentTemplateDesigner: React.FC = () => {
   const [layout, setLayout] = useState<CanvasLayout>(createEmptyLayout());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(document.fullscreenElement === rootRef.current);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!rootRef.current) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      rootRef.current.requestFullscreen().catch(() => toast.error('Fullscreen no disponible'));
+    }
+  };
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token ?? ''}`,
@@ -98,12 +125,17 @@ export const DocumentTemplateDesigner: React.FC = () => {
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-slate-50 dark:bg-slate-950">
+    <div
+      ref={rootRef}
+      className="absolute inset-0 flex flex-col bg-slate-50 dark:bg-slate-950"
+    >
       <Toolbar
         title={template?.name ?? 'Sin título'}
         onBack={handleBack}
         onSave={handleSave}
         saving={saving}
+        onToggleFullscreen={toggleFullscreen}
+        isFullscreen={isFullscreen}
       />
       <div className="flex flex-1 min-h-0">
         <PalettePanel />
@@ -121,9 +153,18 @@ interface ToolbarProps {
   onBack: () => void;
   onSave: () => void;
   saving: boolean;
+  onToggleFullscreen: () => void;
+  isFullscreen: boolean;
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({ title, onBack, onSave, saving }) => (
+const Toolbar: React.FC<ToolbarProps> = ({
+  title,
+  onBack,
+  onSave,
+  saving,
+  onToggleFullscreen,
+  isFullscreen,
+}) => (
   <header className="flex items-center gap-2 px-4 h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
     <button
       onClick={onBack}
@@ -141,6 +182,14 @@ const Toolbar: React.FC<ToolbarProps> = ({ title, onBack, onSave, saving }) => (
     <ToolbarButton icon={<FileDown size={16} />} label="Exportar" disabled />
     <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
     <ToolbarButton icon={<Eye size={16} />} label="Previsualizar" disabled />
+    <button
+      type="button"
+      onClick={onToggleFullscreen}
+      title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+      className="p-2 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+    >
+      {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+    </button>
     <button
       onClick={onSave}
       disabled={saving}

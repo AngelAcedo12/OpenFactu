@@ -169,16 +169,19 @@ export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, toke
       {/* Tabs de modo + acceso al diseñador canvas */}
       <div className="flex-shrink-0 flex items-center gap-3">
         <ModeTabs mode={mode} onVisual={switchToVisual} onAdvanced={switchToAdvanced} />
-        {template?.id && (
-          <button
-            type="button"
-            onClick={() => navigate(`/document-templates/${template.id}/designer`)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
-            title="Abrir diseñador drag-and-drop a pantalla completa"
-          >
-            <LayoutTemplate size={14} /> Abrir diseñador
-          </button>
-        )}
+        <button
+          type="button"
+          disabled={!template?.id}
+          onClick={() => template?.id && navigate(`/document-templates/${template.id}/designer`)}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+          title={
+            template?.id
+              ? 'Abrir diseñador drag-and-drop a pantalla completa'
+              : 'Guarda la plantilla primero para poder abrir el diseñador'
+          }
+        >
+          <LayoutTemplate size={14} /> Abrir diseñador
+        </button>
       </div>
 
       {/* Split: editor | preview | explorer (3 paneles flex) */}
