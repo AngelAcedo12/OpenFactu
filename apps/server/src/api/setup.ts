@@ -35,20 +35,22 @@ router.post('/init', async (req, res) => {
   const { admin, company, dbConfig } = req.body;
 
   try {
-    const { host, port, user: dbUser, password } = dbConfig;
-    const dynamicUrl = `postgresql://${dbUser}:${password}@${host}:${port}/openfactudb`;
-
-    console.log(
-      `[Setup] Intentando conectar a la DB: postgresql://${dbUser}:****@${host}:${port}/openfactudb`,
-    );
-
-    await ClientFactory.setBaseUrl(dynamicUrl);
+    // Si dbConfig viene del frontend, intentar conectar con esa URL
+    // Si no, usar la conexion existente (ya configurada por DATABASE_URL)
+    if (dbConfig?.host && dbConfig.host !== 'db') {
+      const { host, port, user: dbUser, password } = dbConfig;
+      const dynamicUrl = `postgresql://${dbUser}:${password}@${host}:${port}/openfactudb`;
+      console.log(`[Setup] Conectando a: postgresql://${dbUser}:****@${host}:${port}/openfactudb`);
+      await ClientFactory.setBaseUrl(dynamicUrl);
+    } else {
+      console.log('[Setup] Usando conexion existente (DATABASE_URL)');
+    }
 
     const publicDb = ClientFactory.getClient('public');
     const adminUsername = admin.username || admin.email.split('@')[0];
     const hashedPassword = await AuthService.hashPassword(admin.password);
 
-    // 1. Crear o Actualizar Admin Global (Upsert robusto con Drizzle)
+    // 1. Crear o Actualizar Admin Global
     const adminId = crypto.randomUUID();
     await publicDb
       .insert(schema.globalUsers)
@@ -58,7 +60,6 @@ router.post('/init', async (req, res) => {
         username: adminUsername,
         password: hashedPassword,
         role: 'ADMIN',
-        updatedAt: new Date(),
       })
       .onConflictDoUpdate({
         target: schema.globalUsers.username,
@@ -66,7 +67,6 @@ router.post('/init', async (req, res) => {
           email: admin.email,
           password: hashedPassword,
           role: 'ADMIN',
-          updatedAt: new Date(),
         },
       });
 

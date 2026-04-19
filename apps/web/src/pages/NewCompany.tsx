@@ -99,7 +99,7 @@ export const NewCompany: React.FC = () => {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Nueva Empresa</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Se creará un nuevo esquema con los datos maestros por defecto.
           </p>
         </div>
@@ -225,12 +225,12 @@ export const NewCompany: React.FC = () => {
 
       <Card>
         <div className="p-6 space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-500">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Preferencias
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+              <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                 Moneda
               </label>
               <select
@@ -244,7 +244,7 @@ export const NewCompany: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 block mb-1">
+              <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
                 Inicio del año fiscal (MM-DD)
               </label>
               <Input

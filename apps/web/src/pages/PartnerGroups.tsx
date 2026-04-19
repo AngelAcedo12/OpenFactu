@@ -108,7 +108,7 @@ export const PartnerGroups: React.FC = () => {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-1">
@@ -122,7 +122,7 @@ export const PartnerGroups: React.FC = () => {
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight text-display">
             Grupos de Socios
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
             Clasifica tus interlocutores comerciales para segmentación y tarifas.
           </p>
         </div>
@@ -175,7 +175,7 @@ export const PartnerGroups: React.FC = () => {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-col gap-2 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 dark:text-slate-600 cursor-pointer">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={newRow.isCustomer}
@@ -184,7 +184,7 @@ export const PartnerGroups: React.FC = () => {
                       />
                       <span>Cliente</span>
                     </label>
-                    <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 dark:text-slate-600 cursor-pointer">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={newRow.isVendor}
@@ -279,7 +279,7 @@ export const PartnerGroups: React.FC = () => {
                 <td className="px-6 py-4">
                   {editingId === g.id ? (
                     <div className="flex flex-col gap-2">
-                      <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 dark:text-slate-600 cursor-pointer">
+                      <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={g.isCustomer}
@@ -294,7 +294,7 @@ export const PartnerGroups: React.FC = () => {
                         />
                         <span>Cliente</span>
                       </label>
-                      <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 dark:text-slate-600 cursor-pointer">
+                      <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={g.isVendor}
@@ -342,7 +342,7 @@ export const PartnerGroups: React.FC = () => {
                       <button
                         onClick={() => canWrite && setEditingId(g.id)}
                         disabled={!canWrite}
-                        className={`p-2 transition-all rounded-xl ${canWrite ? 'text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10' : 'text-slate-100 cursor-not-allowed grayscale'}`}
+                        className={`p-2 transition-all rounded-xl ${canWrite ? 'text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10' : 'text-slate-100 cursor-not-allowed grayscale'}`}
                       >
                         <Plus size={16} className="rotate-45" />
                       </button>

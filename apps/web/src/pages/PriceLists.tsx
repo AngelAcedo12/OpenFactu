@@ -205,7 +205,7 @@ export const PriceLists: React.FC = () => {
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             Gestión de Tarifas
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
             Controla tus márgenes y listas de precios de forma masiva.
           </p>
         </div>
@@ -283,7 +283,7 @@ export const PriceLists: React.FC = () => {
                       ) : (
                         <div className="flex items-center gap-3">
                           <div
-                            className={`p-1.5 rounded-lg transition-colors ${selectedList?.id === l.id ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 group-hover:bg-blue-100 dark:bg-blue-500/20 group-hover:text-blue-600 dark:text-blue-300'}`}
+                            className={`p-1.5 rounded-lg transition-colors ${selectedList?.id === l.id ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 group-hover:bg-blue-100 dark:hover:bg-blue-500/20 group-hover:text-blue-600 dark:hover:text-blue-300'}`}
                           >
                             <Tag size={14} />
                           </div>
@@ -317,7 +317,7 @@ export const PriceLists: React.FC = () => {
                               canWrite && setEditingListId(l.id);
                             }}
                             disabled={!canWrite}
-                            className={`p-1.5 border border-transparent rounded-lg transition-all ${canWrite ? 'text-slate-300 dark:text-slate-600 hover:text-blue-600 dark:text-blue-300 hover:bg-white dark:hover:bg-slate-900 hover:border-blue-100 dark:border-blue-500/20' : 'text-slate-100 cursor-not-allowed grayscale'}`}
+                            className={`p-1.5 border border-transparent rounded-lg transition-all ${canWrite ? 'text-slate-300 dark:text-slate-600 hover:text-blue-600 dark:hover:text-blue-300 hover:bg-white dark:hover:bg-slate-900 hover:border-blue-100 dark:hover:border-blue-500/20' : 'text-slate-100 cursor-not-allowed grayscale'}`}
                           >
                             <Plus size={14} className="rotate-45" />
                           </button>
@@ -327,7 +327,7 @@ export const PriceLists: React.FC = () => {
                               canDelete && handleDeleteList(l.id);
                             }}
                             disabled={!canDelete}
-                            className={`p-1.5 border border-transparent rounded-lg transition-all ${canDelete ? 'text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-white dark:hover:bg-slate-900 hover:border-rose-100 dark:border-rose-500/20' : 'text-slate-100 cursor-not-allowed grayscale'}`}
+                            className={`p-1.5 border border-transparent rounded-lg transition-all ${canDelete ? 'text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-white dark:hover:bg-slate-900 hover:border-rose-100 dark:hover:border-rose-500/20' : 'text-slate-100 cursor-not-allowed grayscale'}`}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -407,7 +407,7 @@ export const PriceLists: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-3 text-center">
-                            <span className="font-mono text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                            <span className="font-mono text-xs font-bold text-slate-500 dark:text-slate-400">
                               {item.basePrice}€
                             </span>
                           </td>
@@ -437,7 +437,7 @@ export const PriceLists: React.FC = () => {
                                   step="0.01"
                                   placeholder={item.basePrice}
                                   defaultValue={itemPrice?.price || ''}
-                                  className="h-9 w-full pl-6 pr-2 rounded-lg border border-slate-100 dark:border-slate-800 text-xs font-black text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/50 focus:bg-white dark:bg-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all outline-none text-right"
+                                  className="h-9 w-full pl-6 pr-2 rounded-lg border border-slate-100 dark:border-slate-800 text-xs font-black text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/50 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all outline-none text-right"
                                 />
                               </div>
                               <button

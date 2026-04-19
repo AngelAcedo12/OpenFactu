@@ -215,7 +215,7 @@ export const BatchSelectionModal: React.FC<Props> = ({
               variant="secondary"
               onClick={addLine}
               size="sm"
-              className="mt-4 w-full border-dashed border-2 hover:border-blue-400 hover:bg-blue-50 dark:bg-blue-500/10"
+              className="mt-4 w-full border-dashed border-2 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10"
             >
               <Plus size={14} className="mr-2" /> Añadir{' '}
               {manageBy === 'B' ? 'otro Lote' : 'otra Serie'}

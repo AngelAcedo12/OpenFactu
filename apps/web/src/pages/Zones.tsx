@@ -101,7 +101,7 @@ export const Zones: React.FC = () => {
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
         <div className="flex items-center gap-4">
           <button
@@ -110,7 +110,7 @@ export const Zones: React.FC = () => {
           >
             <ArrowLeft
               size={20}
-              className="text-slate-600 dark:text-slate-300 dark:text-slate-600"
+              className="text-slate-600 dark:text-slate-300"
             />
           </button>
           <div className="space-y-1">
@@ -125,7 +125,7 @@ export const Zones: React.FC = () => {
             <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight text-display">
               Zonas Logísticas
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+            <p className="text-slate-500 dark:text-slate-400 font-medium">
               Agrupaciones territoriales para la gestión de stock y pasillos.
             </p>
           </div>
@@ -219,7 +219,7 @@ export const Zones: React.FC = () => {
                       className="h-9 text-sm"
                     />
                   ) : (
-                    <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-xs font-medium">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">
                       {z.description || (
                         <span className="text-slate-300 dark:text-slate-600 italic">
                           Sin descripción
@@ -243,7 +243,7 @@ export const Zones: React.FC = () => {
                       <button
                         onClick={() => canWrite && setEditingId(z.id)}
                         disabled={!canWrite}
-                        className={`p-2 transition-all rounded-xl ${canWrite ? 'text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10' : 'text-slate-100 cursor-not-allowed grayscale'}`}
+                        className={`p-2 transition-all rounded-xl ${canWrite ? 'text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10' : 'text-slate-100 cursor-not-allowed grayscale'}`}
                       >
                         <Plus size={16} className="rotate-45" />
                       </button>

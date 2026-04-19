@@ -1,22 +1,44 @@
-import React, { createContext, useContext, useCallback, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useState, useRef, useMemo } from 'react';
+import { CORE_MODULES, findActiveModule, type Module, type SubTab } from '../modules/registry';
+
+interface PluginRoute {
+  path: string;
+  title: string;
+  type: 'table' | 'form' | 'custom' | 'dashboard';
+  icon?: string;
+  config?: any;
+}
+
+interface PluginMenuItem {
+  label: string;
+  path: string;
+  icon: string;
+}
+
+interface PluginModuleManifest {
+  id: string;
+  label: string;
+  icon: string;
+  subTabs?: Array<{ label: string; path: string; icon?: string }>;
+}
+
+interface PluginSubTabManifest {
+  moduleId: string;
+  label: string;
+  path: string;
+  icon?: string;
+}
 
 interface PluginManifest {
   id: string;
   name: string;
   logo?: string;
   ui: {
-    routes: Array<{
-      path: string;
-      title: string;
-      type: 'table' | 'form' | 'custom';
-      icon?: string;
-      config: any;
-    }>;
-    menuItems: Array<{
-      label: string;
-      path: string;
-      icon: string;
-    }>;
+    routes?: PluginRoute[];
+    /** @deprecated mapped al módulo "plugins" */
+    menuItems?: PluginMenuItem[];
+    modules?: PluginModuleManifest[];
+    subTabs?: PluginSubTabManifest[];
   };
 }
 
@@ -26,6 +48,8 @@ interface PluginContextType {
   reload: () => void;
   /** Timestamp del ultimo reload — los componentes lo usan para cache-bust */
   reloadTimestamp: number;
+  /** Módulos core + de plugins ya mergeados. */
+  modules: Module[];
 }
 
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
@@ -69,12 +93,16 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     fetchManifests();
   }, [fetchManifests]);
 
-  // WebSocket de desarrollo para hot reload
+  // WebSocket de desarrollo para hot reload — solo en dev
   useEffect(() => {
-    // Solo conectar en desarrollo
+    if (import.meta.env.PROD) return;
+
     const wsUrl = `ws://${window.location.hostname}:3000/ws/plugins`;
+    let stopped = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const connect = () => {
+      if (stopped) return;
       try {
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
@@ -84,34 +112,34 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const data = JSON.parse(event.data);
             if (data.type === 'plugin:reload') {
               console.log(`[HotReload] Plugin ${data.pluginId} recargado`);
-              // Actualizar manifests directamente si vienen en el mensaje
               if (data.manifests) {
                 setManifests(data.manifests);
               } else {
                 fetchManifests();
               }
-              // Actualizar timestamp para que los componentes se refresquen
               setReloadTimestamp(Date.now());
             }
           } catch {}
         };
 
         ws.onclose = () => {
-          // Reconectar en 3 segundos
-          setTimeout(connect, 3000);
+          if (stopped) return;
+          reconnectTimer = setTimeout(connect, 3000);
         };
 
         ws.onerror = () => {
           ws.close();
         };
       } catch {
-        // WebSocket no disponible (produccion o servidor apagado)
+        /* noop */
       }
     };
 
     connect();
 
     return () => {
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       wsRef.current?.close();
     };
   }, [fetchManifests]);
@@ -121,8 +149,59 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setReloadTimestamp(Date.now());
   }, [fetchManifests]);
 
+  // Mergear módulos core + módulos/sub-tabs aportados por plugins
+  const modules = useMemo<Module[]>(() => {
+    // Clone para no mutar
+    const merged: Module[] = CORE_MODULES.map((m) => ({ ...m, subTabs: [...m.subTabs] }));
+
+    for (const manifest of manifests) {
+      // 1) Módulos top-level del plugin → añadir si no existen ya
+      for (const pmod of manifest.ui?.modules || []) {
+        if (merged.some((m) => m.id === pmod.id)) continue;
+        merged.push({
+          id: pmod.id,
+          label: pmod.label,
+          icon: pmod.icon,
+          subTabs: (pmod.subTabs || []).map((s) => ({
+            id: `${manifest.id}__${s.path}`,
+            label: s.label,
+            path: s.path,
+            icon: s.icon,
+          })),
+        });
+      }
+
+      // 2) Sub-tabs inyectados en módulos existentes
+      for (const sub of manifest.ui?.subTabs || []) {
+        const target = merged.find((m) => m.id === sub.moduleId);
+        if (!target) continue;
+        target.subTabs.push({
+          id: `${manifest.id}__${sub.path}`,
+          label: sub.label,
+          path: sub.path,
+          icon: sub.icon,
+        });
+      }
+
+      // 3) Legacy menuItems → mapear todos al módulo "plugins"
+      const legacyTarget = merged.find((m) => m.id === 'plugins');
+      if (legacyTarget) {
+        for (const item of manifest.ui?.menuItems || []) {
+          legacyTarget.subTabs.push({
+            id: `${manifest.id}__legacy__${item.path}`,
+            label: item.label,
+            path: item.path,
+            icon: item.icon,
+          });
+        }
+      }
+    }
+
+    return merged;
+  }, [manifests]);
+
   return (
-    <PluginContext.Provider value={{ manifests, loading, reload, reloadTimestamp }}>
+    <PluginContext.Provider value={{ manifests, loading, reload, reloadTimestamp, modules }}>
       {children}
     </PluginContext.Provider>
   );
@@ -133,3 +212,21 @@ export const usePlugins = () => {
   if (!context) throw new Error('usePlugins must be used within PluginProvider');
   return context;
 };
+
+/** Devuelve la lista combinada de módulos core + plugins. */
+export const useModules = (): Module[] => {
+  const { modules } = usePlugins();
+  return modules;
+};
+
+/**
+ * Devuelve el módulo activo dado un pathname.
+ * El pathname se pasa explícitamente para evitar acoplar este hook a TabsContext
+ * (los consumidores leen useTabs() ellos mismos).
+ */
+export const useActiveModule = (pathname: string): Module | null => {
+  const modules = useModules();
+  return findActiveModule(modules, pathname);
+};
+
+export type { SubTab };

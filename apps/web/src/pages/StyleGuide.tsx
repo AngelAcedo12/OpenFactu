@@ -34,7 +34,7 @@ export const StyleGuide: React.FC = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-800/50 p-8 space-y-12 pb-24">
       <header className="max-w-5xl mx-auto">
         <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100">ERP Design System</h1>
-        <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2">
+        <p className="text-slate-500 dark:text-slate-400 mt-2">
           Librería de componentes genéricos para OpenFactu.
         </p>
       </header>
@@ -149,7 +149,7 @@ export const StyleGuide: React.FC = () => {
             <Button
               onClick={() => toast.info('Nueva actualización disponible')}
               variant="secondary"
-              className="bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-200 border-blue-200 hover:bg-blue-100 dark:bg-blue-500/20"
+              className="bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-200 border-blue-200 hover:bg-blue-100 dark:hover:bg-blue-500/20"
             >
               Lanzar Info
             </Button>

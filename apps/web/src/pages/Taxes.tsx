@@ -118,7 +118,7 @@ export const Taxes: React.FC = () => {
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             Gestión de Impuestos
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
             Configura los tipos de IVA y retenciones aplicables a tus documentos.
           </p>
         </div>
@@ -148,7 +148,7 @@ export const Taxes: React.FC = () => {
       <Card className="overflow-hidden border-0" noPadding>
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800 text-[10px] uppercase font-black text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">
+            <tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800 text-[10px] uppercase font-black text-slate-400 dark:text-slate-400">
               <th className="p-6">Código / Identificador</th>
               <th className="p-6 text-center">Porcentaje (%)</th>
               <th className="p-6 text-right">Acciones</th>
@@ -209,12 +209,12 @@ export const Taxes: React.FC = () => {
                     />
                   ) : (
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 group-hover:bg-amber-100 dark:group-hover:bg-amber-500/20 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                      <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-400 group-hover:bg-amber-100 dark:group-hover:bg-amber-500/20 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                         <Percent size={18} />
                       </div>
                       <div>
                         <p className="font-black text-slate-800 dark:text-slate-100">{t.code}</p>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold uppercase">
+                        <p className="text-[10px] text-slate-400 dark:text-slate-400 font-bold uppercase">
                           Identificador Maestro
                         </p>
                       </div>
@@ -265,7 +265,7 @@ export const Taxes: React.FC = () => {
                         variant="secondary"
                         onClick={() => canWrite && setEditingId(t.id)}
                         disabled={!canWrite}
-                        className="h-10 border-transparent hover:bg-amber-50 dark:hover:bg-amber-500/10 hover:text-amber-600 dark:text-amber-300 transition-all disabled:opacity-30 disabled:grayscale"
+                        className="h-10 border-transparent hover:bg-amber-50 dark:hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-300 transition-all disabled:opacity-30 disabled:grayscale"
                       >
                         <Edit3 size={16} />
                       </Button>
@@ -274,7 +274,7 @@ export const Taxes: React.FC = () => {
                         variant="secondary"
                         onClick={() => canDelete && handleDelete(t.id)}
                         disabled={!canDelete}
-                        className="h-10 border-transparent hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 dark:text-rose-300 transition-all disabled:opacity-30 disabled:grayscale"
+                        className="h-10 border-transparent hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-300 transition-all disabled:opacity-30 disabled:grayscale"
                       >
                         <Trash2 size={16} />
                       </Button>

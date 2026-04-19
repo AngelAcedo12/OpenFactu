@@ -108,7 +108,7 @@ export const Categories: React.FC = () => {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-1">
@@ -122,7 +122,7 @@ export const Categories: React.FC = () => {
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight text-display">
             Categorías
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
             Clasifica tus artículos y establece secuencias de códigos por familia.
           </p>
         </div>
@@ -269,7 +269,7 @@ export const Categories: React.FC = () => {
                         ))}
                     </select>
                   ) : (
-                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 text-xs font-semibold">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-semibold">
                       <Network size={12} className="text-slate-300 dark:text-slate-600" />
                       {categories.find((p) => p.id === c.parentId)?.name || (
                         <span className="text-slate-300 dark:text-slate-600 italic">Rizoma</span>
@@ -292,7 +292,7 @@ export const Categories: React.FC = () => {
                       <button
                         onClick={() => canWrite && setEditingId(c.id)}
                         disabled={!canWrite}
-                        className={`p-2 transition-all rounded-xl ${canWrite ? 'text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10' : 'text-slate-100 cursor-not-allowed grayscale'}`}
+                        className={`p-2 transition-all rounded-xl ${canWrite ? 'text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10' : 'text-slate-100 cursor-not-allowed grayscale'}`}
                       >
                         <Plus size={16} className="rotate-45" />
                       </button>

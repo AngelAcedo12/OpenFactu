@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { logAudit } from '../utils/audit';
 import { ClientFactory } from '../core/tenant/ClientFactory';
 import { validateTaxId } from '@openfactu/common';
+import { HookManager } from '../core/plugins/HookManager';
 
 const router = Router();
 
@@ -44,12 +45,22 @@ router.get('/', async (req: any, res) => {
       .from(schema.businessPartners)
       .orderBy(asc(schema.businessPartners.name));
 
-    const result = partners.map((p: any) => ({
+    const rows = partners.map((p: any) => ({
       ...p,
       addresses: addresses.filter((a: any) => a.partnerId === p.id),
     }));
 
-    res.json(result);
+    // Permitir a plugins inyectar/mutar filas
+    const hookCtx = {
+      tenantId: req.tenantId,
+      entity: 'partners',
+      filters: req.query || {},
+      rows,
+      db: req.tenantClient,
+    };
+    await HookManager.trigger('partners.list.afterFetch', hookCtx);
+
+    res.json(hookCtx.rows);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

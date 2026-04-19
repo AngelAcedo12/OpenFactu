@@ -177,7 +177,7 @@ const InvoiceList: React.FC<{
   ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-8">
         <div>
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-4 tracking-tighter">
@@ -186,7 +186,7 @@ const InvoiceList: React.FC<{
             </div>
             Facturas de Venta
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2 font-medium ml-1">
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium ml-1">
             Emisión de facturas a clientes y contabilidad de ingresos.
           </p>
           {doc.state.mastersError && (
@@ -287,12 +287,12 @@ const InvoiceForm: React.FC<{
   );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-8">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
-            className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600 transition-all shadow-sm"
+            className="p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 dark:hover:text-slate-600 transition-all shadow-sm"
           >
             <ArrowLeft size={20} />
           </button>
@@ -302,7 +302,7 @@ const InvoiceForm: React.FC<{
                 ? 'Facturación de Albarán'
                 : 'Nueva Factura Directa'}
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 font-medium ml-1 flex items-center gap-2">
+            <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium ml-1 flex items-center gap-2">
               <FileText size={14} className="text-amber-500" />
               Ingreso de venta y contabilización de impuestos.
             </p>
@@ -363,7 +363,7 @@ const InvoiceForm: React.FC<{
             </h4>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                 Serie de Numeración *
               </label>
               <SearchableSelect
@@ -378,7 +378,7 @@ const InvoiceForm: React.FC<{
               )}
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                 Periodo Contable *
               </label>
               <SearchableSelect
@@ -419,7 +419,7 @@ const InvoiceForm: React.FC<{
           <div className="flex flex-col items-end min-w-[240px] space-y-2 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
             <div className="flex justify-between w-full text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">
               <span>Base Imponible:</span>
-              <span className="text-slate-600 dark:text-slate-300 dark:text-slate-600">
+              <span className="text-slate-600 dark:text-slate-300">
                 {computations.subtotal.toFixed(2)} €
               </span>
             </div>
