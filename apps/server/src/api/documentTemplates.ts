@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import crypto from 'crypto';
+import fs from 'fs';
 import { eq, and, asc } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import { PdfRenderer, ALL_DOC_TYPES, extractMetaFromHtml, type DocType } from '@openfactu/pdf';
@@ -210,21 +211,28 @@ router.post('/preview', async (req: any, res) => {
     if (!html) return res.status(400).json({ error: 'html es obligatorio' });
     if (!isValidDocType(docType)) return res.status(400).json({ error: 'docType inválido' });
 
+    // Resolución del payload: priorizar sampleDocId, luego último documento
+    // del tenant, y si cualquier paso explota, fallback a fixture. Un preview
+    // nunca debe dar 500 por ausencia/fallo de datos de muestra.
     let payload;
-    if (sampleDocId) {
-      try {
+    try {
+      if (sampleDocId) {
         payload = await PdfPayloadBuilder.build(docType, sampleDocId, req.tenantClient);
-      } catch {
-        payload = PdfPayloadBuilder.fixture(docType);
+      } else {
+        const latestId = req.tenantClient
+          ? await PdfPayloadBuilder.findLatestSampleId(docType, req.tenantClient).catch(
+              () => null,
+            )
+          : null;
+        payload = latestId
+          ? await PdfPayloadBuilder.build(docType, latestId, req.tenantClient).catch(() =>
+              PdfPayloadBuilder.fixture(docType),
+            )
+          : PdfPayloadBuilder.fixture(docType);
       }
-    } else {
-      // Intentar auto-sample
-      const latestId = await PdfPayloadBuilder.findLatestSampleId(docType, req.tenantClient);
-      payload = latestId
-        ? await PdfPayloadBuilder.build(docType, latestId, req.tenantClient).catch(() =>
-            PdfPayloadBuilder.fixture(docType),
-          )
-        : PdfPayloadBuilder.fixture(docType);
+    } catch (err) {
+      console.warn('[DocumentTemplates] preview payload fallback to fixture:', err);
+      payload = PdfPayloadBuilder.fixture(docType);
     }
 
     const meta = extractMetaFromHtml(html);
@@ -234,9 +242,19 @@ router.post('/preview', async (req: any, res) => {
     res.setHeader('Content-Disposition', 'inline; filename="preview.pdf"');
     res.end(buffer);
   } catch (e: any) {
-    console.error('[DocumentTemplates] preview error:', e);
-    res.status(500).json({ error: e.message });
+    const msg = e?.stack || String(e);
+    console.error('[DocumentTemplates] preview error:', msg);
+    try {
+      fs.appendFileSync(
+        '/tmp/openfactu-preview-errors.log',
+        `\n[${new Date().toISOString()}]\n${msg}\n`,
+      );
+    } catch {
+      /* ignore */
+    }
+    res.status(500).json({ error: e?.message || 'Error al renderizar el preview' });
   }
 });
 
 export default router;
+

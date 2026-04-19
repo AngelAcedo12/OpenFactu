@@ -238,6 +238,39 @@ export const DocumentTemplateDesigner: React.FC = () => {
   };
 
   const [importOpen, setImportOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const handlePreview = async () => {
+    if (!template) return;
+    setPreviewLoading(true);
+    try {
+      const html = compileCanvas(layout, { docType: template.docType });
+      const res = await fetch('/api/document-templates/preview', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ html, docType: template.docType }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Error al renderizar' }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(url);
+    } catch (e: any) {
+      toast.error(`Preview falló: ${e.message}`);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const handleExportJson = () => {
     const blob = new Blob([JSON.stringify(layout, null, 2)], { type: 'application/json' });
@@ -332,7 +365,12 @@ export const DocumentTemplateDesigner: React.FC = () => {
         onExport={handleExportJson}
         onImport={handleImportJsonFile}
         onImportFromTemplate={() => setImportOpen(true)}
+        onPreview={handlePreview}
+        previewLoading={previewLoading}
       />
+      {previewUrl && (
+        <PreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />
+      )}
       {importOpen && (
         <ImportFromTemplateDialog
           currentId={template?.id}
@@ -374,6 +412,8 @@ interface ToolbarProps {
   onExport: () => void;
   onImport: (file: File) => void;
   onImportFromTemplate: () => void;
+  onPreview: () => void;
+  previewLoading: boolean;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -386,6 +426,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onExport,
   onImport,
   onImportFromTemplate,
+  onPreview,
+  previewLoading,
 }) => (
   <header className="flex items-center gap-2 px-4 h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
     <button
@@ -437,7 +479,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
       <span className="text-[10px]">JSON</span>
     </button>
     <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
-    <ToolbarButton icon={<Eye size={16} />} label="Previsualizar" disabled />
+    <button
+      type="button"
+      onClick={onPreview}
+      disabled={previewLoading}
+      title="Previsualizar PDF"
+      className="flex items-center gap-1 px-2 py-1.5 rounded text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50"
+    >
+      <Eye size={16} /> {previewLoading && <span className="text-[10px]">…</span>}
+    </button>
     <button
       type="button"
       onClick={onToggleFullscreen}
@@ -454,6 +504,35 @@ const Toolbar: React.FC<ToolbarProps> = ({
       <Save size={16} /> {saving ? 'Guardando…' : 'Guardar'}
     </button>
   </header>
+);
+
+const PreviewModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => (
+  <div
+    className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+    onClick={onClose}
+  >
+    <div
+      className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-[min(900px,95vw)] h-[90vh] flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <h2 className="font-bold text-slate-900 dark:text-slate-100">Vista previa del PDF</h2>
+        <div className="flex items-center gap-2">
+          <a
+            href={url}
+            download="preview.pdf"
+            className="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200"
+          >
+            Descargar
+          </a>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            ✕
+          </button>
+        </div>
+      </div>
+      <iframe src={url} className="flex-1 w-full" title="PDF preview" />
+    </div>
+  </div>
 );
 
 const ToolbarButton: React.FC<{ icon: React.ReactNode; label: string; disabled?: boolean }> = ({
