@@ -156,34 +156,67 @@ export const DocumentTemplateDesigner: React.FC = () => {
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+    const { active, over, delta } = event;
     if (!over) return;
-    const bandId = String(over.id);
-    const kind = active.data.current?.kind as ElementKind | undefined;
-    if (!kind) return;
+    const targetBandId = String(over.id);
+    const data = active.data.current as
+      | { action: 'create'; kind: ElementKind }
+      | { action: 'move'; bandId: string; elementId: string }
+      | undefined;
+    if (!data) return;
 
-    // Coordenadas (mm) dentro de la banda a partir del puntero y del rect del droppable.
-    const activatorRect = event.over?.rect;
-    const pointer = (event.activatorEvent as PointerEvent) ?? null;
-    const delta = event.delta;
-    let xMm = 5;
-    let yMm = 5;
-    if (activatorRect && pointer) {
-      const pxX = pointer.clientX + delta.x - activatorRect.left;
-      const pxY = pointer.clientY + delta.y - activatorRect.top;
-      xMm = Math.max(0, Math.round(pxX / PX_PER_MM));
-      yMm = Math.max(0, Math.round(pxY / PX_PER_MM));
+    if (data.action === 'create') {
+      const activatorRect = event.over?.rect;
+      const pointer = (event.activatorEvent as PointerEvent) ?? null;
+      let xMm = 5;
+      let yMm = 5;
+      if (activatorRect && pointer) {
+        const pxX = pointer.clientX + delta.x - activatorRect.left;
+        const pxY = pointer.clientY + delta.y - activatorRect.top;
+        xMm = Math.max(0, Math.round(pxX / PX_PER_MM));
+        yMm = Math.max(0, Math.round(pxY / PX_PER_MM));
+      }
+      const size = DEFAULT_SIZE[data.kind];
+      const newEl = buildDefaultElement(data.kind, xMm, yMm, size.w, size.h);
+      setLayout((prev) => ({
+        ...prev,
+        bands: prev.bands.map((b) =>
+          b.id === targetBandId ? { ...b, elements: [...b.elements, newEl] } : b,
+        ),
+      }));
+      setSelectedElementId(newEl.id);
+      return;
     }
 
-    const size = DEFAULT_SIZE[kind];
-    const newEl = buildDefaultElement(kind, xMm, yMm, size.w, size.h);
-    setLayout((prev) => ({
-      ...prev,
-      bands: prev.bands.map((b) =>
-        b.id === bandId ? { ...b, elements: [...b.elements, newEl] } : b,
-      ),
-    }));
-    setSelectedElementId(newEl.id);
+    // Mover elemento existente: actualizar x,y (convertir delta px→mm) y, si la
+    // banda destino difiere, moverlo de banda.
+    const dxMm = Math.round(delta.x / PX_PER_MM);
+    const dyMm = Math.round(delta.y / PX_PER_MM);
+    setLayout((prev) => {
+      const sourceBand = prev.bands.find((b) => b.id === data.bandId);
+      const el = sourceBand?.elements.find((e) => e.id === data.elementId);
+      if (!el) return prev;
+      const updated: CanvasElement = {
+        ...el,
+        x: Math.max(0, el.x + dxMm),
+        y: Math.max(0, el.y + dyMm),
+      };
+      return {
+        ...prev,
+        bands: prev.bands.map((b) => {
+          if (b.id === data.bandId && data.bandId === targetBandId) {
+            return { ...b, elements: b.elements.map((e) => (e.id === el.id ? updated : e)) };
+          }
+          if (b.id === data.bandId) {
+            return { ...b, elements: b.elements.filter((e) => e.id !== el.id) };
+          }
+          if (b.id === targetBandId) {
+            return { ...b, elements: [...b.elements, updated] };
+          }
+          return b;
+        }),
+      };
+    });
   };
 
   const handleDeleteElement = (bandId: string, elementId: string) => {
@@ -324,7 +357,7 @@ const PalettePanel: React.FC = () => (
 const PaletteItem: React.FC<{ kind: ElementKind; label: string }> = ({ kind, label }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `palette-${kind}`,
-    data: { kind },
+    data: { action: 'create', kind },
   });
   return (
     <li
@@ -433,27 +466,46 @@ interface ElementBoxProps {
   onDelete: () => void;
 }
 
-const ElementBox: React.FC<ElementBoxProps> = ({ element, selected, onSelect, onDelete }) => {
+const ElementBox: React.FC<ElementBoxProps> = ({
+  element,
+  bandId,
+  selected,
+  onSelect,
+  onDelete,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `el-${element.id}`,
+    data: { action: 'move', bandId, elementId: element.id },
+  });
   const style: React.CSSProperties = {
     position: 'absolute',
     left: `${element.x}mm`,
     top: `${element.y}mm`,
     width: `${element.w}mm`,
     height: `${element.h}mm`,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 50 : selected ? 20 : 10,
   };
   const label = ELEMENT_PREVIEW_LABEL[element.kind](element);
   return (
     <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       onMouseDown={(e) => {
         e.stopPropagation();
         onSelect();
       }}
       onKeyDown={(e) => {
-        if (e.key === 'Delete' || e.key === 'Backspace') onDelete();
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault();
+          onDelete();
+        }
       }}
       tabIndex={0}
       style={style}
-      className={`flex items-center justify-center text-[10px] rounded cursor-move select-none outline-none ${
+      className={`flex items-center justify-center text-[10px] rounded cursor-move select-none outline-none touch-none ${
         selected
           ? 'border-2 border-blue-500 bg-blue-50/70 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200'
           : 'border border-slate-300 dark:border-slate-600 bg-slate-50/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:border-slate-400'
