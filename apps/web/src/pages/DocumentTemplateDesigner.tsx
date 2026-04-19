@@ -1152,44 +1152,148 @@ const ElementInspector: React.FC<{
       {/* Estilo común */}
       {'style' in element && element.kind !== 'shape' && element.kind !== 'image' && (
         <Section title="Estilo">
-          <Label>Tamaño fuente (pt)</Label>
-          <input
-            type="number"
-            value={element.style?.fontSize ?? ''}
+          <Label>Fuente</Label>
+          <select
+            value={element.style?.fontFamily ?? ''}
             onChange={(e) =>
               patch({
                 style: {
                   ...(element.style ?? {}),
-                  fontSize: e.target.value ? Number(e.target.value) : undefined,
+                  fontFamily: e.target.value || undefined,
                 },
               } as any)
             }
             className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
-          />
-          <Label>Color</Label>
-          <input
-            type="color"
-            value={element.style?.color ?? '#000000'}
-            onChange={(e) =>
-              patch({ style: { ...(element.style ?? {}), color: e.target.value } } as any)
-            }
-            className="h-8 w-full rounded border border-slate-200 dark:border-slate-700"
-          />
-          <Label>Alineación</Label>
-          <select
-            value={element.style?.textAlign ?? 'left'}
-            onChange={(e) =>
-              patch({
-                style: { ...(element.style ?? {}), textAlign: e.target.value as any },
-              } as any)
-            }
-            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
           >
-            <option value="left">Izquierda</option>
-            <option value="center">Centro</option>
-            <option value="right">Derecha</option>
-            <option value="justify">Justificado</option>
+            <option value="">Por defecto del sistema</option>
+            <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+              Sans-serif
+            </option>
+            <option value="Georgia, 'Times New Roman', serif">Serif (Georgia)</option>
+            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+            <option value="Arial, Helvetica, sans-serif">Arial / Helvetica</option>
+            <option value="'Courier New', Courier, monospace">Courier (mono)</option>
+            <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
+            <option value="Verdana, sans-serif">Verdana</option>
           </select>
+
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">Tamaño (pt)</div>
+              <input
+                type="number"
+                min={4}
+                max={72}
+                value={element.style?.fontSize ?? ''}
+                onChange={(e) =>
+                  patch({
+                    style: {
+                      ...(element.style ?? {}),
+                      fontSize: e.target.value ? Number(e.target.value) : undefined,
+                    },
+                  } as any)
+                }
+                className="w-full px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+              />
+            </label>
+            <label className="block">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">Color</div>
+              <input
+                type="color"
+                value={element.style?.color ?? '#000000'}
+                onChange={(e) =>
+                  patch({ style: { ...(element.style ?? {}), color: e.target.value } } as any)
+                }
+                className="h-8 w-full rounded border border-slate-200 dark:border-slate-700"
+              />
+            </label>
+          </div>
+
+          <div className="flex gap-1">
+            <StyleToggleButton
+              active={element.style?.fontWeight === 'bold'}
+              onClick={() =>
+                patch({
+                  style: {
+                    ...(element.style ?? {}),
+                    fontWeight: element.style?.fontWeight === 'bold' ? 'normal' : 'bold',
+                  },
+                } as any)
+              }
+              title="Negrita"
+              className="font-bold"
+            >
+              B
+            </StyleToggleButton>
+            <StyleToggleButton
+              active={element.style?.fontStyle === 'italic'}
+              onClick={() =>
+                patch({
+                  style: {
+                    ...(element.style ?? {}),
+                    fontStyle: element.style?.fontStyle === 'italic' ? 'normal' : 'italic',
+                  },
+                } as any)
+              }
+              title="Cursiva"
+              className="italic"
+            >
+              I
+            </StyleToggleButton>
+            <div className="w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+            <StyleToggleButton
+              active={element.style?.textAlign === 'left' || !element.style?.textAlign}
+              onClick={() =>
+                patch({ style: { ...(element.style ?? {}), textAlign: 'left' } } as any)
+              }
+              title="Izquierda"
+            >
+              ⬅
+            </StyleToggleButton>
+            <StyleToggleButton
+              active={element.style?.textAlign === 'center'}
+              onClick={() =>
+                patch({ style: { ...(element.style ?? {}), textAlign: 'center' } } as any)
+              }
+              title="Centro"
+            >
+              ↔
+            </StyleToggleButton>
+            <StyleToggleButton
+              active={element.style?.textAlign === 'right'}
+              onClick={() =>
+                patch({ style: { ...(element.style ?? {}), textAlign: 'right' } } as any)
+              }
+              title="Derecha"
+            >
+              ➡
+            </StyleToggleButton>
+          </div>
+
+          <Label>Color de fondo</Label>
+          <div className="flex gap-2 items-center">
+            <input
+              type="color"
+              value={element.style?.backgroundColor ?? '#ffffff'}
+              onChange={(e) =>
+                patch({
+                  style: { ...(element.style ?? {}), backgroundColor: e.target.value },
+                } as any)
+              }
+              className="h-8 w-12 rounded border border-slate-200 dark:border-slate-700"
+            />
+            <button
+              type="button"
+              onClick={() =>
+                patch({
+                  style: { ...(element.style ?? {}), backgroundColor: undefined },
+                } as any)
+              }
+              className="text-[11px] text-slate-500 hover:text-slate-700"
+            >
+              Transparente
+            </button>
+          </div>
         </Section>
       )}
     </div>
@@ -1225,6 +1329,27 @@ const NumberField: React.FC<{ label: string; value: number; onChange: (v: number
       className="w-full px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
     />
   </label>
+);
+
+const StyleToggleButton: React.FC<{
+  active: boolean;
+  onClick: () => void;
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}> = ({ active, onClick, title, children, className = '' }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    title={title}
+    className={`w-8 h-8 rounded border text-xs ${
+      active
+        ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-400 text-blue-700 dark:text-blue-200'
+        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+    } ${className}`}
+  >
+    {children}
+  </button>
 );
 
 const Toggle: React.FC<{ label: string; checked: boolean; onChange: (v: boolean) => void }> = ({
