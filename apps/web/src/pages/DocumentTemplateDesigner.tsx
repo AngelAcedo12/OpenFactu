@@ -229,6 +229,16 @@ export const DocumentTemplateDesigner: React.FC = () => {
     if (selectedElementId === elementId) setSelectedElementId(null);
   };
 
+  const handleUpdateElement = (elementId: string, patch: Partial<CanvasElement>) => {
+    setLayout((prev) => ({
+      ...prev,
+      bands: prev.bands.map((b) => ({
+        ...b,
+        elements: b.elements.map((e) => (e.id === elementId ? ({ ...e, ...patch } as CanvasElement) : e)),
+      })),
+    }));
+  };
+
   const selectedElement =
     selectedElementId == null
       ? null
@@ -264,7 +274,7 @@ export const DocumentTemplateDesigner: React.FC = () => {
             onSelectElement={setSelectedElementId}
             onDeleteElement={handleDeleteElement}
           />
-          <InspectorPanel element={selectedElement} />
+          <InspectorPanel element={selectedElement} onChange={handleUpdateElement} />
         </div>
       </DndContext>
     </div>
@@ -487,7 +497,6 @@ const ElementBox: React.FC<ElementBoxProps> = ({
     opacity: isDragging ? 0.6 : 1,
     zIndex: isDragging ? 50 : selected ? 20 : 10,
   };
-  const label = ELEMENT_PREVIEW_LABEL[element.kind](element);
   return (
     <div
       ref={setNodeRef}
@@ -505,51 +514,185 @@ const ElementBox: React.FC<ElementBoxProps> = ({
       }}
       tabIndex={0}
       style={style}
-      className={`flex items-center justify-center text-[10px] rounded cursor-move select-none outline-none touch-none ${
+      className={`rounded cursor-move select-none outline-none touch-none overflow-hidden ${
         selected
-          ? 'border-2 border-blue-500 bg-blue-50/70 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200'
-          : 'border border-slate-300 dark:border-slate-600 bg-slate-50/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:border-slate-400'
+          ? 'ring-2 ring-blue-500'
+          : 'ring-1 ring-slate-300 dark:ring-slate-600 hover:ring-slate-400'
       }`}
     >
-      {label}
+      <ElementPreview element={element} />
     </div>
   );
 };
 
-const ELEMENT_PREVIEW_LABEL: Record<ElementKind, (el: any) => string> = {
-  text: (el) => `A "${el.text || 'Texto'}"`,
-  image: () => '🖼 Imagen',
-  shape: (el) => (el.shape === 'line' ? '— Línea' : '▭ Rectángulo'),
-  spacer: () => '␣ Espaciador',
-  field: (el) => `{ ${el.path || 'campo'} }`,
-  linesTable: () => '☰ Tabla líneas',
-  totals: () => 'Σ Totales',
-  qr: () => 'QR',
-  barcode: () => '▮▮▯ Barcode',
+const ElementPreview: React.FC<{ element: CanvasElement }> = ({ element }) => {
+  const s = element.style ?? {};
+  const base: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+    fontSize: s.fontSize ? `${s.fontSize}pt` : '10pt',
+    color: s.color,
+    fontWeight: s.fontWeight,
+    fontStyle: s.fontStyle,
+    textAlign: s.textAlign,
+    fontFamily: s.fontFamily,
+    backgroundColor: s.backgroundColor,
+    padding: s.padding ? `${s.padding}px` : '2px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent:
+      s.textAlign === 'center' ? 'center' : s.textAlign === 'right' ? 'flex-end' : 'flex-start',
+    overflow: 'hidden',
+  };
+
+  switch (element.kind) {
+    case 'text':
+      return (
+        <div style={base} className="whitespace-pre-wrap break-words">
+          {element.text || <span className="text-slate-400 italic">Texto</span>}
+        </div>
+      );
+    case 'image':
+      return element.src ? (
+        <img
+          src={element.src}
+          alt=""
+          style={{ width: '100%', height: '100%', objectFit: element.fit ?? 'contain' }}
+          draggable={false}
+        />
+      ) : (
+        <div style={base} className="text-slate-400 italic">
+          🖼 (elige imagen)
+        </div>
+      );
+    case 'shape':
+      if (element.shape === 'line') {
+        return (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              borderTop: `${s.borderWidth ?? 1}px ${s.borderStyle ?? 'solid'} ${s.borderColor ?? '#000'}`,
+            }}
+          />
+        );
+      }
+      return (
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            border: `${s.borderWidth ?? 1}px ${s.borderStyle ?? 'solid'} ${s.borderColor ?? '#000'}`,
+            backgroundColor: s.backgroundColor ?? 'transparent',
+          }}
+        />
+      );
+    case 'spacer':
+      return (
+        <div style={base} className="text-slate-300 italic">
+          ␣
+        </div>
+      );
+    case 'field':
+      return (
+        <div style={base} className="font-mono text-slate-700 dark:text-slate-300">
+          {element.prefix}
+          {`{{${element.path || 'campo'}}}`}
+          {element.suffix}
+        </div>
+      );
+    case 'linesTable':
+      return (
+        <div className="w-full h-full bg-white dark:bg-slate-800 p-1">
+          <table className="w-full text-[8pt] border-collapse">
+            {element.showHeader !== false && (
+              <thead>
+                <tr className="bg-slate-100 dark:bg-slate-700">
+                  {element.columns.map((c) => (
+                    <th
+                      key={c.id}
+                      style={{ width: `${c.widthPct}%`, textAlign: c.align ?? 'left' }}
+                      className="px-1 border-b border-slate-200 dark:border-slate-600 font-semibold"
+                    >
+                      {c.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            )}
+            <tbody>
+              <tr>
+                {element.columns.map((c) => (
+                  <td
+                    key={c.id}
+                    style={{ textAlign: c.align ?? 'left' }}
+                    className="px-1 text-slate-400 italic"
+                  >
+                    {`{{${c.path}}}`}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      );
+    case 'totals':
+      return (
+        <div className="w-full h-full px-1 flex flex-col justify-end text-[9pt]">
+          {element.showSubtotal !== false && (
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span className="font-mono text-slate-400">{`{{doc.subtotal}}`}</span>
+            </div>
+          )}
+          {element.showTaxBreakdown !== false && (
+            <div className="flex justify-between text-slate-500">
+              <span>IVA …</span>
+              <span className="font-mono text-slate-400">{`{{…}}`}</span>
+            </div>
+          )}
+          {element.showTotal !== false && (
+            <div className="flex justify-between border-t border-slate-400 mt-0.5 font-bold">
+              <span>Total</span>
+              <span className="font-mono">{`{{doc.total}}`}</span>
+            </div>
+          )}
+        </div>
+      );
+    case 'qr':
+      return (
+        <div style={base} className="justify-center text-slate-400">
+          <div className="w-full h-full border border-dashed border-slate-400 flex items-center justify-center text-[8pt]">
+            QR
+          </div>
+        </div>
+      );
+    case 'barcode':
+      return (
+        <div style={base} className="justify-center text-slate-500 text-[8pt]">
+          <div className="w-full h-full flex flex-col items-center justify-center">
+            <div className="h-full w-full bg-[repeating-linear-gradient(90deg,#000_0_2px,transparent_2px_4px)]" />
+            {element.includeText && <span className="font-mono">{`{{${element.value}}}`}</span>}
+          </div>
+        </div>
+      );
+  }
 };
 
 // ---------- inspector ----------
 
-const InspectorPanel: React.FC<{ element: CanvasElement | null }> = ({ element }) => (
-  <aside className="w-72 shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-y-auto">
+interface InspectorPanelProps {
+  element: CanvasElement | null;
+  onChange: (id: string, patch: Partial<CanvasElement>) => void;
+}
+
+const InspectorPanel: React.FC<InspectorPanelProps> = ({ element, onChange }) => (
+  <aside className="w-80 shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-y-auto">
     <div className="px-3 py-2 text-xs uppercase tracking-wide font-bold text-slate-400">
       Inspector
     </div>
     {element ? (
-      <div className="px-3 py-3 text-xs text-slate-600 dark:text-slate-300 space-y-1">
-        <div>
-          <span className="text-slate-400">Tipo:</span> {element.kind}
-        </div>
-        <div>
-          <span className="text-slate-400">Posición:</span> {element.x}mm, {element.y}mm
-        </div>
-        <div>
-          <span className="text-slate-400">Tamaño:</span> {element.w} × {element.h} mm
-        </div>
-        <div className="pt-2 text-slate-400">
-          Propiedades completas en el siguiente paso (Inspector rico).
-        </div>
-      </div>
+      <ElementInspector element={element} onChange={onChange} />
     ) : (
       <div className="px-3 py-4 text-sm text-slate-500">
         Selecciona un elemento para editar sus propiedades.
@@ -557,6 +700,334 @@ const InspectorPanel: React.FC<{ element: CanvasElement | null }> = ({ element }
     )}
   </aside>
 );
+
+const ElementInspector: React.FC<{
+  element: CanvasElement;
+  onChange: (id: string, patch: Partial<CanvasElement>) => void;
+}> = ({ element, onChange }) => {
+  const patch = (p: Partial<CanvasElement>) => onChange(element.id, p);
+  return (
+    <div className="px-3 py-3 space-y-4 text-sm">
+      <div className="text-[11px] uppercase tracking-wide font-bold text-slate-500">
+        {element.kind}
+      </div>
+
+      {/* Geometría común */}
+      <Section title="Geometría">
+        <NumberGrid>
+          <NumberField label="X (mm)" value={element.x} onChange={(v) => patch({ x: v } as any)} />
+          <NumberField label="Y (mm)" value={element.y} onChange={(v) => patch({ y: v } as any)} />
+          <NumberField
+            label="Ancho (mm)"
+            value={element.w}
+            onChange={(v) => patch({ w: Math.max(1, v) } as any)}
+          />
+          <NumberField
+            label="Alto (mm)"
+            value={element.h}
+            onChange={(v) => patch({ h: Math.max(1, v) } as any)}
+          />
+        </NumberGrid>
+      </Section>
+
+      {/* Props específicas por tipo */}
+      {element.kind === 'text' && (
+        <Section title="Contenido">
+          <textarea
+            value={element.text}
+            onChange={(e) => patch({ text: e.target.value } as any)}
+            rows={3}
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+            placeholder="Texto a mostrar"
+          />
+        </Section>
+      )}
+
+      {element.kind === 'image' && (
+        <Section title="Imagen">
+          <label className="flex items-center justify-center text-xs px-3 py-6 rounded border-2 border-dashed border-slate-300 dark:border-slate-600 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const dataUrl = await fileToDataUrl(file);
+                patch({ src: dataUrl } as any);
+              }}
+            />
+            {element.src ? 'Cambiar imagen' : 'Seleccionar archivo'}
+          </label>
+          {element.src && (
+            <img
+              src={element.src}
+              alt="preview"
+              className="mt-2 max-h-20 mx-auto rounded border border-slate-200 dark:border-slate-700"
+            />
+          )}
+          <Label>O pega una URL</Label>
+          <input
+            type="text"
+            value={element.src.startsWith('data:') ? '' : element.src}
+            onChange={(e) => patch({ src: e.target.value } as any)}
+            placeholder="https://..."
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+          />
+          <Label>Ajuste</Label>
+          <select
+            value={element.fit ?? 'contain'}
+            onChange={(e) => patch({ fit: e.target.value as any } as any)}
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+          >
+            <option value="contain">Contener (sin recortar)</option>
+            <option value="cover">Cubrir (rellenar)</option>
+            <option value="fill">Estirar</option>
+          </select>
+        </Section>
+      )}
+
+      {element.kind === 'shape' && (
+        <Section title="Forma">
+          <Label>Tipo</Label>
+          <select
+            value={element.shape}
+            onChange={(e) => patch({ shape: e.target.value as any } as any)}
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+          >
+            <option value="line">Línea</option>
+            <option value="rect">Rectángulo</option>
+          </select>
+          <Label>Color de borde</Label>
+          <input
+            type="color"
+            value={element.style?.borderColor ?? '#000000'}
+            onChange={(e) =>
+              patch({
+                style: { ...(element.style ?? {}), borderColor: e.target.value },
+              } as any)
+            }
+            className="h-8 w-full rounded border border-slate-200 dark:border-slate-700"
+          />
+        </Section>
+      )}
+
+      {element.kind === 'field' && (
+        <Section title="Campo">
+          <Label>Path (Handlebars)</Label>
+          <input
+            type="text"
+            value={element.path}
+            onChange={(e) => patch({ path: e.target.value } as any)}
+            placeholder="doc.docCode"
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-mono"
+          />
+          <Label>Formato</Label>
+          <select
+            value={element.format ?? ''}
+            onChange={(e) =>
+              patch({ format: (e.target.value || undefined) as any } as any)
+            }
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+          >
+            <option value="">Sin formato</option>
+            <option value="currency">Moneda</option>
+            <option value="number">Número</option>
+            <option value="date">Fecha</option>
+            <option value="percent">Porcentaje</option>
+          </select>
+          <Label>Prefijo</Label>
+          <input
+            type="text"
+            value={element.prefix ?? ''}
+            onChange={(e) => patch({ prefix: e.target.value || undefined } as any)}
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+          />
+          <Label>Sufijo</Label>
+          <input
+            type="text"
+            value={element.suffix ?? ''}
+            onChange={(e) => patch({ suffix: e.target.value || undefined } as any)}
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+          />
+        </Section>
+      )}
+
+      {element.kind === 'totals' && (
+        <Section title="Totales a mostrar">
+          <Toggle
+            label="Subtotal"
+            checked={element.showSubtotal !== false}
+            onChange={(v) => patch({ showSubtotal: v } as any)}
+          />
+          <Toggle
+            label="Desglose IVA"
+            checked={element.showTaxBreakdown !== false}
+            onChange={(v) => patch({ showTaxBreakdown: v } as any)}
+          />
+          <Toggle
+            label="Total"
+            checked={element.showTotal !== false}
+            onChange={(v) => patch({ showTotal: v } as any)}
+          />
+        </Section>
+      )}
+
+      {element.kind === 'qr' && (
+        <Section title="QR">
+          <Label>Valor (path o literal)</Label>
+          <input
+            type="text"
+            value={element.value}
+            onChange={(e) => patch({ value: e.target.value } as any)}
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-mono"
+          />
+        </Section>
+      )}
+
+      {element.kind === 'barcode' && (
+        <Section title="Código de barras">
+          <Label>Valor (path o literal)</Label>
+          <input
+            type="text"
+            value={element.value}
+            onChange={(e) => patch({ value: e.target.value } as any)}
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-mono"
+          />
+          <Label>Simbología</Label>
+          <select
+            value={element.symbology}
+            onChange={(e) => patch({ symbology: e.target.value as any } as any)}
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+          >
+            <option value="code128">Code 128</option>
+            <option value="code39">Code 39</option>
+            <option value="ean13">EAN-13</option>
+            <option value="ean8">EAN-8</option>
+          </select>
+          <Toggle
+            label="Mostrar texto legible"
+            checked={element.includeText ?? false}
+            onChange={(v) => patch({ includeText: v } as any)}
+          />
+        </Section>
+      )}
+
+      {element.kind === 'linesTable' && (
+        <Section title="Tabla de líneas">
+          <Toggle
+            label="Mostrar cabecera"
+            checked={element.showHeader !== false}
+            onChange={(v) => patch({ showHeader: v } as any)}
+          />
+          <div className="text-[11px] text-slate-400">
+            {element.columns.length} columnas. Edición avanzada de columnas en próximo paso.
+          </div>
+        </Section>
+      )}
+
+      {/* Estilo común */}
+      {'style' in element && element.kind !== 'shape' && element.kind !== 'image' && (
+        <Section title="Estilo">
+          <Label>Tamaño fuente (pt)</Label>
+          <input
+            type="number"
+            value={element.style?.fontSize ?? ''}
+            onChange={(e) =>
+              patch({
+                style: {
+                  ...(element.style ?? {}),
+                  fontSize: e.target.value ? Number(e.target.value) : undefined,
+                },
+              } as any)
+            }
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+          />
+          <Label>Color</Label>
+          <input
+            type="color"
+            value={element.style?.color ?? '#000000'}
+            onChange={(e) =>
+              patch({ style: { ...(element.style ?? {}), color: e.target.value } } as any)
+            }
+            className="h-8 w-full rounded border border-slate-200 dark:border-slate-700"
+          />
+          <Label>Alineación</Label>
+          <select
+            value={element.style?.textAlign ?? 'left'}
+            onChange={(e) =>
+              patch({
+                style: { ...(element.style ?? {}), textAlign: e.target.value as any },
+              } as any)
+            }
+            className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+          >
+            <option value="left">Izquierda</option>
+            <option value="center">Centro</option>
+            <option value="right">Derecha</option>
+            <option value="justify">Justificado</option>
+          </select>
+        </Section>
+      )}
+    </div>
+  );
+};
+
+const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <div className="space-y-2">
+    <div className="text-[11px] uppercase tracking-wide font-bold text-slate-400">{title}</div>
+    <div className="space-y-2">{children}</div>
+  </div>
+);
+
+const Label: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{children}</div>
+);
+
+const NumberGrid: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="grid grid-cols-2 gap-2">{children}</div>
+);
+
+const NumberField: React.FC<{ label: string; value: number; onChange: (v: number) => void }> = ({
+  label,
+  value,
+  onChange,
+}) => (
+  <label className="block">
+    <div className="text-[11px] text-slate-500 dark:text-slate-400">{label}</div>
+    <input
+      type="number"
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value) || 0)}
+      className="w-full px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+    />
+  </label>
+);
+
+const Toggle: React.FC<{ label: string; checked: boolean; onChange: (v: boolean) => void }> = ({
+  label,
+  checked,
+  onChange,
+}) => (
+  <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(e) => onChange(e.target.checked)}
+      className="accent-blue-600"
+    />
+    {label}
+  </label>
+);
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 // ---------- factoría de elementos ----------
 
