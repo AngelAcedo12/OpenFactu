@@ -91,6 +91,35 @@ export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, toke
     }
   };
 
+  const openDesigner = async () => {
+    // Si ya existe, navegación directa.
+    if (template?.id) {
+      navigate(`/document-templates/${template.id}/designer`);
+      return;
+    }
+    // Si es una plantilla nueva, la creamos ahora mismo para tener un id y
+    // entrar al diseñador sin requerir al usuario un paso extra.
+    setSaving(true);
+    try {
+      const res = await fetch('/api/document-templates', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-tenant-id': tenantId,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ docType, name, html, isDefault }),
+      });
+      if (!res.ok) throw new Error('No se pudo crear la plantilla');
+      const { id } = (await res.json()) as { id: string };
+      navigate(`/document-templates/${id}/designer`);
+    } catch (e: any) {
+      toast.error(e.message || 'No se pudo abrir el diseñador');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden p-6 gap-4 animate-in fade-in duration-300">
       {/* Header */}
@@ -171,16 +200,17 @@ export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, toke
         <ModeTabs mode={mode} onVisual={switchToVisual} onAdvanced={switchToAdvanced} />
         <button
           type="button"
-          disabled={!template?.id}
-          onClick={() => template?.id && navigate(`/document-templates/${template.id}/designer`)}
+          disabled={saving}
+          onClick={openDesigner}
           className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
           title={
             template?.id
               ? 'Abrir diseñador drag-and-drop a pantalla completa'
-              : 'Guarda la plantilla primero para poder abrir el diseñador'
+              : 'Crear la plantilla y abrir el diseñador'
           }
         >
-          <LayoutTemplate size={14} /> Abrir diseñador
+          <LayoutTemplate size={14} />{' '}
+          {template?.id ? 'Abrir diseñador' : 'Crear y abrir diseñador'}
         </button>
       </div>
 
