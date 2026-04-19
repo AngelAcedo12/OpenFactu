@@ -42,6 +42,7 @@ import {
   type FieldGroup,
 } from '../components/document-templates/canvas/fieldRegistry';
 import { ImportFromTemplateDialog } from '../components/document-templates/canvas/ImportFromTemplateDialog';
+import { usePluginFields } from '../components/document-templates/canvas/usePluginFields';
 
 const BAND_LABELS: Record<BandKind, string> = {
   pageHeader: 'Cabecera de página',
@@ -301,6 +302,8 @@ export const DocumentTemplateDesigner: React.FC = () => {
     }));
   };
 
+  const { pluginGroup, linePluginFields } = usePluginFields(template?.docType, headers);
+
   const selectedElement =
     selectedElementId == null
       ? null
@@ -347,7 +350,12 @@ export const DocumentTemplateDesigner: React.FC = () => {
             onSelectElement={setSelectedElementId}
             onDeleteElement={handleDeleteElement}
           />
-          <InspectorPanel element={selectedElement} onChange={handleUpdateElement} />
+          <InspectorPanel
+            element={selectedElement}
+            onChange={handleUpdateElement}
+            pluginGroup={pluginGroup}
+            linePluginFields={linePluginFields}
+          />
         </div>
       </DndContext>
     </div>
@@ -797,15 +805,27 @@ const ElementPreview: React.FC<{ element: CanvasElement }> = ({ element }) => {
 interface InspectorPanelProps {
   element: CanvasElement | null;
   onChange: (id: string, patch: Partial<CanvasElement>) => void;
+  pluginGroup: FieldGroup | null;
+  linePluginFields: FieldDef[];
 }
 
-const InspectorPanel: React.FC<InspectorPanelProps> = ({ element, onChange }) => (
+const InspectorPanel: React.FC<InspectorPanelProps> = ({
+  element,
+  onChange,
+  pluginGroup,
+  linePluginFields,
+}) => (
   <aside className="w-80 shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-y-auto">
     <div className="px-3 py-2 text-xs uppercase tracking-wide font-bold text-slate-400">
       Inspector
     </div>
     {element ? (
-      <ElementInspector element={element} onChange={onChange} />
+      <ElementInspector
+        element={element}
+        onChange={onChange}
+        pluginGroup={pluginGroup}
+        linePluginFields={linePluginFields}
+      />
     ) : (
       <div className="px-3 py-4 text-sm text-slate-500">
         Selecciona un elemento para editar sus propiedades.
@@ -817,8 +837,13 @@ const InspectorPanel: React.FC<InspectorPanelProps> = ({ element, onChange }) =>
 const ElementInspector: React.FC<{
   element: CanvasElement;
   onChange: (id: string, patch: Partial<CanvasElement>) => void;
-}> = ({ element, onChange }) => {
+  pluginGroup: FieldGroup | null;
+  linePluginFields: FieldDef[];
+}> = ({ element, onChange, pluginGroup, linePluginFields }) => {
   const patch = (p: Partial<CanvasElement>) => onChange(element.id, p);
+  const fieldGroups = pluginGroup
+    ? [...getFieldGroupsForFieldElement('docHeader'), pluginGroup]
+    : getFieldGroupsForFieldElement('docHeader');
   return (
     <div className="px-3 py-3 space-y-4 text-sm">
       <div className="text-[11px] uppercase tracking-wide font-bold text-slate-500">
@@ -930,7 +955,7 @@ const ElementInspector: React.FC<{
           <Label>Campo vinculado</Label>
           <FieldPicker
             value={element.path}
-            groups={getFieldGroupsForFieldElement('docHeader')}
+            groups={fieldGroups}
             onPick={(field) =>
               patch({
                 path: field.path,
@@ -1041,6 +1066,7 @@ const ElementInspector: React.FC<{
         <LinesTableEditor
           element={element}
           onPatch={(p) => patch(p as any)}
+          extraLineFields={linePluginFields}
         />
       )}
 
@@ -1152,8 +1178,12 @@ function fileToDataUrl(file: File): Promise<string> {
 const LinesTableEditor: React.FC<{
   element: LinesTableElement;
   onPatch: (p: Partial<LinesTableElement>) => void;
-}> = ({ element, onPatch }) => {
-  const lineGroup = getLineFieldGroup();
+  extraLineFields?: FieldDef[];
+}> = ({ element, onPatch, extraLineFields = [] }) => {
+  const baseLineGroup = getLineFieldGroup();
+  const lineGroup = baseLineGroup
+    ? { ...baseLineGroup, fields: [...baseLineGroup.fields, ...extraLineFields] }
+    : null;
   const updateColumn = (idx: number, changes: Partial<LinesTableColumn>) => {
     onPatch({
       columns: element.columns.map((c, i) => (i === idx ? { ...c, ...changes } : c)),
