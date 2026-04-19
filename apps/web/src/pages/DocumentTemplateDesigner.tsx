@@ -41,6 +41,7 @@ import {
   type FieldDef,
   type FieldGroup,
 } from '../components/document-templates/canvas/fieldRegistry';
+import { ImportFromTemplateDialog } from '../components/document-templates/canvas/ImportFromTemplateDialog';
 
 const BAND_LABELS: Record<BandKind, string> = {
   pageHeader: 'Cabecera de página',
@@ -235,6 +236,51 @@ export const DocumentTemplateDesigner: React.FC = () => {
     });
   };
 
+  const [importOpen, setImportOpen] = useState(false);
+
+  const handleExportJson = () => {
+    const blob = new Blob([JSON.stringify(layout, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(template?.name || 'plantilla').replace(/\s+/g, '_')}.canvas.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportJsonFile = async (file: File) => {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.bands)) {
+        throw new Error('Formato inválido');
+      }
+      setLayout(parsed as CanvasLayout);
+      setSelectedElementId(null);
+      toast.success('Layout importado');
+    } catch (e: any) {
+      toast.error(`No se pudo importar: ${e.message || 'JSON inválido'}`);
+    }
+  };
+
+  const handleImportFromTemplate = async (sourceId: string) => {
+    try {
+      const res = await fetch(`/api/document-templates/${sourceId}`, { headers });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as TemplateRow & { canvasLayout?: CanvasLayout | null };
+      if (!data.canvasLayout || data.canvasLayout.version !== 1) {
+        toast.error('Esa plantilla no tiene canvas layout (posiblemente sea legacy HTML).');
+        return;
+      }
+      setLayout(data.canvasLayout);
+      setSelectedElementId(null);
+      setImportOpen(false);
+      toast.success(`Importado desde "${data.name}"`);
+    } catch {
+      toast.error('No se pudo importar la plantilla');
+    }
+  };
+
   const handleDeleteElement = (bandId: string, elementId: string) => {
     setLayout((prev) => ({
       ...prev,
@@ -280,7 +326,18 @@ export const DocumentTemplateDesigner: React.FC = () => {
         saving={saving}
         onToggleFullscreen={toggleFullscreen}
         isFullscreen={isFullscreen}
+        onExport={handleExportJson}
+        onImport={handleImportJsonFile}
+        onImportFromTemplate={() => setImportOpen(true)}
       />
+      {importOpen && (
+        <ImportFromTemplateDialog
+          currentId={template?.id}
+          onClose={() => setImportOpen(false)}
+          onPick={handleImportFromTemplate}
+          headers={headers}
+        />
+      )}
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="flex flex-1 min-h-0">
           <PalettePanel />
@@ -306,6 +363,9 @@ interface ToolbarProps {
   saving: boolean;
   onToggleFullscreen: () => void;
   isFullscreen: boolean;
+  onExport: () => void;
+  onImport: (file: File) => void;
+  onImportFromTemplate: () => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -315,6 +375,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
   saving,
   onToggleFullscreen,
   isFullscreen,
+  onExport,
+  onImport,
+  onImportFromTemplate,
 }) => (
   <header className="flex items-center gap-2 px-4 h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
     <button
@@ -329,8 +392,42 @@ const Toolbar: React.FC<ToolbarProps> = ({
     <ToolbarButton icon={<Undo size={16} />} label="Deshacer" disabled />
     <ToolbarButton icon={<Redo size={16} />} label="Rehacer" disabled />
     <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
-    <ToolbarButton icon={<FileUp size={16} />} label="Importar" disabled />
-    <ToolbarButton icon={<FileDown size={16} />} label="Exportar" disabled />
+    <button
+      type="button"
+      onClick={onImportFromTemplate}
+      title="Importar desde otra plantilla"
+      className="flex items-center gap-1 px-2 py-1.5 rounded text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+    >
+      <FileUp size={16} />
+    </button>
+    <label
+      title="Importar JSON"
+      className="flex items-center gap-1 px-2 py-1.5 rounded text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+    >
+      <input
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) {
+            onImport(f);
+            e.target.value = '';
+          }
+        }}
+      />
+      <FileUp size={16} className="opacity-60" />
+      <span className="text-[10px]">JSON</span>
+    </label>
+    <button
+      type="button"
+      onClick={onExport}
+      title="Exportar JSON"
+      className="flex items-center gap-1 px-2 py-1.5 rounded text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+    >
+      <FileDown size={16} />
+      <span className="text-[10px]">JSON</span>
+    </button>
     <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
     <ToolbarButton icon={<Eye size={16} />} label="Previsualizar" disabled />
     <button
