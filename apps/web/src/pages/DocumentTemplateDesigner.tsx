@@ -30,8 +30,17 @@ import {
   type BandKind,
   type CanvasElement,
   type ElementKind,
+  type LinesTableElement,
+  type LinesTableColumn,
 } from '../components/document-templates/canvas/types';
 import { compileCanvas } from '../components/document-templates/canvas/compileCanvas';
+import {
+  getFieldGroupsForFieldElement,
+  getLineFieldGroup,
+  inferDefaultFormat,
+  type FieldDef,
+  type FieldGroup,
+} from '../components/document-templates/canvas/fieldRegistry';
 
 const BAND_LABELS: Record<BandKind, string> = {
   pageHeader: 'Cabecera de página',
@@ -821,7 +830,18 @@ const ElementInspector: React.FC<{
 
       {element.kind === 'field' && (
         <Section title="Campo">
-          <Label>Path (Handlebars)</Label>
+          <Label>Campo vinculado</Label>
+          <FieldPicker
+            value={element.path}
+            groups={getFieldGroupsForFieldElement('docHeader')}
+            onPick={(field) =>
+              patch({
+                path: field.path,
+                format: inferDefaultFormat(field),
+              } as any)
+            }
+          />
+          <Label>Path</Label>
           <input
             type="text"
             value={element.path}
@@ -921,16 +941,10 @@ const ElementInspector: React.FC<{
       )}
 
       {element.kind === 'linesTable' && (
-        <Section title="Tabla de líneas">
-          <Toggle
-            label="Mostrar cabecera"
-            checked={element.showHeader !== false}
-            onChange={(v) => patch({ showHeader: v } as any)}
-          />
-          <div className="text-[11px] text-slate-400">
-            {element.columns.length} columnas. Edición avanzada de columnas en próximo paso.
-          </div>
-        </Section>
+        <LinesTableEditor
+          element={element}
+          onPatch={(p) => patch(p as any)}
+        />
       )}
 
       {/* Estilo común */}
@@ -1035,6 +1049,227 @@ function fileToDataUrl(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
+// ---------- LinesTableEditor ----------
+
+const LinesTableEditor: React.FC<{
+  element: LinesTableElement;
+  onPatch: (p: Partial<LinesTableElement>) => void;
+}> = ({ element, onPatch }) => {
+  const lineGroup = getLineFieldGroup();
+  const updateColumn = (idx: number, changes: Partial<LinesTableColumn>) => {
+    onPatch({
+      columns: element.columns.map((c, i) => (i === idx ? { ...c, ...changes } : c)),
+    });
+  };
+  const addColumn = () => {
+    onPatch({
+      columns: [
+        ...element.columns,
+        {
+          id: `col_${Date.now().toString(36)}`,
+          label: 'Nueva',
+          path: 'itemName',
+          widthPct: 10,
+          align: 'left',
+        },
+      ],
+    });
+  };
+  const removeColumn = (idx: number) => {
+    onPatch({ columns: element.columns.filter((_, i) => i !== idx) });
+  };
+
+  return (
+    <Section title="Tabla de líneas">
+      <Toggle
+        label="Mostrar cabecera"
+        checked={element.showHeader !== false}
+        onChange={(v) => onPatch({ showHeader: v })}
+      />
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label>Columnas ({element.columns.length})</Label>
+          <button
+            type="button"
+            onClick={addColumn}
+            className="text-[11px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600"
+          >
+            + Añadir
+          </button>
+        </div>
+        {element.columns.map((col, idx) => (
+          <div
+            key={col.id}
+            className="p-2 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 space-y-1.5"
+          >
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={col.label}
+                onChange={(e) => updateColumn(idx, { label: e.target.value })}
+                placeholder="Cabecera"
+                className="flex-1 px-1.5 py-1 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+              />
+              <button
+                type="button"
+                onClick={() => removeColumn(idx)}
+                className="text-[11px] px-1.5 py-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                title="Borrar columna"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="grid grid-cols-[1fr_50px] gap-1">
+              <input
+                type="text"
+                value={col.path}
+                onChange={(e) => updateColumn(idx, { path: e.target.value })}
+                placeholder="itemName"
+                className="px-1.5 py-1 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+              />
+              <input
+                type="number"
+                value={col.widthPct}
+                onChange={(e) => updateColumn(idx, { widthPct: Number(e.target.value) || 0 })}
+                title="% ancho"
+                className="px-1.5 py-1 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-1">
+              <select
+                value={col.align ?? 'left'}
+                onChange={(e) => updateColumn(idx, { align: e.target.value as any })}
+                className="px-1.5 py-1 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+              >
+                <option value="left">Izq</option>
+                <option value="center">Centro</option>
+                <option value="right">Der</option>
+              </select>
+              <select
+                value={col.format ?? ''}
+                onChange={(e) =>
+                  updateColumn(idx, { format: (e.target.value || undefined) as any })
+                }
+                className="px-1.5 py-1 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+              >
+                <option value="">—</option>
+                <option value="currency">€</option>
+                <option value="number">#</option>
+                <option value="date">📅</option>
+                <option value="percent">%</option>
+              </select>
+            </div>
+            {lineGroup && (
+              <details className="text-[11px]">
+                <summary className="cursor-pointer text-slate-500">Elegir campo de línea…</summary>
+                <div className="mt-1 max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded">
+                  {lineGroup.fields.map((f) => (
+                    <button
+                      key={f.path}
+                      type="button"
+                      onClick={() =>
+                        updateColumn(idx, {
+                          path: f.path,
+                          format: inferDefaultFormat(f),
+                          label: col.label === 'Nueva' ? capitalize(f.path) : col.label,
+                        })
+                      }
+                      className={`w-full text-left px-2 py-0.5 font-mono hover:bg-blue-50 dark:hover:bg-blue-950/40 ${
+                        f.path === col.path
+                          ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200'
+                          : ''
+                      }`}
+                    >
+                      {f.path}
+                    </button>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+};
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// ---------- FieldPicker ----------
+
+const FieldPicker: React.FC<{
+  value: string;
+  groups: FieldGroup[];
+  onPick: (field: FieldDef) => void;
+}> = ({ value, groups, onPick }) => {
+  const [query, setQuery] = useState('');
+  const [openGroup, setOpenGroup] = useState<string | null>(groups[0]?.group ?? null);
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredGroups = groups
+    .map((g) => ({
+      ...g,
+      fields: g.fields.filter(
+        (f) =>
+          !normalizedQuery ||
+          f.path.toLowerCase().includes(normalizedQuery) ||
+          f.description.toLowerCase().includes(normalizedQuery),
+      ),
+    }))
+    .filter((g) => g.fields.length > 0);
+
+  return (
+    <div className="border border-slate-200 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Buscar campo…"
+        className="w-full px-2 py-1.5 text-xs bg-transparent border-b border-slate-200 dark:border-slate-700 focus:outline-none"
+      />
+      <div className="max-h-56 overflow-y-auto">
+        {filteredGroups.length === 0 && (
+          <div className="px-3 py-3 text-xs text-slate-400 italic">Sin resultados</div>
+        )}
+        {filteredGroups.map((g) => {
+          const expanded = normalizedQuery ? true : openGroup === g.group;
+          return (
+            <div key={g.group} className="border-b border-slate-200 dark:border-slate-700 last:border-0">
+              <button
+                type="button"
+                onClick={() => setOpenGroup(expanded ? null : g.group)}
+                className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                <span>{g.label}</span>
+                <span className="text-slate-400">{g.fields.length}</span>
+              </button>
+              {expanded &&
+                g.fields.map((f) => (
+                  <button
+                    key={f.path}
+                    type="button"
+                    onClick={() => onPick(f)}
+                    className={`w-full text-left px-3 py-1 text-xs hover:bg-blue-50 dark:hover:bg-blue-950/40 ${
+                      f.path === value
+                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200 font-semibold'
+                        : 'text-slate-700 dark:text-slate-300'
+                    }`}
+                    title={f.description}
+                  >
+                    <div className="font-mono">{f.path}</div>
+                    <div className="text-[10px] text-slate-400 truncate">{f.description}</div>
+                  </button>
+                ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 // ---------- factoría de elementos ----------
 
