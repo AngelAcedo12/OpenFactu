@@ -27,18 +27,37 @@ router.get('/available', (req: any, res) => {
   const tenantId = req.tenantId;
   const activeForTenant = tenantId ? TenantPluginCache.getActivePlugins(tenantId) : [];
 
-  const result = activePluginManifests.map((m: any) => ({
-    ...m,
-    isActive: activeForTenant.includes(m.id),
-  }));
+  // Solo listamos plugins cuyo módulo se cargó correctamente (`activePlugins`).
+  // Antes incluíamos también los que solo tenían `manifest.json` aunque el
+  // `init` fallara → el UI los mostraba pero al activarlos daba 404
+  // "no está instalado". Con esto la lista refleja lo que realmente puede
+  // activarse. Los que tienen manifest pero no cargan se marcan `loadFailed`
+  // para que el front pueda avisarlos como entrada con problema, pero no
+  // permitiremos activarlos.
+  const loadedById = new Set(activePlugins);
+  const result: any[] = [];
 
-  // Incluir plugins sin manifest (solo backend)
+  // Plugins con manifest UI cargado:
+  for (const m of activePluginManifests) {
+    const loaded = loadedById.has(m.id);
+    result.push({
+      ...m,
+      isActive: activeForTenant.includes(m.id),
+      loaded,
+      ...(loaded
+        ? {}
+        : { loadError: 'El plugin tiene manifest pero su index no exporta init() o falló al cargar' }),
+    });
+  }
+
+  // Plugins solo backend (sin manifest UI) que sí cargaron.
   for (const pluginId of activePlugins) {
     if (!result.find((r: any) => r.id === pluginId)) {
       result.push({
         id: pluginId,
         name: pluginId,
         isActive: activeForTenant.includes(pluginId),
+        loaded: true,
       });
     }
   }

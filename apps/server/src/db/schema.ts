@@ -8,6 +8,7 @@ import {
   boolean,
   unique,
   jsonb,
+  bigint,
 } from 'drizzle-orm/pg-core';
 
 /**
@@ -193,7 +194,10 @@ export const businessPartners = pgTable('BusinessPartner', {
   id: text('id').primaryKey(),
   code: text('code').unique().notNull(),
   name: text('name').notNull(),
-  nif: text('nif').unique().notNull(),
+  // nif nullable: muchos clientes ocasionales o partners extranjeros se dan
+  // de alta sin NIF. La unicidad se mantiene solo cuando tiene valor (índice
+  // único parcial creado en la migración 029_partner_nif_nullable.sql).
+  nif: text('nif'),
   foreignName: text('foreignName'),
   phone: text('phone'),
   email: text('email'),
@@ -284,6 +288,13 @@ export const itemPrices = pgTable(
 export const items = pgTable('Item', {
   id: text('id').primaryKey(),
   code: text('code').unique().notNull(),
+  /**
+   * Código de barras imprimible (EAN-13/UPC/Code128). Independiente del `code`
+   * interno: éste último es la referencia de inventario, mientras que `barcode`
+   * es lo que se escanea en TPV o se imprime en una etiqueta de producto.
+   * Nullable; índice único parcial sólo aplica cuando hay valor.
+   */
+  barcode: text('barcode'),
   name: text('name').notNull(),
   description: text('description'),
   uomId: text('uomId')
@@ -750,5 +761,41 @@ export const auditLogs = pgTable('AuditLog', {
   userId: text('userId').references(() => globalUsers.id),
   oldValue: jsonb('oldValue'),
   newValue: jsonb('newValue'),
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+});
+
+/**
+ * Adjuntos genéricos por tenant. La tabla se crea en la migración tenant
+ * 030_attachments.sql con índices por (entityType, entityId) y por uploadedAt.
+ * El backend físico (local/gdrive/onedrive) lo decide el StorageResolver
+ * según la config del tenant — pero `provider` aquí recuerda con cuál se subió.
+ */
+export const attachments = pgTable('Attachment', {
+  id: text('id').primaryKey(),
+  entityType: text('entityType').notNull(),
+  entityId: text('entityId').notNull(),
+  fileName: text('fileName').notNull(),
+  mime: text('mime').notNull(),
+  size: bigint('size', { mode: 'number' }).notNull(),
+  provider: text('provider').notNull(),
+  externalId: text('externalId').notNull(),
+  uploadedBy: text('uploadedBy'),
+  uploadedAt: timestamp('uploadedAt').defaultNow().notNull(),
+  deletedAt: timestamp('deletedAt'),
+});
+
+/**
+ * Notificaciones in-app por tenant (migración 031_notifications.sql).
+ * Una fila = una notificación para UN usuario. El mismo evento puede generar
+ * N filas (una por destinatario) para que `readAt` sea per-user.
+ */
+export const notifications = pgTable('Notification', {
+  id: text('id').primaryKey(),
+  userId: text('userId').notNull(),
+  title: text('title').notNull(),
+  body: text('body'),
+  level: text('level').notNull().default('info'), // info | warn | error | success
+  link: text('link'),
+  readAt: timestamp('readAt'),
   createdAt: timestamp('createdAt').defaultNow().notNull(),
 });

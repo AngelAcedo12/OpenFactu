@@ -14,11 +14,21 @@ import { TenantSwitcher } from '../TenantSwitcher';
  *  - Adapta colores al tema light/dark
  */
 export const IconSidebar: React.FC = () => {
-  const modules = useModules();
+  const allModules = useModules();
   const { openTab, tabs, activeTabId } = useTabs();
   const pathname = tabs.find((t) => t.id === activeTabId)?.path?.split('?')[0] || '/';
   const active = useActiveModule(pathname);
   const { user, logout } = useAuth();
+  // Los módulos marcados como superuserOnly solo se muestran al rol SUPERUSER.
+  const modules = allModules.filter((m) => !m.superuserOnly || user?.role === 'SUPERUSER');
+  // Versión del servidor — `/api/version` es público, no requiere token.
+  const [version, setVersion] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/api/version')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setVersion(d?.version || null))
+      .catch(() => setVersion(null));
+  }, []);
   const [tenantOpen, setTenantOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const tenantRef = useRef<HTMLDivElement>(null);
@@ -164,6 +174,10 @@ export const IconSidebar: React.FC = () => {
                 <LogOut size={14} />
                 Cerrar sesión
               </button>
+              <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 text-[10px] text-slate-400 font-mono flex items-center justify-between">
+                <span>OpenFactu</span>
+                <span>v{version || '…'}</span>
+              </div>
             </div>
           )}
         </div>

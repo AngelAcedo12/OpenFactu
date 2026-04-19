@@ -25,6 +25,8 @@ export interface Module {
   /** Nombre de un icono lucide-react. */
   icon: string;
   subTabs: SubTab[];
+  /** Si es true, solo se renderiza en el sidebar para usuarios con rol SUPERUSER. */
+  superuserOnly?: boolean;
 }
 
 export const CORE_MODULES: Module[] = [
@@ -83,7 +85,6 @@ export const CORE_MODULES: Module[] = [
       { id: 'periods', label: 'Periodos', path: '/accounting-periods' },
       { id: 'series', label: 'Series', path: '/document-series' },
       { id: 'taxes', label: 'Impuestos', path: '/taxes' },
-      { id: 'templates', label: 'Plantillas PDF', path: '/document-templates' },
     ],
   },
   {
@@ -93,15 +94,26 @@ export const CORE_MODULES: Module[] = [
     subTabs: [{ id: 'plugins-manager', label: 'Gestor', path: '/plugins' }],
   },
   {
-    id: 'settings',
-    label: 'Ajustes',
-    icon: 'Settings',
+    id: 'configuration',
+    label: 'Configuración',
+    icon: 'SlidersHorizontal',
     subTabs: [
-      { id: 'users', label: 'Usuarios', path: '/users' },
       { id: 'company', label: 'Empresa', path: '/settings/company' },
+      { id: 'templates', label: 'Plantillas PDF', path: '/document-templates' },
+      { id: 'storage', label: 'Almacenamiento', path: '/settings/company?tab=storage' },
+      { id: 'email', label: 'Correo', path: '/settings/company?tab=email' },
+      { id: 'data', label: 'Importar/Exportar', path: '/settings/company?tab=data' },
+      { id: 'users', label: 'Usuarios', path: '/users' },
       { id: 'audit', label: 'Auditoría', path: '/audit-logs' },
       { id: 'styleguide', label: 'Style Guide', path: '/ui' },
     ],
+  },
+  {
+    id: 'system',
+    label: 'Sistema',
+    icon: 'Activity',
+    superuserOnly: true,
+    subTabs: [{ id: 'cockpit', label: 'Cockpit', path: '/system/cockpit' }],
   },
 ];
 

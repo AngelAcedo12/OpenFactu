@@ -25,6 +25,7 @@ import { DocumentTemplates } from '../../pages/DocumentTemplates';
 import { DocumentTemplateDesigner } from '../../pages/DocumentTemplateDesigner';
 import { CompanySettings } from '../../pages/CompanySettings';
 import { NewCompany } from '../../pages/NewCompany';
+import { ServerCockpit } from '../../pages/ServerCockpit';
 
 export interface RouteMeta {
   title: string;
@@ -277,6 +278,13 @@ export const staticRoutes: RouteEntry[] = [
     title: 'Nueva Empresa',
     iconName: 'Building',
     permissionPath: '/companies/new',
+  },
+  {
+    pattern: '/system/cockpit',
+    Component: ServerCockpit,
+    title: 'Cockpit',
+    iconName: 'Activity',
+    permissionPath: '/system/cockpit',
   },
   {
     pattern: '/ui',

@@ -3,7 +3,30 @@ import path from 'path';
 import { sql, eq } from 'drizzle-orm';
 import * as schema from '../../db/schema';
 
-const GEO_JSON = path.join(__dirname, '..', '..', 'seed-data', 'geo.json');
+/**
+ * Posibles ubicaciones del geo.json. Probamos en orden:
+ *   1. junto al __dirname del módulo compilado (dist/seed-data/geo.json).
+ *   2. en src/seed-data por si el contenedor monta el repo entero.
+ *   3. en /app/apps/server/src/seed-data por si el Dockerfile no copió a dist.
+ *   4. variable de entorno OPENFACTU_GEO_JSON (override manual).
+ *
+ * El primero que exista gana. Sin esto, una instalación con un Dockerfile que
+ * olvida copiar assets deja el wizard de setup sin países.
+ */
+function resolveGeoJsonPath(): string | null {
+  const candidates = [
+    process.env.OPENFACTU_GEO_JSON,
+    path.join(__dirname, '..', '..', 'seed-data', 'geo.json'),
+    path.join(__dirname, '..', '..', '..', 'src', 'seed-data', 'geo.json'),
+    path.join(__dirname, '..', '..', '..', '..', 'src', 'seed-data', 'geo.json'),
+    '/app/apps/server/src/seed-data/geo.json',
+    '/app/apps/server/dist/seed-data/geo.json',
+  ].filter(Boolean) as string[];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
 
 interface GeoData {
   countries: Array<{
@@ -91,14 +114,21 @@ async function ensurePublicGeoTables(db: any) {
 export async function seedGeo(db: any) {
   await ensurePublicGeoTables(db);
 
-  if (!fs.existsSync(GEO_JSON)) {
-    console.warn(
-      `[Geo] ${GEO_JSON} no existe — saltando seed. Ejecuta 'npx ts-node src/scripts/generate-geo-seed.ts' para generarlo.`,
+  const geoJsonPath = resolveGeoJsonPath();
+  if (!geoJsonPath) {
+    console.error(
+      `[Geo] ❌ geo.json no encontrado en ninguna ubicación conocida.\n` +
+        `   Sin él, el selector de países del wizard de setup saldrá vacío.\n` +
+        `   Soluciones:\n` +
+        `     a) Asegúrate de que el Dockerfile copia src/seed-data/* a dist/seed-data/.\n` +
+        `     b) Pasa OPENFACTU_GEO_JSON=/ruta/al/geo.json como variable de entorno.\n` +
+        `     c) Ejecuta 'npx ts-node src/scripts/generate-geo-seed.ts' para regenerarlo.`,
     );
     return;
   }
+  console.log(`[Geo] Usando geo.json: ${geoJsonPath}`);
 
-  const data: GeoData = JSON.parse(fs.readFileSync(GEO_JSON, 'utf-8'));
+  const data: GeoData = JSON.parse(fs.readFileSync(geoJsonPath, 'utf-8'));
 
   // 1. Countries — upsert
   for (const c of data.countries) {

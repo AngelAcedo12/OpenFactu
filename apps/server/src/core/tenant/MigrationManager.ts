@@ -34,7 +34,17 @@ export class MigrationManager {
 
     // 2. Leer archivos SQL
     if (!fs.existsSync(this.MIGRATIONS_DIR)) {
-      console.warn(`[MigrationManager] Carpeta de migraciones ausente: ${this.MIGRATIONS_DIR}`);
+      // Esto suele pasar en producción: el `tsc build` no copia los .sql a
+      // `dist/core/tenant/migrations`. Si pasa, ninguna migración se aplica
+      // y el tenant queda sin tablas (SystemConfig, AccountingPeriod, ...).
+      // Asegúrate de que `package.json` tenga un step `copy-assets` que
+      // copie los .sql a `dist/`, o ejecuta `npm run sync` desde `src/`.
+      console.error(
+        `[MigrationManager] ⚠️  Carpeta de migraciones AUSENTE: ${this.MIGRATIONS_DIR}\n` +
+          `   Las migraciones NO se aplicarán. El tenant ${schemaName} quedará sin tablas.\n` +
+          `   Solución: en producción asegúrate de que los archivos .sql se copian a\n` +
+          `   dist/core/tenant/migrations/. En dev usa \`npm run dev\` (corre desde src).`,
+      );
       return;
     }
 

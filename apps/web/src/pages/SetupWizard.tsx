@@ -93,11 +93,11 @@ export const SetupWizard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-800">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-extrabold text-blue-600 dark:text-blue-300">OpenFactu</h1>
-          <p className="text-gray-500 mt-2">Asistente de Configuración Inicial</p>
+          <p className="text-gray-500 dark:text-slate-400 mt-2">Asistente de Configuración Inicial</p>
           <div className="flex justify-center mt-4 gap-4">
             {[
               { id: 1, icon: Database },
@@ -107,7 +107,7 @@ export const SetupWizard: React.FC = () => {
             ].map((s) => (
               <div key={s.id} className="flex flex-col items-center">
                 <div
-                  className={`h-10 w-10 rounded-full flex items-center justify-center transition-all ${step >= s.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-400'}`}
+                  className={`h-10 w-10 rounded-full flex items-center justify-center transition-all ${step >= s.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500'}`}
                 >
                   <s.icon size={20} />
                 </div>
@@ -119,21 +119,21 @@ export const SetupWizard: React.FC = () => {
         {step === 1 && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
             <h2 className="text-xl font-bold">1. Base de Datos</h2>
-            <p className="text-sm text-gray-600">Configura la conexión principal de PostgreSQL.</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400">Configura la conexión principal de PostgreSQL.</p>
             <input
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="Host (ej: localhost)"
               value={formData.dbHost}
               onChange={(e) => setFormData({ ...formData, dbHost: e.target.value })}
             />
             <input
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="Puerto (ej: 5432)"
               value={formData.dbPort}
               onChange={(e) => setFormData({ ...formData, dbPort: e.target.value })}
             />
             <input
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="Usuario (ej: openfactu)"
               value={formData.dbUser}
               onChange={(e) => setFormData({ ...formData, dbUser: e.target.value })}
@@ -141,7 +141,7 @@ export const SetupWizard: React.FC = () => {
             <div className="relative">
               <input
                 type={showDbPass ? 'text' : 'password'}
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none pr-10 transition-all"
+                className="w-full p-3 pr-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                 placeholder="Contraseña DB"
                 value={formData.dbPassword}
                 onChange={(e) => setFormData({ ...formData, dbPassword: e.target.value })}
@@ -167,17 +167,17 @@ export const SetupWizard: React.FC = () => {
         {step === 2 && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
             <h2 className="text-xl font-bold">2. Administrador</h2>
-            <p className="text-sm text-gray-600">Crea la cuenta de superusuario global.</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400">Crea la cuenta de superusuario global.</p>
             <input
               type="email"
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="Email"
               value={formData.adminEmail}
               onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
             />
             <input
               type="text"
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="Nombre de Usuario (ej: angel)"
               value={formData.adminUsername}
               onChange={(e) => setFormData({ ...formData, adminUsername: e.target.value })}
@@ -185,7 +185,7 @@ export const SetupWizard: React.FC = () => {
             <div className="relative">
               <input
                 type={showAdminPass ? 'text' : 'password'}
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none pr-10 transition-all"
+                className="w-full p-3 pr-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                 placeholder="Contraseña"
                 value={formData.adminPassword}
                 onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
@@ -201,7 +201,7 @@ export const SetupWizard: React.FC = () => {
             <div className="flex gap-2">
               <button
                 onClick={prevStep}
-                className="flex-1 bg-gray-100 p-3 rounded-lg font-bold hover:bg-gray-200 transition flex items-center justify-center gap-2"
+                className="flex-1 bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 p-3 rounded-lg font-bold hover:bg-gray-200 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2"
               >
                 <ChevronLeft size={20} /> Atrás
               </button>
@@ -222,15 +222,15 @@ export const SetupWizard: React.FC = () => {
         {step === 3 && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
             <h2 className="text-xl font-bold">3. Primera Empresa</h2>
-            <p className="text-sm text-gray-600">Datos fiscales de tu empresa principal.</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400">Datos fiscales de tu empresa principal.</p>
             <input
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="Nombre de la Empresa"
               value={formData.companyName}
               onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
             />
             <input
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="NIF / CIF"
               value={formData.companyNif}
               onChange={(e) => setFormData({ ...formData, companyNif: e.target.value })}
@@ -238,7 +238,7 @@ export const SetupWizard: React.FC = () => {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={prevStep}
-                className="flex-[0.4] bg-gray-50 p-3 rounded-lg font-bold hover:bg-gray-100 transition flex items-center justify-center gap-2 text-gray-500 border border-gray-100"
+                className="flex-[0.4] bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-300 p-3 rounded-lg font-bold hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2 border border-gray-100 dark:border-slate-700"
               >
                 <ChevronLeft size={18} /> Atrás
               </button>
@@ -260,24 +260,24 @@ export const SetupWizard: React.FC = () => {
         {step === 4 && (
           <div className="space-y-3 animate-in fade-in slide-in-from-right-4">
             <h2 className="text-xl font-bold">4. Configuración de Empresa</h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-slate-400">
               Datos de contacto, domicilio y preferencias. Podrás editarlos después en Ajustes.
             </p>
             <input
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="Dirección"
               value={formData.companyAddress}
               onChange={(e) => setFormData({ ...formData, companyAddress: e.target.value })}
             />
             <div className="grid grid-cols-2 gap-2">
               <input
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="Ciudad"
                 value={formData.companyCity}
                 onChange={(e) => setFormData({ ...formData, companyCity: e.target.value })}
               />
               <input
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="Código Postal"
                 value={formData.companyZip}
                 onChange={(e) => setFormData({ ...formData, companyZip: e.target.value })}
@@ -285,7 +285,7 @@ export const SetupWizard: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <select
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-900"
+                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.companyCountry}
                 onChange={(e) => setFormData({ ...formData, companyCountry: e.target.value })}
               >
@@ -298,7 +298,7 @@ export const SetupWizard: React.FC = () => {
                 <option value="US">Estados Unidos</option>
               </select>
               <select
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-900"
+                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.companyCurrency}
                 onChange={(e) => setFormData({ ...formData, companyCurrency: e.target.value })}
               >
@@ -309,31 +309,31 @@ export const SetupWizard: React.FC = () => {
             </div>
             <input
               type="email"
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="Email de contacto"
               value={formData.companyEmail}
               onChange={(e) => setFormData({ ...formData, companyEmail: e.target.value })}
             />
             <div className="grid grid-cols-2 gap-2">
               <input
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="Teléfono"
                 value={formData.companyPhone}
                 onChange={(e) => setFormData({ ...formData, companyPhone: e.target.value })}
               />
               <input
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="Web"
                 value={formData.companyWebsite}
                 onChange={(e) => setFormData({ ...formData, companyWebsite: e.target.value })}
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500 block mb-1">
+              <label className="text-xs text-gray-500 dark:text-slate-400 block mb-1">
                 Inicio del año fiscal (MM-DD)
               </label>
               <input
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="01-01"
                 value={formData.companyFiscalYearStart}
                 onChange={(e) =>
@@ -344,7 +344,7 @@ export const SetupWizard: React.FC = () => {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={prevStep}
-                className="flex-[0.4] bg-gray-50 p-3 rounded-lg font-bold hover:bg-gray-100 transition flex items-center justify-center gap-2 text-gray-500 border border-gray-100"
+                className="flex-[0.4] bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-300 p-3 rounded-lg font-bold hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2 border border-gray-100 dark:border-slate-700"
               >
                 <ChevronLeft size={18} /> Atrás
               </button>

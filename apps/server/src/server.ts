@@ -28,6 +28,11 @@ import taxesRouter from './api/taxes';
 import auditLogsRouter from './api/auditLogs';
 import membershipsRouter from './api/memberships';
 import documentTemplatesRouter from './api/documentTemplates';
+import attachmentsRouter from './api/attachments';
+import adminRouter from './api/admin';
+import systemRouter from './api/system';
+import emailRouter from './api/email';
+import notificationsRouter from './api/notifications';
 import companyRouter from './api/company';
 import dashboardRouter from './api/dashboard';
 import tenantsRouter from './api/tenants';
@@ -41,6 +46,8 @@ import { bootstrapAdmin } from './core/auth/bootstrap';
 import { ClientFactory } from './core/tenant/ClientFactory';
 import { seedGeo } from './core/geo/seedGeo';
 import { PdfRenderer } from '@openfactu/pdf';
+import { requestCounterMiddleware } from './core/system/RequestCounter';
+import { getServerVersion } from './core/system/SystemMetrics';
 
 dotenv.config();
 
@@ -49,6 +56,9 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+// Contador global de peticiones — alimenta el cockpit (/api/system/metrics).
+// Va antes de las rutas para contar absolutamente todo, incluidos 404.
+app.use(requestCounterMiddleware);
 
 // 1. Rutas de Configuración y Auth (Fuera del contexto de tenant obligatorio)
 app.use('/api/setup', setupRouter);
@@ -82,6 +92,12 @@ app.use('/api/taxes', taxesRouter);
 app.use('/api/audit-logs', auditLogsRouter);
 app.use('/api/memberships', membershipsRouter);
 app.use('/api/document-templates', documentTemplatesRouter);
+app.use('/api/attachments', attachmentsRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/system', systemRouter);
+// Correo saliente por tenant — lee/escribe config SMTP y envía emails.
+app.use('/api/email', emailRouter);
+app.use('/api/notifications', notificationsRouter);
 app.use('/api/company', companyRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/tenants', tenantsRouter);
@@ -93,6 +109,12 @@ app.use('/api/factuapi', factuApiRouter);
 // Health check para el instalador y Docker
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Servidor OpenFactu en línea' });
+});
+
+// Endpoint público con la versión del servidor — lo consume el front para
+// mostrarla en el menú de usuario sin requerir privilegios elevados.
+app.get('/api/version', (_req, res) => {
+  res.json({ version: getServerVersion() });
 });
 
 /**

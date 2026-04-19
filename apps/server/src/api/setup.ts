@@ -14,17 +14,93 @@ const router = Router();
 /**
  * GET /api/setup/status
  */
+/**
+ * Indica si el modo debug del setup está activo. Habilitado cuando se está en
+ * desarrollo (NODE_ENV !== production) o cuando explícitamente se ha definido
+ * `OPENFACTU_DEBUG_SETUP=1` en el entorno. En este modo se exponen endpoints
+ * peligrosos (reset total) — fuera de él, devuelven 403.
+ */
+function isSetupDebugEnabled(): boolean {
+  return (
+    process.env.NODE_ENV !== 'production' || process.env.OPENFACTU_DEBUG_SETUP === '1'
+  );
+}
+
 router.get('/status', async (req, res) => {
   try {
     const configPath = path.join(__dirname, '../../../../storage/config/config.json');
     const isConfigured = fs.existsSync(configPath);
+    // Permite forzar el wizard aunque ya esté configurado (`?force=1`) — útil
+    // en debug del setup para volver a entrar sin tocar archivos.
+    const force = req.query.force === '1';
 
     res.json({
-      configured: isConfigured,
-      setupNeeded: !isConfigured,
+      configured: isConfigured && !force,
+      setupNeeded: !isConfigured || force,
+      debugEnabled: isSetupDebugEnabled(),
     });
   } catch (error) {
     res.status(500).json({ error: 'Error al comprobar el estado del sistema' });
+  }
+});
+
+/**
+ * POST /api/setup/dev-reset — DESTRUCTIVO: vacía el config.json, tira todos
+ * los tenant schemas y limpia las tablas globales (Tenant, GlobalUser,
+ * UserTenantMembership, AuditLog) para que el wizard de setup vuelva a
+ * arrancar desde cero. Solo disponible en modo debug.
+ *
+ * Body opcional:
+ *   { keepGeo?: boolean }  — si true, no toca Country/Region/SubRegion/Locality
+ *                            (por defecto sí los conserva, así no hay que
+ *                            re-cargar 8000 municipios cada vez).
+ */
+router.post('/dev-reset', async (req, res) => {
+  if (!isSetupDebugEnabled()) {
+    return res.status(403).json({ error: 'Modo debug no habilitado' });
+  }
+  try {
+    const publicDb = ClientFactory.getClient('public');
+
+    // 1) Drop de cada schema de tenant.
+    const tenants = await publicDb.select().from(schema.tenants);
+    for (const t of tenants) {
+      try {
+        await publicDb.execute(
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          (await import('drizzle-orm')).sql.raw(
+            `DROP SCHEMA IF EXISTS "${t.schemaName}" CASCADE`,
+          ),
+        );
+      } catch (e: any) {
+        console.warn(`[Setup.dev-reset] No se pudo dropear ${t.schemaName}: ${e.message}`);
+      }
+    }
+
+    // 2) Limpiar tablas globales relacionadas con tenants/auth.
+    await publicDb.delete(schema.auditLogs);
+    await publicDb.delete(schema.userTenantMemberships);
+    await publicDb.delete(schema.tenants);
+    await publicDb.delete(schema.globalUsers);
+    // pluginFields/pluginTables son globales pero pertenecen a plugins; los
+    // dejamos a no ser que se pida lo contrario, no estorban al wizard.
+
+    // 3) Borrar config.json.
+    const configPath = path.join(__dirname, '../../../../storage/config/config.json');
+    try {
+      if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
+    } catch (e: any) {
+      console.warn(`[Setup.dev-reset] No se pudo borrar ${configPath}: ${e.message}`);
+    }
+
+    res.json({
+      ok: true,
+      droppedTenants: tenants.length,
+      message: 'Setup reseteado. Recarga el front para volver a ver el wizard.',
+    });
+  } catch (e: any) {
+    console.error('[Setup.dev-reset] error:', e?.stack || e);
+    res.status(500).json({ error: e?.message || 'Error al resetear setup' });
   }
 });
 

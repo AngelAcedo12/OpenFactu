@@ -6,6 +6,7 @@ import { Login } from './pages/Login';
 import { useAuth } from './context/AuthContext';
 import { MainLayout } from './components/MainLayout';
 import { TabsProvider } from './context/TabsContext';
+import { DebugPanel } from './components/DebugPanel';
 
 function App() {
   const [setupChecked, setSetupChecked] = useState(false);
@@ -15,7 +16,13 @@ function App() {
   useEffect(() => {
     const checkSetup = async () => {
       try {
-        const res = await fetch(`/api/setup/status?t=${Date.now()}`);
+        // `?force=1` en la URL del front fuerza al backend a devolver
+        // setupNeeded=true. Útil para volver a ver el wizard sin haber tirado
+        // los tenants (modo debug).
+        const force = new URLSearchParams(window.location.search).get('force') === '1';
+        const res = await fetch(
+          `/api/setup/status?t=${Date.now()}${force ? '&force=1' : ''}`,
+        );
         if (!res.ok) throw new Error('Servidor no disponible');
         const data = await res.json();
         console.log('[App] Setup Status:', data);
@@ -39,30 +46,39 @@ function App() {
 
   if (setupNeeded) {
     return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/setup" element={<SetupWizard />} />
-          <Route path="*" element={<Navigate to="/setup" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/setup" element={<SetupWizard />} />
+            <Route path="*" element={<Navigate to="/setup" replace />} />
+          </Routes>
+        </BrowserRouter>
+        <DebugPanel />
+      </>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </BrowserRouter>
+        <DebugPanel />
+      </>
     );
   }
 
   return (
-    <TabsProvider>
-      <MainLayout />
-    </TabsProvider>
+    <>
+      <TabsProvider>
+        <MainLayout />
+      </TabsProvider>
+      <DebugPanel />
+    </>
   );
 }
 

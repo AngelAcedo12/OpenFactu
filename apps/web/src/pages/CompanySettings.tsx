@@ -1,6 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Input, Loader, useToast } from '@openfactu/ui';
-import { Building, Save, Palette, Globe, SlidersHorizontal, FileText } from 'lucide-react';
+import {
+  Building,
+  Save,
+  Palette,
+  Globe,
+  SlidersHorizontal,
+  FileText,
+  HardDrive,
+  FileBox,
+  Upload,
+  Mail,
+} from 'lucide-react';
+import { StorageSettingsTab } from '../components/settings/StorageSettingsTab';
+import { DataTransferTab } from '../components/settings/DataTransferTab';
+import { EmailSettingsTab } from '../components/settings/EmailSettingsTab';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { formatCurrency, formatDate } from '@openfactu/common';
@@ -48,13 +62,38 @@ const EMPTY: CompanyConfig = {
   fiscalYearStart: '01-01',
 };
 
-type TabId = 'fiscal' | 'branding' | 'format' | 'flags';
+type TabId =
+  | 'fiscal'
+  | 'branding'
+  | 'format'
+  | 'flags'
+  | 'storage'
+  | 'templates'
+  | 'data'
+  | 'email';
 
 export const CompanySettings: React.FC = () => {
   const { token, user } = useAuth();
   const { branding, format, flags, update: updateTheme, reload: reloadTheme } = useTheme();
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<TabId>('fiscal');
+  // Soporta deep-link al tab vía `?tab=storage|data|templates|...`. Usado por el
+  // sidebar (Configuración → Almacenamiento / Importar/Exportar).
+  const initialTab: TabId = (() => {
+    if (typeof window === 'undefined') return 'fiscal';
+    const t = new URLSearchParams(window.location.search).get('tab');
+    const allowed: TabId[] = [
+      'fiscal',
+      'branding',
+      'format',
+      'flags',
+      'storage',
+      'templates',
+      'data',
+      'email',
+    ];
+    return allowed.includes(t as TabId) ? (t as TabId) : 'fiscal';
+  })();
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const [fiscal, setFiscal] = useState<CompanyConfig>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -163,6 +202,10 @@ export const CompanySettings: React.FC = () => {
     { id: 'branding', label: 'Branding', icon: Palette },
     { id: 'format', label: 'Formato', icon: Globe },
     { id: 'flags', label: 'Comportamiento', icon: SlidersHorizontal },
+    { id: 'templates', label: 'Plantillas', icon: FileBox },
+    { id: 'storage', label: 'Almacenamiento', icon: HardDrive },
+    { id: 'email', label: 'Correo', icon: Mail },
+    { id: 'data', label: 'Importar/Exportar', icon: Upload },
   ];
 
   return (
@@ -181,22 +224,24 @@ export const CompanySettings: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-slate-200 dark:border-slate-800">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
-              activeTab === t.id
-                ? 'text-primary border-primary'
-                : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200 dark:hover:text-slate-200'
-            }`}
-          >
-            <t.icon size={14} />
-            {t.label}
-          </button>
-        ))}
+      {/* Tabs — scroll horizontal cuando no caben, sin wrap */}
+      <div className="border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
+        <div className="flex gap-1 min-w-max">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-bold whitespace-nowrap border-b-2 transition-colors shrink-0 ${
+                activeTab === t.id
+                  ? 'text-primary border-primary'
+                  : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              <t.icon size={13} />
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {activeTab === 'fiscal' && (
@@ -694,6 +739,36 @@ export const CompanySettings: React.FC = () => {
           </div>
         </div>
       )}
+
+      {activeTab === 'templates' && (
+        <Card>
+          <div className="p-6 space-y-3">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
+              <FileBox size={18} />
+              <h2 className="text-lg font-bold">Plantillas PDF</h2>
+            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Las plantillas de documento (facturas, albaranes, pedidos, etiquetas libres) se
+              gestionan en una página dedicada con su diseñador visual.
+            </p>
+            <div>
+              <a
+                href="/document-templates"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
+              >
+                <FileBox size={14} />
+                Abrir gestor de plantillas
+              </a>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {activeTab === 'storage' && <StorageSettingsTab />}
+
+      {activeTab === 'email' && <EmailSettingsTab />}
+
+      {activeTab === 'data' && <DataTransferTab />}
     </div>
   );
 };
