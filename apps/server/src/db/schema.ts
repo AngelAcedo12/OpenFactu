@@ -732,6 +732,9 @@ export const documentTemplates = pgTable('DocumentTemplate', {
   name: text('name').notNull(),
   html: text('html').notNull(),
   isDefault: boolean('isDefault').default(false).notNull(),
+  canvasLayout: jsonb('canvasLayout'),
+  layoutVersion: integer('layoutVersion').default(1).notNull(),
+  legacyHtml: boolean('legacyHtml').default(true).notNull(),
   createdAt: timestamp('createdAt').defaultNow().notNull(),
   updatedAt: timestamp('updatedAt').defaultNow().notNull(),
 });
