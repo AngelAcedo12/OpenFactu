@@ -12,6 +12,15 @@ import {
   Maximize2,
   Minimize2,
 } from 'lucide-react';
+import {
+  DndContext,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
 import { useAuth } from '../context/AuthContext';
 import type { TemplateRow } from '../components/document-templates/constants';
 import {
@@ -19,6 +28,8 @@ import {
   type CanvasLayout,
   type Band,
   type BandKind,
+  type CanvasElement,
+  type ElementKind,
 } from '../components/document-templates/canvas/types';
 
 const BAND_LABELS: Record<BandKind, string> = {
@@ -29,13 +40,37 @@ const BAND_LABELS: Record<BandKind, string> = {
   pageFooter: 'Pie de página',
 };
 
-/**
- * Página a pantalla completa del diseñador visual de plantillas.
- *
- * Esta subfase (5) aterriza el esqueleto: ruta, layout de 3 columnas y
- * carga/guardado básico del layout canvas. La paleta, el DnD, el inspector
- * y el compilador real se conectan en subfases posteriores (6-12).
- */
+const PALETTE_ITEMS: { kind: ElementKind; label: string }[] = [
+  { kind: 'text', label: 'Texto' },
+  { kind: 'image', label: 'Imagen' },
+  { kind: 'shape', label: 'Forma' },
+  { kind: 'spacer', label: 'Espaciador' },
+  { kind: 'field', label: 'Campo' },
+  { kind: 'linesTable', label: 'Tabla líneas' },
+  { kind: 'totals', label: 'Totales' },
+  { kind: 'qr', label: 'QR' },
+  { kind: 'barcode', label: 'Código barras' },
+];
+
+/** Tamaño por defecto en mm cuando se suelta un elemento de la paleta. */
+const DEFAULT_SIZE: Record<ElementKind, { w: number; h: number }> = {
+  text: { w: 60, h: 8 },
+  image: { w: 40, h: 20 },
+  shape: { w: 60, h: 4 },
+  spacer: { w: 60, h: 6 },
+  field: { w: 60, h: 8 },
+  linesTable: { w: 180, h: 80 },
+  totals: { w: 80, h: 30 },
+  qr: { w: 25, h: 25 },
+  barcode: { w: 60, h: 15 },
+};
+
+/** Constante CSS: 1mm = 3.779527 px a 96 DPI. */
+const PX_PER_MM = 3.779527559;
+
+let nextId = 1;
+const genId = (prefix: string) => `${prefix}_${Date.now().toString(36)}_${nextId++}`;
+
 export const DocumentTemplateDesigner: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -47,7 +82,10 @@ export const DocumentTemplateDesigner: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(document.fullscreenElement === rootRef.current);
@@ -98,7 +136,7 @@ export const DocumentTemplateDesigner: React.FC = () => {
 
   const handleBack = () => navigate('/document-templates');
 
-  const handleSave = async () => {
+  const handleSave = async (opts: { returnAfter?: boolean } = {}) => {
     if (!template) return;
     setSaving(true);
     try {
@@ -109,12 +147,59 @@ export const DocumentTemplateDesigner: React.FC = () => {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       toast.success('Plantilla guardada');
+      if (opts.returnAfter) navigate('/document-templates');
     } catch {
       toast.error('Error al guardar');
     } finally {
       setSaving(false);
     }
   };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    const bandId = String(over.id);
+    const kind = active.data.current?.kind as ElementKind | undefined;
+    if (!kind) return;
+
+    // Coordenadas (mm) dentro de la banda a partir del puntero y del rect del droppable.
+    const activatorRect = event.over?.rect;
+    const pointer = (event.activatorEvent as PointerEvent) ?? null;
+    const delta = event.delta;
+    let xMm = 5;
+    let yMm = 5;
+    if (activatorRect && pointer) {
+      const pxX = pointer.clientX + delta.x - activatorRect.left;
+      const pxY = pointer.clientY + delta.y - activatorRect.top;
+      xMm = Math.max(0, Math.round(pxX / PX_PER_MM));
+      yMm = Math.max(0, Math.round(pxY / PX_PER_MM));
+    }
+
+    const size = DEFAULT_SIZE[kind];
+    const newEl = buildDefaultElement(kind, xMm, yMm, size.w, size.h);
+    setLayout((prev) => ({
+      ...prev,
+      bands: prev.bands.map((b) =>
+        b.id === bandId ? { ...b, elements: [...b.elements, newEl] } : b,
+      ),
+    }));
+    setSelectedElementId(newEl.id);
+  };
+
+  const handleDeleteElement = (bandId: string, elementId: string) => {
+    setLayout((prev) => ({
+      ...prev,
+      bands: prev.bands.map((b) =>
+        b.id === bandId ? { ...b, elements: b.elements.filter((e) => e.id !== elementId) } : b,
+      ),
+    }));
+    if (selectedElementId === elementId) setSelectedElementId(null);
+  };
+
+  const selectedElement =
+    selectedElementId == null
+      ? null
+      : layout.bands.flatMap((b) => b.elements).find((e) => e.id === selectedElementId) ?? null;
 
   if (loading) {
     return (
@@ -132,16 +217,23 @@ export const DocumentTemplateDesigner: React.FC = () => {
       <Toolbar
         title={template?.name ?? 'Sin título'}
         onBack={handleBack}
-        onSave={handleSave}
+        onSave={() => handleSave({ returnAfter: true })}
         saving={saving}
         onToggleFullscreen={toggleFullscreen}
         isFullscreen={isFullscreen}
       />
-      <div className="flex flex-1 min-h-0">
-        <PalettePanel />
-        <CanvasArea layout={layout} />
-        <InspectorPanel />
-      </div>
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div className="flex flex-1 min-h-0">
+          <PalettePanel />
+          <CanvasArea
+            layout={layout}
+            selectedElementId={selectedElementId}
+            onSelectElement={setSelectedElementId}
+            onDeleteElement={handleDeleteElement}
+          />
+          <InspectorPanel element={selectedElement} />
+        </div>
+      </DndContext>
     </div>
   );
 };
@@ -216,18 +308,6 @@ const ToolbarButton: React.FC<{ icon: React.ReactNode; label: string; disabled?:
 
 // ---------- paleta ----------
 
-const PALETTE_ITEMS = [
-  { kind: 'text', label: 'Texto' },
-  { kind: 'image', label: 'Imagen' },
-  { kind: 'shape', label: 'Forma' },
-  { kind: 'spacer', label: 'Espaciador' },
-  { kind: 'field', label: 'Campo' },
-  { kind: 'linesTable', label: 'Tabla líneas' },
-  { kind: 'totals', label: 'Totales' },
-  { kind: 'qr', label: 'QR' },
-  { kind: 'barcode', label: 'Código barras' },
-];
-
 const PalettePanel: React.FC = () => (
   <aside className="w-56 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-y-auto">
     <div className="px-3 py-2 text-xs uppercase tracking-wide font-bold text-slate-400">
@@ -235,57 +315,256 @@ const PalettePanel: React.FC = () => (
     </div>
     <ul className="px-2 pb-4 space-y-1">
       {PALETTE_ITEMS.map((it) => (
-        <li
-          key={it.kind}
-          className="px-3 py-2 rounded border border-dashed border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-200 cursor-grab select-none"
-        >
-          {it.label}
-        </li>
+        <PaletteItem key={it.kind} kind={it.kind} label={it.label} />
       ))}
     </ul>
   </aside>
 );
 
+const PaletteItem: React.FC<{ kind: ElementKind; label: string }> = ({ kind, label }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `palette-${kind}`,
+    data: { kind },
+  });
+  return (
+    <li
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={`px-3 py-2 rounded border border-dashed border-slate-300 dark:border-slate-600 text-sm text-slate-700 dark:text-slate-200 cursor-grab select-none active:cursor-grabbing bg-white dark:bg-slate-800 ${
+        isDragging ? 'opacity-40' : ''
+      }`}
+    >
+      {label}
+    </li>
+  );
+};
+
 // ---------- canvas ----------
 
-const CanvasArea: React.FC<{ layout: CanvasLayout }> = ({ layout }) => (
-  <main className="flex-1 min-w-0 overflow-auto flex justify-center py-8">
+interface CanvasAreaProps {
+  layout: CanvasLayout;
+  selectedElementId: string | null;
+  onSelectElement: (id: string | null) => void;
+  onDeleteElement: (bandId: string, elementId: string) => void;
+}
+
+const CanvasArea: React.FC<CanvasAreaProps> = ({
+  layout,
+  selectedElementId,
+  onSelectElement,
+  onDeleteElement,
+}) => (
+  <main
+    className="flex-1 min-w-0 overflow-auto flex justify-center py-8 bg-slate-100 dark:bg-slate-900"
+    onMouseDown={(e) => {
+      // Deseleccionar al hacer click fuera de un elemento.
+      if (e.target === e.currentTarget) onSelectElement(null);
+    }}
+  >
     <div
-      className="bg-white dark:bg-slate-900 shadow-lg rounded"
+      className="bg-white dark:bg-slate-950 shadow-lg rounded overflow-hidden"
       style={{ width: '210mm', minHeight: '297mm' }}
     >
       {layout.bands.map((b) => (
-        <BandSlot key={b.id} band={b} />
+        <BandSlot
+          key={b.id}
+          band={b}
+          selectedElementId={selectedElementId}
+          onSelectElement={onSelectElement}
+          onDeleteElement={onDeleteElement}
+        />
       ))}
     </div>
   </main>
 );
 
-const BandSlot: React.FC<{ band: Band }> = ({ band }) => (
-  <section
-    className="relative border-b border-dashed border-slate-200 dark:border-slate-700"
-    style={{ height: `${band.height}mm` }}
-  >
-    <div className="absolute top-1 left-2 text-[10px] uppercase tracking-wide font-bold text-slate-400 pointer-events-none">
-      {BAND_LABELS[band.kind]}
-    </div>
-    {band.elements.length === 0 && (
-      <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400 pointer-events-none">
-        Arrastra aquí un componente
+interface BandSlotProps {
+  band: Band;
+  selectedElementId: string | null;
+  onSelectElement: (id: string | null) => void;
+  onDeleteElement: (bandId: string, elementId: string) => void;
+}
+
+const BandSlot: React.FC<BandSlotProps> = ({
+  band,
+  selectedElementId,
+  onSelectElement,
+  onDeleteElement,
+}) => {
+  const { setNodeRef, isOver } = useDroppable({ id: band.id });
+  return (
+    <section
+      ref={setNodeRef}
+      className={`relative border-b border-dashed transition-colors ${
+        isOver
+          ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-400'
+          : 'border-slate-200 dark:border-slate-700'
+      }`}
+      style={{ height: `${band.height}mm` }}
+    >
+      <div className="absolute top-1 left-2 text-[10px] uppercase tracking-wide font-bold text-slate-400 pointer-events-none z-10">
+        {BAND_LABELS[band.kind]}
       </div>
-    )}
-  </section>
-);
+      {band.elements.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400 pointer-events-none">
+          {isOver ? 'Suelta aquí' : 'Arrastra aquí un componente'}
+        </div>
+      )}
+      {band.elements.map((el) => (
+        <ElementBox
+          key={el.id}
+          element={el}
+          bandId={band.id}
+          selected={el.id === selectedElementId}
+          onSelect={() => onSelectElement(el.id)}
+          onDelete={() => onDeleteElement(band.id, el.id)}
+        />
+      ))}
+    </section>
+  );
+};
+
+interface ElementBoxProps {
+  element: CanvasElement;
+  bandId: string;
+  selected: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+}
+
+const ElementBox: React.FC<ElementBoxProps> = ({ element, selected, onSelect, onDelete }) => {
+  const style: React.CSSProperties = {
+    position: 'absolute',
+    left: `${element.x}mm`,
+    top: `${element.y}mm`,
+    width: `${element.w}mm`,
+    height: `${element.h}mm`,
+  };
+  const label = ELEMENT_PREVIEW_LABEL[element.kind](element);
+  return (
+    <div
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Delete' || e.key === 'Backspace') onDelete();
+      }}
+      tabIndex={0}
+      style={style}
+      className={`flex items-center justify-center text-[10px] rounded cursor-move select-none outline-none ${
+        selected
+          ? 'border-2 border-blue-500 bg-blue-50/70 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200'
+          : 'border border-slate-300 dark:border-slate-600 bg-slate-50/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:border-slate-400'
+      }`}
+    >
+      {label}
+    </div>
+  );
+};
+
+const ELEMENT_PREVIEW_LABEL: Record<ElementKind, (el: any) => string> = {
+  text: (el) => `A "${el.text || 'Texto'}"`,
+  image: () => '🖼 Imagen',
+  shape: (el) => (el.shape === 'line' ? '— Línea' : '▭ Rectángulo'),
+  spacer: () => '␣ Espaciador',
+  field: (el) => `{ ${el.path || 'campo'} }`,
+  linesTable: () => '☰ Tabla líneas',
+  totals: () => 'Σ Totales',
+  qr: () => 'QR',
+  barcode: () => '▮▮▯ Barcode',
+};
 
 // ---------- inspector ----------
 
-const InspectorPanel: React.FC = () => (
+const InspectorPanel: React.FC<{ element: CanvasElement | null }> = ({ element }) => (
   <aside className="w-72 shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-y-auto">
     <div className="px-3 py-2 text-xs uppercase tracking-wide font-bold text-slate-400">
       Inspector
     </div>
-    <div className="px-3 py-4 text-sm text-slate-500">
-      Selecciona un elemento para editar sus propiedades.
-    </div>
+    {element ? (
+      <div className="px-3 py-3 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+        <div>
+          <span className="text-slate-400">Tipo:</span> {element.kind}
+        </div>
+        <div>
+          <span className="text-slate-400">Posición:</span> {element.x}mm, {element.y}mm
+        </div>
+        <div>
+          <span className="text-slate-400">Tamaño:</span> {element.w} × {element.h} mm
+        </div>
+        <div className="pt-2 text-slate-400">
+          Propiedades completas en el siguiente paso (Inspector rico).
+        </div>
+      </div>
+    ) : (
+      <div className="px-3 py-4 text-sm text-slate-500">
+        Selecciona un elemento para editar sus propiedades.
+      </div>
+    )}
   </aside>
 );
+
+// ---------- factoría de elementos ----------
+
+function buildDefaultElement(
+  kind: ElementKind,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): CanvasElement {
+  const base = { id: genId(kind), x, y, w, h };
+  switch (kind) {
+    case 'text':
+      return { ...base, kind, text: 'Texto' };
+    case 'image':
+      return { ...base, kind, src: '', fit: 'contain' };
+    case 'shape':
+      return { ...base, kind, shape: 'line' };
+    case 'spacer':
+      return { ...base, kind };
+    case 'field':
+      return { ...base, kind, path: 'doc.docCode' };
+    case 'linesTable':
+      return {
+        ...base,
+        kind,
+        columns: [
+          { id: genId('col'), label: 'Artículo', path: 'itemName', widthPct: 50, align: 'left' },
+          {
+            id: genId('col'),
+            label: 'Cant.',
+            path: 'quantity',
+            widthPct: 15,
+            align: 'right',
+            format: 'number',
+          },
+          {
+            id: genId('col'),
+            label: 'Precio',
+            path: 'price',
+            widthPct: 17,
+            align: 'right',
+            format: 'currency',
+          },
+          {
+            id: genId('col'),
+            label: 'Total',
+            path: 'lineTotal',
+            widthPct: 18,
+            align: 'right',
+            format: 'currency',
+          },
+        ],
+        showHeader: true,
+      };
+    case 'totals':
+      return { ...base, kind };
+    case 'qr':
+      return { ...base, kind, value: 'verifactu.qrPayload' };
+    case 'barcode':
+      return { ...base, kind, value: 'doc.docCode', symbology: 'code128', includeText: true };
+  }
+}
