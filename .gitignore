@@ -37,3 +37,6 @@ plugins/*/dist/
 .dockerignore
 docker-compose.override.yml
 storage/*
+
+# Local-only dev scripts (not shared)
+scripts/link-local.sh
