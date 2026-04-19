@@ -1,11 +1,72 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import fs from 'fs';
+import Handlebars from 'handlebars';
+import QRCode from 'qrcode';
+// bwip-js no tiene @types oficial; import dinámico tolerante.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const bwipjs = require('bwip-js');
 import { eq, and, asc } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import { PdfRenderer, ALL_DOC_TYPES, extractMetaFromHtml, type DocType } from '@openfactu/pdf';
 import { PdfPayloadBuilder } from '../core/documents/PdfPayloadBuilder';
 import { logAudit } from '../utils/audit';
+
+/**
+ * Registra los helpers qrCode/barcode en el Handlebars compartido por
+ * @openfactu/pdf. Se hace aquí (y no solo en el paquete) para que funcione
+ * de inmediato sin necesidad de publicar una nueva versión del paquete ni
+ * reiniciar el servidor tras tocar sus fuentes.
+ */
+let canvasHelpersRegistered = false;
+function registerCanvasHelpers() {
+  if (canvasHelpersRegistered) return;
+  canvasHelpersRegistered = true;
+
+  Handlebars.registerHelper('qrCode', (value: any) => {
+    try {
+      const text = String(value ?? '');
+      if (!text) return new Handlebars.SafeString('');
+      const qr = QRCode.create(text, { errorCorrectionLevel: 'M' });
+      const size = qr.modules.size;
+      let path = '';
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          if (qr.modules.get(x, y)) path += `M${x},${y}h1v1h-1z`;
+        }
+      }
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" preserveAspectRatio="none" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path fill="#000" d="${path}"/></svg>`;
+      return new Handlebars.SafeString(
+        `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`,
+      );
+    } catch {
+      return new Handlebars.SafeString('');
+    }
+  });
+
+  Handlebars.registerHelper('barcode', function (this: any, value: any, options: any) {
+    try {
+      const text = String(value ?? '');
+      if (!text) return new Handlebars.SafeString('');
+      const hash = (options && options.hash) || {};
+      const symbology = (hash.symbology as string) || 'code128';
+      const includeText = Boolean(hash.includeText);
+      const svg = bwipjs.toSVG({
+        bcid: symbology,
+        text,
+        scale: 2,
+        height: 10,
+        includetext: includeText,
+        textxalign: 'center',
+      });
+      return new Handlebars.SafeString(
+        `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`,
+      );
+    } catch {
+      return new Handlebars.SafeString('');
+    }
+  });
+}
 
 const router = Router();
 
@@ -235,8 +296,12 @@ router.post('/preview', async (req: any, res) => {
       payload = PdfPayloadBuilder.fixture(docType);
     }
 
+    registerCanvasHelpers();
     const meta = extractMetaFromHtml(html);
     const renderOptions = meta ? PdfRenderer.renderOptionsFromVisual(meta) : {};
+    // Invalida cache de plantillas compiladas por si el HTML cambió con nuevos
+    // helpers registrados después de una compilación previa.
+    PdfRenderer.invalidateCache();
     const buffer = await PdfRenderer.render(html, payload, renderOptions);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'inline; filename="preview.pdf"');

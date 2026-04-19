@@ -182,13 +182,13 @@ export function createEmptyLayout(): CanvasLayout {
   return {
     version: 1,
     pageSize: 'A4',
-    margins: { top: 15, right: 15, bottom: 15, left: 15 },
+    margins: { top: 10, right: 10, bottom: 10, left: 10 },
     bands: [
-      { id: 'b_pageHeader', kind: 'pageHeader', height: 20, elements: [] },
-      { id: 'b_docHeader', kind: 'docHeader', height: 40, elements: [] },
-      { id: 'b_detail', kind: 'detail', height: 100, elements: [] },
+      { id: 'b_pageHeader', kind: 'pageHeader', height: 15, elements: [] },
+      { id: 'b_docHeader', kind: 'docHeader', height: 35, elements: [] },
+      { id: 'b_detail', kind: 'detail', height: 180, elements: [] },
       { id: 'b_totals', kind: 'totals', height: 30, elements: [] },
-      { id: 'b_pageFooter', kind: 'pageFooter', height: 15, elements: [] },
+      { id: 'b_pageFooter', kind: 'pageFooter', height: 18, elements: [] },
     ],
   };
 }

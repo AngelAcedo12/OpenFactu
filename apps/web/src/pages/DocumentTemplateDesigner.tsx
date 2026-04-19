@@ -195,6 +195,12 @@ export const DocumentTemplateDesigner: React.FC = () => {
         yMm = Math.max(0, Math.round(pxY / PX_PER_MM));
       }
       const size = DEFAULT_SIZE[data.kind];
+      // Clamp para que el elemento no nazca fuera de la banda.
+      const targetBand = layout.bands.find((b) => b.id === targetBandId);
+      if (targetBand) {
+        const maxY = Math.max(0, targetBand.height - size.h);
+        if (yMm > maxY) yMm = maxY;
+      }
       const newEl = buildDefaultElement(data.kind, xMm, yMm, size.w, size.h);
       setLayout((prev) => ({
         ...prev,
@@ -325,6 +331,17 @@ export const DocumentTemplateDesigner: React.FC = () => {
     if (selectedElementId === elementId) setSelectedElementId(null);
   };
 
+  const handleUpdateBand = (bandId: string, patch: Partial<Band>) => {
+    setLayout((prev) => ({
+      ...prev,
+      bands: prev.bands.map((b) => (b.id === bandId ? { ...b, ...patch } : b)),
+    }));
+  };
+
+  const handleUpdatePage = (patch: Partial<CanvasLayout>) => {
+    setLayout((prev) => ({ ...prev, ...patch }));
+  };
+
   const handleUpdateElement = (elementId: string, patch: Partial<CanvasElement>) => {
     setLayout((prev) => ({
       ...prev,
@@ -387,12 +404,16 @@ export const DocumentTemplateDesigner: React.FC = () => {
             selectedElementId={selectedElementId}
             onSelectElement={setSelectedElementId}
             onDeleteElement={handleDeleteElement}
+            onResizeBand={(id, h) => handleUpdateBand(id, { height: h })}
           />
           <InspectorPanel
             element={selectedElement}
             onChange={handleUpdateElement}
             pluginGroup={pluginGroup}
             linePluginFields={linePluginFields}
+            layout={layout}
+            onUpdatePage={handleUpdatePage}
+            onUpdateBand={handleUpdateBand}
           />
         </div>
       </DndContext>
@@ -590,6 +611,7 @@ interface CanvasAreaProps {
   selectedElementId: string | null;
   onSelectElement: (id: string | null) => void;
   onDeleteElement: (bandId: string, elementId: string) => void;
+  onResizeBand: (bandId: string, height: number) => void;
 }
 
 const CanvasArea: React.FC<CanvasAreaProps> = ({
@@ -597,6 +619,7 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
   selectedElementId,
   onSelectElement,
   onDeleteElement,
+  onResizeBand,
 }) => (
   <main
     className="flex-1 min-w-0 overflow-auto flex justify-center py-8 bg-slate-100 dark:bg-slate-900"
@@ -616,6 +639,7 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
           selectedElementId={selectedElementId}
           onSelectElement={onSelectElement}
           onDeleteElement={onDeleteElement}
+          onResize={(h) => onResizeBand(b.id, h)}
         />
       ))}
     </div>
@@ -627,6 +651,7 @@ interface BandSlotProps {
   selectedElementId: string | null;
   onSelectElement: (id: string | null) => void;
   onDeleteElement: (bandId: string, elementId: string) => void;
+  onResize: (heightMm: number) => void;
 }
 
 const BandSlot: React.FC<BandSlotProps> = ({
@@ -634,8 +659,25 @@ const BandSlot: React.FC<BandSlotProps> = ({
   selectedElementId,
   onSelectElement,
   onDeleteElement,
+  onResize,
 }) => {
   const { setNodeRef, isOver } = useDroppable({ id: band.id });
+  const handleResizeDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startY = e.clientY;
+    const startH = band.height;
+    const onMove = (ev: MouseEvent) => {
+      const deltaMm = (ev.clientY - startY) / PX_PER_MM;
+      onResize(Math.max(5, Math.round(startH + deltaMm)));
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
   return (
     <section
       ref={setNodeRef}
@@ -664,6 +706,12 @@ const BandSlot: React.FC<BandSlotProps> = ({
           onDelete={() => onDeleteElement(band.id, el.id)}
         />
       ))}
+      {/* Handle de resize: arrastra para cambiar el alto de la banda */}
+      <div
+        onMouseDown={handleResizeDown}
+        title="Arrastra para cambiar el alto de la banda"
+        className="absolute left-0 right-0 bottom-0 h-1.5 cursor-ns-resize bg-transparent hover:bg-blue-400/40 z-20"
+      />
     </section>
   );
 };
@@ -886,6 +934,9 @@ interface InspectorPanelProps {
   onChange: (id: string, patch: Partial<CanvasElement>) => void;
   pluginGroup: FieldGroup | null;
   linePluginFields: FieldDef[];
+  layout: CanvasLayout;
+  onUpdatePage: (patch: Partial<CanvasLayout>) => void;
+  onUpdateBand: (bandId: string, patch: Partial<Band>) => void;
 }
 
 const InspectorPanel: React.FC<InspectorPanelProps> = ({
@@ -893,6 +944,9 @@ const InspectorPanel: React.FC<InspectorPanelProps> = ({
   onChange,
   pluginGroup,
   linePluginFields,
+  layout,
+  onUpdatePage,
+  onUpdateBand,
 }) => (
   <aside className="w-80 shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-y-auto">
     <div className="px-3 py-2 text-xs uppercase tracking-wide font-bold text-slate-400">
@@ -906,11 +960,84 @@ const InspectorPanel: React.FC<InspectorPanelProps> = ({
         linePluginFields={linePluginFields}
       />
     ) : (
-      <div className="px-3 py-4 text-sm text-slate-500">
-        Selecciona un elemento para editar sus propiedades.
-      </div>
+      <PageInspector
+        layout={layout}
+        onUpdatePage={onUpdatePage}
+        onUpdateBand={onUpdateBand}
+      />
     )}
   </aside>
+);
+
+const PageInspector: React.FC<{
+  layout: CanvasLayout;
+  onUpdatePage: (patch: Partial<CanvasLayout>) => void;
+  onUpdateBand: (bandId: string, patch: Partial<Band>) => void;
+}> = ({ layout, onUpdatePage, onUpdateBand }) => (
+  <div className="px-3 py-3 space-y-4 text-sm">
+    <div className="text-[11px] uppercase tracking-wide font-bold text-slate-500">
+      Página
+    </div>
+    <Section title="Formato">
+      <Label>Tamaño</Label>
+      <select
+        value={layout.pageSize}
+        onChange={(e) => onUpdatePage({ pageSize: e.target.value as any })}
+        className="w-full px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+      >
+        <option value="A4">A4 (210 × 297 mm)</option>
+        <option value="Letter">Letter (216 × 279 mm)</option>
+      </select>
+      <Label>Márgenes (mm)</Label>
+      <div className="grid grid-cols-2 gap-2">
+        <NumberField
+          label="Arriba"
+          value={layout.margins.top}
+          onChange={(v) => onUpdatePage({ margins: { ...layout.margins, top: v } })}
+        />
+        <NumberField
+          label="Derecha"
+          value={layout.margins.right}
+          onChange={(v) => onUpdatePage({ margins: { ...layout.margins, right: v } })}
+        />
+        <NumberField
+          label="Abajo"
+          value={layout.margins.bottom}
+          onChange={(v) => onUpdatePage({ margins: { ...layout.margins, bottom: v } })}
+        />
+        <NumberField
+          label="Izquierda"
+          value={layout.margins.left}
+          onChange={(v) => onUpdatePage({ margins: { ...layout.margins, left: v } })}
+        />
+      </div>
+    </Section>
+    <Section title="Bandas (alto en mm)">
+      {layout.bands.map((b) => (
+        <div key={b.id} className="flex items-center gap-2">
+          <div className="flex-1 text-xs text-slate-600 dark:text-slate-300">
+            {BAND_LABELS[b.kind]}
+          </div>
+          <input
+            type="number"
+            min={0}
+            value={b.height}
+            onChange={(e) =>
+              onUpdateBand(b.id, { height: Math.max(0, Number(e.target.value) || 0) })
+            }
+            className="w-20 px-2 py-1 text-xs text-right rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+          />
+        </div>
+      ))}
+      <div className="pt-1 text-[11px] text-slate-400">
+        Total bandas: {layout.bands.reduce((a, b) => a + b.height, 0)}mm. Útil de página:{' '}
+        {(layout.pageSize === 'A4' ? 297 : 279) - layout.margins.top - layout.margins.bottom}mm.
+      </div>
+    </Section>
+    <div className="text-[11px] text-slate-400 italic">
+      Selecciona un elemento para editar sus propiedades.
+    </div>
+  </div>
 );
 
 const ElementInspector: React.FC<{
