@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Button, Input, useToast, SearchableSelect, cn } from '@openfactu/ui';
-import { ArrowLeft, Save, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { ArrowLeft, Save, PanelRightOpen, PanelRightClose, LayoutTemplate } from 'lucide-react';
 import {
   buildVisualTemplate,
   parseMeta,
@@ -25,6 +26,7 @@ interface Props {
 
 export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, token, tenantId }) => {
   const toast = useToast();
+  const navigate = useNavigate();
   const initialMeta = template?.html ? parseMeta(template.html) : null;
   const isNewTemplate = !template;
 
@@ -164,9 +166,19 @@ export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, toke
         </div>
       </div>
 
-      {/* Tabs de modo */}
-      <div className="flex-shrink-0">
+      {/* Tabs de modo + acceso al diseñador canvas */}
+      <div className="flex-shrink-0 flex items-center gap-3">
         <ModeTabs mode={mode} onVisual={switchToVisual} onAdvanced={switchToAdvanced} />
+        {template?.id && (
+          <button
+            type="button"
+            onClick={() => navigate(`/document-templates/${template.id}/designer`)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+            title="Abrir diseñador drag-and-drop a pantalla completa"
+          >
+            <LayoutTemplate size={14} /> Abrir diseñador
+          </button>
+        )}
       </div>
 
       {/* Split: editor | preview | explorer (3 paneles flex) */}

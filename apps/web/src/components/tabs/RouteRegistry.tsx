@@ -22,6 +22,7 @@ import { SalesInvoices } from '../../pages/SalesInvoices';
 import { Taxes } from '../../pages/Taxes';
 import { AuditLogs } from '../../pages/AuditLogs';
 import { DocumentTemplates } from '../../pages/DocumentTemplates';
+import { DocumentTemplateDesigner } from '../../pages/DocumentTemplateDesigner';
 import { CompanySettings } from '../../pages/CompanySettings';
 import { NewCompany } from '../../pages/NewCompany';
 
@@ -253,6 +254,13 @@ export const staticRoutes: RouteEntry[] = [
     pattern: '/document-templates',
     Component: DocumentTemplates,
     title: 'Plantillas PDF',
+    iconName: 'FileCode',
+    permissionPath: '/document-templates',
+  },
+  {
+    pattern: '/document-templates/:id/designer',
+    Component: DocumentTemplateDesigner,
+    title: 'Diseñador de plantilla',
     iconName: 'FileCode',
     permissionPath: '/document-templates',
   },

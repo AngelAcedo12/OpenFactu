@@ -94,7 +94,7 @@ router.post('/', async (req: any, res) => {
 // PUT /:id — actualizar
 router.put('/:id', async (req: any, res) => {
   try {
-    const { name, html, isDefault } = req.body;
+    const { name, html, isDefault, canvasLayout, legacyHtml } = req.body;
     await req.tenantClient.transaction(async (tx: any) => {
       const [existing] = await tx
         .select()
@@ -113,6 +113,8 @@ router.put('/:id', async (req: any, res) => {
       if (typeof name === 'string') updates.name = name;
       if (typeof html === 'string') updates.html = html;
       if (typeof isDefault === 'boolean') updates.isDefault = isDefault;
+      if (canvasLayout !== undefined) updates.canvasLayout = canvasLayout;
+      if (typeof legacyHtml === 'boolean') updates.legacyHtml = legacyHtml;
 
       await tx
         .update(schema.documentTemplates)
