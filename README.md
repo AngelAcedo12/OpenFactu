@@ -8,7 +8,7 @@
 [![npm](https://img.shields.io/npm/v/@openfactu/cli?label=%40openfactu%2Fcli)](https://www.npmjs.com/package/@openfactu/cli)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com)
 
-[Instalación](#instalación-rápida) · [Características](#qué-incluye) · [CLI](#cli) · [Plugins](#plugins) · [Desarrollo](#desarrollo)
+[Sitio web](https://openfactuerp.org) · [Instalación](#instalación-rápida) · [Características](#qué-incluye) · [CLI](#cli) · [Plugins](#plugins) · [Desarrollo](#desarrollo)
 
 </div>
 
@@ -21,6 +21,8 @@ OpenFactu es un ERP de facturación completo, **gratuito y de código abierto**,
 - **Sin vendor lock-in** — tus datos en tu infraestructura, bajo tu control.
 - **Extensible** — amplía cualquier módulo mediante el sistema de plugins sin tocar el núcleo.
 - **API-first** — REST clásico y FactuAPI transaccional para integraciones avanzadas.
+
+> 🌐 Más información en [openfactuerp.org](https://openfactuerp.org)
 
 ---
 
