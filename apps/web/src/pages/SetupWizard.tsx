@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { Loader, useToast } from '@openfactu/ui';
+import { KeirostLogo } from '../components/branding/KeirostLogo';
 
 export const SetupWizard: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -96,8 +97,16 @@ export const SetupWizard: React.FC = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-800">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-extrabold text-blue-600 dark:text-blue-300">OpenFactu</h1>
-          <p className="text-gray-500 dark:text-slate-400 mt-2">Asistente de Configuración Inicial</p>
+          <div className="flex items-center justify-center gap-3">
+            <KeirostLogo size={44} variant="dark" />
+            <h1
+              className="text-3xl font-extrabold tracking-tight"
+              style={{ fontFamily: "'Syne', sans-serif", color: '#0A1628' }}
+            >
+              Keirost <span style={{ color: '#0D9488' }}>ERP</span>
+            </h1>
+          </div>
+          <p className="text-gray-500 dark:text-slate-400 mt-3">Asistente de configuración inicial</p>
           <div className="flex justify-center mt-4 gap-4">
             {[
               { id: 1, icon: Database },

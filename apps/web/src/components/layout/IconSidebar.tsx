@@ -175,7 +175,7 @@ export const IconSidebar: React.FC = () => {
                 Cerrar sesión
               </button>
               <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 text-[10px] text-slate-400 font-mono flex items-center justify-between">
-                <span>OpenFactu</span>
+                <span>Keirost</span>
                 <span>v{version || '…'}</span>
               </div>
             </div>

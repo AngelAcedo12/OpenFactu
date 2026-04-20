@@ -185,7 +185,7 @@ export const ServerCockpit: React.FC = () => {
         {m && (
           <div className="flex flex-col items-end text-xs">
             <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 text-primary font-mono font-bold">
-              <Server size={12} /> OpenFactu v{m.version}
+              <Server size={12} /> Keirost v{m.version}
             </span>
             <span className="mt-1 text-[10px] text-slate-400 font-mono">
               {m.process.nodeVersion} · {m.process.platform}

@@ -31,7 +31,7 @@ const EMPTY: EmailConfigDTO = {
   secure: false,
   user: '',
   fromAddress: '',
-  fromName: 'OpenFactu',
+  fromName: 'Keirost',
   enabled: false,
   passwordSet: false,
 };
@@ -217,14 +217,14 @@ export const EmailSettingsTab: React.FC = () => {
               <Input
                 value={cfg.fromAddress}
                 onChange={(e) => setCfg({ ...cfg, fromAddress: e.target.value })}
-                placeholder='"OpenFactu" <noreply@miempresa.com>'
+                placeholder='"Keirost" <noreply@miempresa.com>'
               />
             </Field>
             <Field label="Nombre visible">
               <Input
                 value={cfg.fromName}
                 onChange={(e) => setCfg({ ...cfg, fromName: e.target.value })}
-                placeholder="OpenFactu"
+                placeholder="Keirost"
               />
             </Field>
           </div>

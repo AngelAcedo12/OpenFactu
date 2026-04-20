@@ -39,7 +39,7 @@ function App() {
   if (!setupChecked || authLoading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
-        <GlobalLoader isLoading={true} message="Firmwares Industriales | Cargando Sistema..." />
+        <GlobalLoader isLoading={true} message="Keirost ERP | Cargando Sistema…" />
       </div>
     );
   }

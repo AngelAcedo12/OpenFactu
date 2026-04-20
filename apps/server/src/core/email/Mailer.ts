@@ -32,7 +32,7 @@ export const EMAIL_DEFAULTS: EmailConfig = {
   user: '',
   password: '',
   fromAddress: '',
-  fromName: 'OpenFactu',
+  fromName: 'Keirost',
   enabled: false,
 };
 
@@ -104,7 +104,7 @@ export async function sendMail(
   const transporter = await getTransporter(tenantId, tenantDb);
   const from =
     cfg.fromAddress ||
-    (cfg.user ? `${cfg.fromName} <${cfg.user}>` : cfg.fromName || 'OpenFactu');
+    (cfg.user ? `${cfg.fromName} <${cfg.user}>` : cfg.fromName || 'Keirost');
   const info = await transporter.sendMail({
     from,
     to: input.to,

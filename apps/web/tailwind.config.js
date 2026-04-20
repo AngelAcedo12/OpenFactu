@@ -19,6 +19,8 @@ export default {
       },
       fontFamily: {
         app: 'var(--font-sans)',
+        display: 'var(--font-display)',
+        mono: 'var(--font-mono)',
       },
     },
   },

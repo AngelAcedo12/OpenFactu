@@ -32,11 +32,15 @@ export interface FlagsConfig {
   enforceWarehouseZones: boolean;
 }
 
+// Defaults de la marca Keirost — paleta teal + ink (brand guide v1.0).
+// El usuario puede sobreescribir colorPrimary / colorAccent / logoUrl /
+// themeMode desde Ajustes → Empresa → Branding; estos son solo el punto de
+// partida.
 export const BRANDING_DEFAULTS: BrandingConfig = {
-  colorPrimary: '#2563eb',
-  colorAccent: '#10b981',
+  colorPrimary: '#0A1628', // ink — texto/botones principales
+  colorAccent: '#0D9488',  // teal — acento, links, CTAs
   logoUrl: '',
-  appName: 'OpenFactu',
+  appName: 'Keirost',
   fontFamily: 'sans',
   themeMode: 'light',
 };

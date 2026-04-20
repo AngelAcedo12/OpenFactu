@@ -4,19 +4,25 @@
 
 html {
   color-scheme: light;
-  background: #f8fafc;
+  background: #FAFBFC;
 }
 html.dark {
   color-scheme: dark;
-  background: #0b1120;
+  background: #0A1628;
 }
 
+/*
+ * Design tokens Keirost (brand guide v1.0).
+ * Los colores primary/accent se SOBREESCRIBEN dinámicamente desde
+ * ThemeContext si el tenant tiene colores custom en Ajustes → Branding.
+ * Estos son los valores de fábrica.
+ */
 :root {
   /* Colores en formato RGB (space-separated) para que Tailwind aplique /alpha */
-  --color-primary-rgb: 37 99 235; /* #2563eb */
-  --color-primary-hover-rgb: 29 78 216; /* #1d4ed8 */
+  --color-primary-rgb: 10 22 40;      /* #0A1628 · ink */
+  --color-primary-hover-rgb: 45 58 74; /* #2D3A4A · ink-2 */
   --color-primary-fg-rgb: 255 255 255;
-  --color-accent-rgb: 16 185 129; /* #10b981 */
+  --color-accent-rgb: 13 148 136;     /* #0D9488 · teal */
   --color-accent-fg-rgb: 255 255 255;
 
   /* Alias hex (útiles fuera de Tailwind: inline styles, SVG stroke, etc.) */
@@ -26,23 +32,39 @@ html.dark {
   --color-accent: rgb(var(--color-accent-rgb));
   --color-accent-fg: rgb(var(--color-accent-fg-rgb));
 
-  --font-sans: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  /* Escala semántica Keirost */
+  --k-teal-50:  #F0FAFA;
+  --k-teal-100: #CCEFED;
+  --k-teal-500: #0D9488;
+  --k-teal-600: #0A6E63;
+  --k-ink-900:  #0A1628;
+  --k-ink-700:  #2D3A4A;
+  --k-ink-500:  #64748B;
+  --k-ink-400:  #94A3B8;
+  --k-line:     #E2E8F0;
+  --k-line-2:   #F1F5F9;
+  --k-surface:  #FAFBFC;
 
-  --bg-app: #f8fafc;
-  --bg-card: #ffffff;
-  --bg-sidebar: #0f172a;
-  --fg-default: #0f172a;
-  --fg-muted: #64748b;
-  --border-default: #e2e8f0;
+  /* Tipografía Keirost: Syne (display), DM Sans (body), DM Mono (code) */
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-mono: 'DM Mono', 'SFMono-Regular', Menlo, monospace;
+
+  --bg-app: #FAFBFC;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #0A1628;
+  --fg-default: #0A1628;
+  --fg-muted: #64748B;
+  --border-default: #E2E8F0;
 }
 
 html.dark {
-  --bg-app: #0b1120;
-  --bg-card: #0f172a;
-  --bg-sidebar: #020617;
-  --fg-default: #e2e8f0;
-  --fg-muted: #94a3b8;
-  --border-default: #1e293b;
+  --bg-app: #0A1628;
+  --bg-card: #1A2535;
+  --bg-sidebar: #042B26;
+  --fg-default: #E2E8F0;
+  --fg-muted: #94A3B8;
+  --border-default: #2D3A4A;
 }
 
 @layer base {

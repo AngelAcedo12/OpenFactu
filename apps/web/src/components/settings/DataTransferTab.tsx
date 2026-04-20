@@ -187,7 +187,7 @@ export const DataTransferTab: React.FC = () => {
           <p className="text-sm text-slate-500 dark:text-slate-400 leading-snug">
             Descarga un fichero <code>.zip</code> con el esquema, datos y adjuntos locales de la
             empresa elegida. Útil para backups o para mover la empresa a otra instalación de
-            OpenFactu.
+            Keirost.
           </p>
           <div className="flex items-center gap-2">
             <select

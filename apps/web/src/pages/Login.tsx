@@ -16,6 +16,7 @@ import {
   Globe,
   Check,
 } from 'lucide-react';
+import { KeirostLogo } from '../components/branding/KeirostLogo';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -106,10 +107,13 @@ export const Login: React.FC = () => {
         {/* Content Overlay */}
         <div className="relative z-10 w-full flex flex-col p-12 justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white dark:bg-slate-900/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 dark:shadow-none">
-              <span className="text-white text-xl font-black italic tracking-tighter">OF</span>
-            </div>
-            <span className="text-2xl font-black text-white tracking-tight">OpenFactu</span>
+            <KeirostLogo size={48} variant="accent" />
+            <span
+              className="text-2xl font-extrabold text-white tracking-tight"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+            >
+              Keirost <span style={{ color: '#5EEAD4' }}>ERP</span>
+            </span>
           </div>
 
           <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-700">
@@ -168,11 +172,12 @@ export const Login: React.FC = () => {
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50/30 dark:bg-slate-800/30 relative">
         <div className="w-full max-w-md space-y-10 animate-in fade-in zoom-in-95 duration-500">
           <div className="lg:hidden flex flex-col items-center mb-8">
-            <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mb-4">
-              <span className="text-white text-xl font-black">O</span>
-            </div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-              OpenFactu
+            <KeirostLogo size={56} variant="dark" className="mb-4" />
+            <h1
+              className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+            >
+              Keirost <span className="text-teal-600">ERP</span>
             </h1>
           </div>
 

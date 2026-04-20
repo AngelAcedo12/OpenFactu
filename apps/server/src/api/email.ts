@@ -91,18 +91,20 @@ router.post('/test', async (req: any, res) => {
   try {
     const result = await sendMail(req.tenantId, req.tenantClient, {
       to,
-      subject: 'OpenFactu — prueba de correo',
+      subject: 'Keirost — prueba de correo',
       text:
-        'Si recibes este mensaje, la configuración SMTP de tu empresa en OpenFactu ' +
+        'Si recibes este mensaje, la configuración SMTP de tu empresa en Keirost ERP ' +
         'funciona correctamente.',
       html: `
-        <div style="font-family:system-ui,sans-serif;padding:20px;max-width:520px;">
-          <h2 style="margin:0 0 8px 0;color:#0f172a;">Correo de prueba</h2>
-          <p style="color:#334155;">
+        <div style="font-family:'DM Sans',system-ui,sans-serif;padding:24px;max-width:520px;background:#FAFBFC;border:1px solid #E2E8F0;border-radius:4px;">
+          <h2 style="margin:0 0 12px 0;color:#0A1628;font-family:'Syne',sans-serif;font-weight:700;">
+            Correo de prueba
+          </h2>
+          <p style="color:#2D3A4A;line-height:1.6;">
             Si ves este mensaje, la configuración SMTP de tu empresa en
-            <strong>OpenFactu</strong> funciona correctamente.
+            <strong style="color:#0D9488;">Keirost ERP</strong> funciona correctamente.
           </p>
-          <p style="color:#94a3b8;font-size:12px;margin-top:24px;">
+          <p style="color:#94A3B8;font-size:12px;margin-top:24px;font-family:'DM Mono',monospace;">
             Enviado a las ${new Date().toLocaleString('es-ES')}.
           </p>
         </div>`,
