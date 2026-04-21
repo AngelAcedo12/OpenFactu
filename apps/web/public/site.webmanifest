@@ -1,0 +1,18 @@
+{
+  "name": "Keirost ERP",
+  "short_name": "Keirost",
+  "description": "ERP en la nube para pymes y autónomos: facturación electrónica, contabilidad, compras, ventas e inventario.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFBFC",
+  "theme_color": "#0A1628",
+  "lang": "es-ES",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

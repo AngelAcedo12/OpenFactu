@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /$
+Allow: /login
+Disallow: /api/
+Disallow: /app/
+Disallow: /dashboard
+Disallow: /admin
+
+Sitemap: https://keirost.com/sitemap.xml
