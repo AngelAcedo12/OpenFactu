@@ -238,61 +238,67 @@ html.dark .k-aurora--global > span {
   }
 }
 
-/* Scrollbars Globales Estilo Enterprise
-   Soporte WebKit (Chrome/Edge/Safari) + Firefox (scrollbar-width/color) */
+/* Scrollbars Globales Estilo Keirost
+   Color de marca siempre visible, soporte WebKit + Firefox */
 html {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: rgb(var(--color-primary-rgb) / 0.55) rgba(148, 163, 184, 0.08);
   scrollbar-gutter: stable;
 }
 
 html.dark {
-  scrollbar-color: #334155 transparent;
+  scrollbar-color: rgb(var(--color-primary-rgb) / 0.7) rgba(45, 58, 74, 0.3);
 }
 
 *::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
 }
 
 *::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(148, 163, 184, 0.08);
+  border-radius: 12px;
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
-  border: 2px solid transparent;
+  background: rgb(var(--color-primary-rgb) / 0.55);
+  border-radius: 12px;
+  border: 3px solid transparent;
   background-clip: padding-box;
   transition: background-color 0.2s ease;
+  min-height: 40px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--color-primary-rgb) / 0.7);
+  background: rgb(var(--color-primary-rgb) / 0.85);
   background-clip: padding-box;
-  border: 2px solid transparent;
+  border: 3px solid transparent;
 }
 
 *::-webkit-scrollbar-thumb:active {
   background: rgb(var(--color-primary-rgb));
   background-clip: padding-box;
-  border: 2px solid transparent;
+  border: 3px solid transparent;
 }
 
 *::-webkit-scrollbar-corner {
   background: transparent;
 }
 
+html.dark *::-webkit-scrollbar-track {
+  background: rgba(45, 58, 74, 0.3);
+}
+
 html.dark *::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: rgb(var(--color-primary-rgb) / 0.7);
   background-clip: padding-box;
-  border: 2px solid transparent;
+  border: 3px solid transparent;
 }
 
 html.dark *::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--color-primary-rgb) / 0.8);
+  background: rgb(var(--color-primary-rgb));
   background-clip: padding-box;
-  border: 2px solid transparent;
+  border: 3px solid transparent;
 }
 
 /* Clase utility para contenedores específicos: scrollbar fina con color de marca */
