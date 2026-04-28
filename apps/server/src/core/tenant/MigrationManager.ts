@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { ClientFactory } from './ClientFactory';
-import { sql, eq } from 'drizzle-orm';
+import { sql, eq, and } from 'drizzle-orm';
 import * as schema from '../../db/schema';
 import { getDefaultTemplate, DEFAULT_TEMPLATE_NAMES, ALL_DOC_TYPES } from '@openfactu/pdf';
 import { seedDefaults } from './seedDefaults';
@@ -69,8 +69,14 @@ export class MigrationManager {
           let rawSql = fs.readFileSync(filePath, 'utf8');
           const processedSql = rawSql.replace(/{{schema}}/g, schemaName);
 
+          // Eliminamos los comentarios de línea (-- ... \n) ANTES de dividir,
+          // porque si un comentario contiene `;` el splitter partía ahí y el
+          // texto del comentario se ejecutaba como SQL. No tocamos strings
+          // entrecomillados ni bloques $$ PL/pgSQL.
+          const stripped = processedSql.replace(/--[^\n]*/g, '');
+
           // Dividir por punto y coma, ignorando aquellos dentro de bloques $$ (PL/pgSQL)
-          const statements = processedSql
+          const statements = stripped
             .split(/;(?=(?:[^$]*\$\$[^$]*\$\$)*[^$]*$)/)
             .map((s) => s.trim())
             .filter((s) => s.length > 0);
@@ -105,6 +111,64 @@ export class MigrationManager {
 
     // 4. Seed de plantillas de documento por defecto (si no existen)
     await this.seedDefaultTemplates(schemaName);
+
+    // 5. Resync de plantillas default al último HTML del paquete @openfactu/pdf.
+    //    Solo toca las marcadas `isDefault=true` — plantillas custom no se
+    //    modifican. Así al publicar versión nueva del paquete (nuevo bloque
+    //    de firma, nuevos campos fiscales...) el tenant se actualiza al
+    //    reiniciar sin comandos manuales.
+    try {
+      await this.resyncDefaultTemplates(schemaName);
+    } catch (err: any) {
+      console.warn(
+        `[MigrationManager] No se pudieron resincronizar plantillas en ${schemaName}: ${err.message}`,
+      );
+    }
+  }
+
+  /**
+   * Regenera la plantilla marcada como `isDefault` de cada docType, SIN tocar
+   * las plantillas custom. Útil tras un cambio de paleta o de layout del
+   * generador visual (p.ej. al publicar una versión nueva de @openfactu/pdf).
+   */
+  public static async resyncDefaultTemplates(schemaName: string): Promise<number> {
+    const db = ClientFactory.getClient(schemaName);
+    let updated = 0;
+    console.log(`[Templates] Resync plantillas por defecto en ${schemaName}…`);
+    for (const docType of ALL_DOC_TYPES) {
+      const [existing] = await db
+        .select()
+        .from(schema.documentTemplates)
+        .where(
+          and(
+            eq(schema.documentTemplates.docType, docType),
+            eq(schema.documentTemplates.isDefault, true),
+          ),
+        );
+      const html = getDefaultTemplate(docType);
+      const hasSignature = html.includes('signature-block');
+      if (!hasSignature) {
+        console.warn(
+          `[Templates] ⚠ Plantilla ${docType} sin bloque signature-block — revisa @openfactu/pdf dist`,
+        );
+      }
+      if (existing) {
+        await db
+          .update(schema.documentTemplates)
+          .set({ html, name: DEFAULT_TEMPLATE_NAMES[docType] })
+          .where(eq(schema.documentTemplates.id, existing.id));
+      } else {
+        await db.insert(schema.documentTemplates).values({
+          id: crypto.randomUUID(),
+          docType,
+          name: DEFAULT_TEMPLATE_NAMES[docType],
+          html,
+          isDefault: true,
+        });
+      }
+      updated++;
+    }
+    return updated;
   }
 
   /**

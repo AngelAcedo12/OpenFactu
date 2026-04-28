@@ -9,6 +9,7 @@ const bwipjs = require('bwip-js');
 import { eq, and, asc, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import { PdfRenderer, ALL_DOC_TYPES, extractMetaFromHtml, type DocType } from '@openfactu/pdf';
+import { MigrationManager } from '../core/tenant/MigrationManager';
 import { PdfPayloadBuilder } from '../core/documents/PdfPayloadBuilder';
 import {
   runTemplateQueries,
@@ -73,7 +74,10 @@ function registerCanvasHelpers() {
           if (qr.modules.get(x, y)) path += `M${x},${y}h1v1h-1z`;
         }
       }
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" preserveAspectRatio="none" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path fill="#000" d="${path}"/></svg>`;
+      // `preserveAspectRatio="xMidYMid meet"` evita que el QR se estire cuando
+      // el contenedor no es cuadrado; `shape-rendering=crispEdges` mantiene
+      // los bordes nítidos al escalar en PDF.
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" preserveAspectRatio="xMidYMid meet" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path fill="#000" d="${path}"/></svg>`;
       return new Handlebars.SafeString(
         `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`,
       );
@@ -382,6 +386,37 @@ router.put('/:id', async (req: any, res) => {
       action: 'UPDATE',
       newValue: req.body,
     });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /resync-defaults — regenera el HTML de las plantillas marcadas como
+ * `isDefault: true` usando el último `getDefaultTemplate()` de @openfactu/pdf.
+ * Se usa tras publicar una versión nueva del paquete (cambio de paleta, nuevos
+ * bloques, etc.) para que los tenants ya existentes recojan los cambios sin
+ * tocar sus plantillas custom.
+ *
+ * Sólo ADMIN/SUPERUSER.
+ */
+router.post('/resync-defaults', async (req: any, res) => {
+  if (!isAdminUser(req)) return res.status(403).json({ error: 'Solo admin/superuser' });
+  try {
+    const schemaName = req.tenantSchema;
+    if (!schemaName) return res.status(400).json({ error: 'Tenant schema no resuelto' });
+    const count = await MigrationManager.resyncDefaultTemplates(schemaName);
+    PdfRenderer.invalidateCache();
+    logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.tenantId || '',
+      userId: req.user?.id,
+      entityType: 'DocumentTemplate',
+      entityId: 'defaults',
+      action: 'UPDATE',
+      newValue: { resyncedCount: count },
+    });
+    res.json({ ok: true, count });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }

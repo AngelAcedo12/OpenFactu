@@ -22,6 +22,8 @@ import {
   Eye,
   Pencil,
   AlertTriangle,
+  UsersRound,
+  Route,
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
@@ -34,7 +36,7 @@ type MembershipEntry = {
   id?: string;
   tenantId: string;
   tenantName?: string;
-  role: 'USER' | 'ADMIN';
+  role: 'USER' | 'ADMIN' | 'DRIVER';
   permissions: Permissions;
   isNew?: boolean;
   isDeleted?: boolean;
@@ -100,6 +102,48 @@ const PERMISSION_GROUPS = [
       { label: 'Series Doc.', path: '/document-series' },
     ],
   },
+  {
+    group: 'Recursos Humanos',
+    icon: UsersRound,
+    items: [
+      { label: 'Empleados', path: '/hr/employees' },
+      { label: 'Departamentos', path: '/hr/departments' },
+      { label: 'Nóminas', path: '/hr/payrolls' },
+      { label: 'Conceptos nómina', path: '/hr/payroll-concepts' },
+      { label: 'Tipos de incidencia', path: '/hr/incident-types' },
+      { label: 'Incidencias', path: '/hr/incidents' },
+      { label: 'Plantillas de turno', path: '/hr/shift-templates' },
+      { label: 'Patrones de turno', path: '/hr/shift-patterns' },
+      { label: 'Planificación', path: '/hr/planning' },
+      { label: 'Fichajes', path: '/hr/timeclock' },
+      { label: 'Kioskos de fichaje', path: '/hr/kiosks' },
+    ],
+  },
+  {
+    group: 'RRHH avanzado+',
+    icon: UsersRound,
+    items: [
+      { label: 'Convenios colectivos', path: '/hr/collective-agreements' },
+      { label: 'Evaluaciones', path: '/hr/evaluations' },
+      { label: 'Objetivos', path: '/hr/objectives' },
+      { label: 'Comisiones', path: '/hr/commissions' },
+      { label: 'Rendimiento', path: '/hr/performance' },
+      { label: 'Coste laboral', path: '/hr/labor-cost' },
+      { label: 'Tareas', path: '/hr/tasks' },
+      { label: 'Gantt', path: '/hr/gantt' },
+    ],
+  },
+  {
+    group: 'Logística',
+    icon: Route,
+    items: [
+      { label: 'Envíos', path: '/logistics/shipments' },
+      { label: 'Rutas', path: '/logistics/routes' },
+      { label: 'Transportistas', path: '/logistics/carriers' },
+      { label: 'Zonas de almacén', path: '/logistics/zones' },
+      { label: 'Movimientos de stock', path: '/logistics/stock-movements' },
+    ],
+  },
 ];
 
 const EMPTY_PERM: PermSet = { read: false, write: false, delete: false };
@@ -125,9 +169,10 @@ const PermToggle: React.FC<{
   onChange: (v: boolean) => void;
 }> = ({ active, color, label, icon, disabled, onChange }) => {
   const activeClass = {
-    emerald: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 ring-1 ring-emerald-300 dark:ring-emerald-500/40',
-    blue: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-200 ring-1 ring-blue-300 dark:ring-blue-500/40',
-    rose: 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-200 ring-1 ring-rose-300 dark:ring-rose-500/40',
+    emerald:
+      'bg-emerald-100 dark:bg-emerald-500/25 text-emerald-700 dark:text-emerald-200 ring-1 ring-emerald-300 dark:ring-emerald-500/50',
+    blue: 'bg-accent/15 dark:bg-accent/30 text-accent dark:text-accent ring-1 ring-accent/40 dark:ring-accent/60',
+    rose: 'bg-rose-100 dark:bg-rose-500/25 text-rose-700 dark:text-rose-200 ring-1 ring-rose-300 dark:ring-rose-500/50',
   }[color];
 
   return (
@@ -135,11 +180,13 @@ const PermToggle: React.FC<{
       type="button"
       disabled={disabled}
       onClick={() => onChange(!active)}
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide transition-all
- ${active ? activeClass : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 ring-1 ring-slate-200 dark:ring-slate-700'}
- ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:opacity-80 active:scale-95'}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs text-[10px] font-bold uppercase tracking-wide transition-all
+ ${active ? activeClass : 'bg-line-2 dark:bg-ink-800 text-ink-500 dark:text-slate-300 ring-1 ring-line dark:ring-ink-700 hover:text-accent dark:hover:text-accent'}
+ ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:opacity-90 active:scale-95'}`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${active ? `bg-current` : 'bg-slate-400 dark:bg-slate-600'}`} />
+      <span
+        className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-current' : 'bg-ink-400 dark:bg-ink-500'}`}
+      />
       {icon}
       {label}
     </button>
@@ -177,33 +224,32 @@ const PermissionsEditor: React.FC<{
         return (
           <div
             key={group.group}
-            className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden"
+            className="border border-line dark:border-ink-700 rounded-sm overflow-hidden"
           >
             {/* Header del grupo */}
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-100 dark:bg-slate-800">
-              <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+            <div className="flex items-center justify-between px-3 py-2 bg-line-2 dark:bg-ink-800">
+              <span className="flex items-center gap-1.5 text-[10px] font-bold text-ink-700 dark:text-slate-200 uppercase tracking-widest">
                 <Icon size={11} />
                 {group.group}
               </span>
               <div className="flex gap-1">
                 {(['read', 'write', 'delete'] as (keyof PermSet)[]).map((key) => {
                   const all = allGroupActive(group, key);
-                  const colors = { read: 'emerald', write: 'blue', delete: 'rose' } as const;
                   return (
                     <button
                       key={key}
                       type="button"
                       disabled={disabled}
                       onClick={() => toggleGroup(group, key, !all)}
-                      className={`px-2 py-0.5 rounded text-[9px] font-black uppercase transition-all
+                      className={`px-2 py-0.5 rounded-xs text-[9px] font-bold uppercase transition-all
  ${
    all
      ? {
-         read: 'bg-emerald-500 text-white',
-         write: 'bg-blue-500 text-white',
-         delete: 'bg-rose-500 text-white',
+         read: 'bg-emerald-500 text-white shadow-sm',
+         write: 'bg-accent text-white shadow-sm',
+         delete: 'bg-rose-500 text-white shadow-sm',
        }[key]
-     : 'bg-slate-200 text-slate-500 dark:text-slate-400 hover:bg-slate-300'
+     : 'bg-white dark:bg-ink-900 text-ink-500 dark:text-slate-300 border border-line dark:border-ink-700 hover:text-accent hover:border-accent/40'
  }
  ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}`}
                     >
@@ -214,12 +260,12 @@ const PermissionsEditor: React.FC<{
               </div>
             </div>
             {/* Filas de ítems */}
-            <div className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+            <div className="divide-y divide-line dark:divide-ink-700 bg-white dark:bg-ink-900">
               {group.items.map((item) => {
                 const p = permissions[item.path] || EMPTY_PERM;
                 return (
                   <div key={item.path} className="flex items-center justify-between px-3 py-1.5">
-                    <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                    <span className="text-xs text-ink-700 dark:text-slate-200 font-medium">
                       {item.label}
                     </span>
                     <div className="flex gap-1.5">
@@ -680,12 +726,12 @@ export const Users: React.FC = () => {
                   return (
                     <div
                       key={idx}
-                      className={`border rounded-2xl overflow-hidden transition-all ${m.isNew ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'}`}
+                      className={`border rounded-sm overflow-hidden transition-all ${m.isNew ? 'border-accent/40 bg-accent/5' : 'border-line dark:border-ink-700 bg-white dark:bg-ink-900'}`}
                     >
                       {/* Cabecera de la membership */}
                       <div className="flex items-center gap-3 p-4">
                         <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center ${m.isNew ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}
+                          className={`w-9 h-9 rounded-xs flex items-center justify-center ${m.isNew ? 'bg-accent/15 text-accent' : 'bg-line-2 dark:bg-ink-800 text-ink-700 dark:text-slate-200'}`}
                         >
                           <Building2 size={18} />
                         </div>
@@ -695,7 +741,7 @@ export const Users: React.FC = () => {
                           value={m.tenantId}
                           onChange={(e) => updateMembership(idx, { tenantId: e.target.value })}
                           disabled={!isPrivileged}
-                          className="flex-1 bg-transparent border-0 text-sm font-black text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 rounded-lg px-2 py-1 disabled:cursor-not-allowed"
+                          className="flex-1 bg-transparent border-0 text-sm font-bold text-ink-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-accent/30 rounded-xs px-2 py-1 disabled:cursor-not-allowed"
                         >
                           {allTenants
                             .filter((t) => !usedTenantIds.includes(t.id) || t.id === m.tenantId)
@@ -710,13 +756,14 @@ export const Users: React.FC = () => {
                         <select
                           value={m.role}
                           onChange={(e) =>
-                            updateMembership(idx, { role: e.target.value as 'USER' | 'ADMIN' })
+                            updateMembership(idx, { role: e.target.value as 'USER' | 'ADMIN' | 'DRIVER' })
                           }
                           disabled={!isPrivileged}
-                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-2 text-xs font-black focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:bg-slate-50 dark:bg-slate-800/50"
+                          className="bg-white dark:bg-ink-900 border border-line dark:border-ink-700 rounded-xs py-1.5 px-2 text-xs font-bold text-ink-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:bg-line-2 dark:disabled:bg-ink-800"
                         >
                           <option value="USER">USER</option>
                           <option value="ADMIN">ADMIN</option>
+                          <option value="DRIVER">DRIVER</option>
                         </select>
 
                         {/* Toggle permisos */}

@@ -13,6 +13,7 @@ import {
 } from '@openfactu/ui';
 import { useAuth } from '../context/AuthContext';
 import { useTabs, useCurrentTab } from '../context/TabsContext';
+import { useTheme } from '../context/ThemeContext';
 import {
   FileDigit,
   Plus,
@@ -28,6 +29,12 @@ import {
 import { DocumentActionBar } from '../components/DocumentActionBar';
 import { DocumentDetailLayout } from '../components/DocumentDetailLayout';
 import { AttachmentsPanel } from '../components/AttachmentsPanel';
+import { CloneDocumentActions } from '../components/common/CloneDocumentActions';
+import { TraceabilityButton } from '../components/common/TraceabilityButton';
+import { DocumentFiscalPanel } from '../components/documents/DocumentFiscalPanel';
+import { InternalOrderHeaderField } from '../components/InternalOrderHeaderField';
+import { InternalOrderChip } from '../components/InternalOrderChip';
+import { useInternalOrderLineColumn } from '../hooks/useLineInternalOrderColumn';
 import { DocumentTotalsBlock } from '../components/DocumentTotalsBlock';
 import {
   buildDetailLineColumns,
@@ -40,8 +47,11 @@ import { useFormat } from '../hooks/useFormat';
 import { BatchSelectionModal } from '../components/BatchSelectionModal';
 import { BatchAssignmentPanel } from '../components/BatchAssignmentPanel';
 import { useItemUoms } from '../hooks/useItemUoms';
+import { usePluginLineFields } from '../hooks/usePluginLineFields';
 import { PluginFieldsPanel } from '../components/PluginFieldsPanel';
 import { useDocument, useDataTable, DocType, DocKind, DocSide } from '@openfactu/common';
+import { useDocumentScanner } from '../hooks/useDocumentScanner';
+import { BulkSendToolbar } from '../components/documents/BulkSendToolbar';
 
 // --- Sub-componente: VISTA DE LISTADO ---
 const SOList: React.FC<{
@@ -49,11 +59,13 @@ const SOList: React.FC<{
   loading: boolean;
   partners: any[];
   onCreate: () => void;
+  onCreateFromClone?: (payload: { header: any; lines: any[] }) => void;
   onDetail: (order: any) => void;
 
   doc: any;
-}> = ({ data, loading, partners, onCreate, onDetail, doc }) => {
+}> = ({ data, loading, partners, onCreate, onCreateFromClone, onDetail, doc }) => {
   const { token, user } = useAuth();
+  const [selectedKeys, setSelectedKeys] = useState<Set<string | number>>(new Set());
   const toast = useToast();
   const fmt = useFormat();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -97,6 +109,8 @@ const SOList: React.FC<{
   const columns = [
     {
       header: 'No. Pedido',
+      sortable: true,
+      sortAccessor: (item: any) => `${item.seriesPrefix||''}-${String(item.docNum||0).padStart(6,'0')}`,
       accessor: (item: any) => (
         <div className="flex flex-col">
           <span className="font-bold text-slate-900 dark:text-slate-100 leading-none">
@@ -108,15 +122,19 @@ const SOList: React.FC<{
         </div>
       ),
     },
-    { header: 'Fecha', accessor: (item: any) => fmt.date(item.date) },
+    { header: 'Fecha', sortable: true, sortAccessor: (item: any) => new Date(item.date).getTime(), accessor: (item: any) => fmt.date(item.date) },
     {
       header: 'Cliente',
+      sortable: true,
+      sortAccessor: (item: any) => item.partnerName || '',
       accessor: (item: any) =>
         item.partnerName || partners.find((p) => p.id === item.partnerId)?.name || '...',
     },
     {
       header: 'Total',
       align: 'right' as const,
+      sortable: true,
+      sortAccessor: (item: any) => Number(item.total) || 0,
       accessor: (item: any) => (
         <span className="font-black text-slate-900 dark:text-slate-100">
           {fmt.money(item.total)}
@@ -126,6 +144,8 @@ const SOList: React.FC<{
     {
       header: 'Estado',
       align: 'center' as const,
+      sortable: true,
+      sortAccessor: (item: any) => item.status || '',
       cell: (item: any) => (
         <>
           {item.status === 'O' && <Badge variant="warning">Abierto</Badge>}
@@ -147,7 +167,7 @@ const SOList: React.FC<{
               handleQuickPdf(item.id);
             }}
             isLoading={downloadingId === item.id}
-            className="h-8 w-8 p-0 text-slate-500 dark:text-slate-400 hover:text-primary"
+            className="h-8 w-8 p-0 text-ink-500 dark:text-ink-400 hover:text-accent hover:bg-accent/10 dark:hover:bg-accent/15"
             title="Descargar PDF"
           >
             <Download size={14} />
@@ -188,6 +208,9 @@ const SOList: React.FC<{
           )}
         </div>
         <div className="flex items-center gap-3">
+          {doc.state.canWrite && onCreateFromClone && (
+            <CloneDocumentActions docType="SO" onPaste={onCreateFromClone} show="paste" />
+          )}
           <Button
             onClick={onCreate}
             disabled={!doc.state.canWrite}
@@ -226,7 +249,8 @@ const SOList: React.FC<{
           ]}
           searchPlaceholder="Buscar pedido..."
         />
-        <Table columns={columns} data={filteredData} isLoading={loading} onRowClick={onDetail} />
+        <BulkSendToolbar selectedKeys={selectedKeys} rows={filteredData || []} partners={partners} docType="SO" onClear={() => setSelectedKeys(new Set())} onSent={() => setSelectedKeys(new Set())} />
+        <Table columns={columns} data={filteredData || []} isLoading={loading} onRowClick={onDetail} selectable selectedKeys={selectedKeys} onSelectionChange={setSelectedKeys} />
       </Card>
     </div>
   );
@@ -244,6 +268,8 @@ const SOForm: React.FC<{
   extraState: {
     deliveryDate: string;
     setDeliveryDate: any;
+    internalOrderId: string | null;
+    setInternalOrderId: (id: string | null) => void;
     billToAddress: string;
     setBillToAddress: any;
     shipToAddress: string;
@@ -264,6 +290,20 @@ const SOForm: React.FC<{
   const [batchEditingIdx, setBatchEditingIdx] = useState<number | null>(null);
   const fmt = useFormat();
   const itemUoms = useItemUoms();
+  const { flags } = useTheme();
+  const warehouseLocation = flags.warehouseLocation;
+  const { token: authToken, user: authUser } = useAuth();
+  const pluginLineFields = usePluginLineFields('SalesOrderLine');
+  const [zones, setZones] = useState<any[]>([]);
+  useEffect(() => {
+    if (warehouseLocation !== 'line' || !authToken || !authUser?.tenantId) return;
+    fetch('/api/zones', {
+      headers: { Authorization: `Bearer ${authToken}`, 'x-tenant-id': authUser.tenantId },
+    })
+      .then((r) => r.json())
+      .then((d) => setZones(Array.isArray(d) ? d : []))
+      .catch(() => setZones([]));
+  }, [warehouseLocation, authToken, authUser?.tenantId]);
   const handlePartnerChange = (id: string) => {
     setState.setPartnerId(id);
     const p = masters.partners.find((x: any) => x.id === id);
@@ -285,19 +325,26 @@ const SOForm: React.FC<{
     }
   };
 
+  const projectCol = useInternalOrderLineColumn(actions.updateLine);
   const columns = useMemo(
-    () => buildFormLineColumns({
-      kind: DocKind.Order,
-      side: DocSide.Sale,
-      state,
-      masters,
-      actions,
-      onAssignBatch: setBatchEditingIdx,
-      onViewBatch: setViewingBatch,
-      fmt,
-      getItemUoms: itemUoms.get,
-    }),
-    [state.lines, masters.items, masters.taxGroups],
+    () => {
+      const base = buildFormLineColumns({
+        kind: DocKind.Order,
+        side: DocSide.Sale,
+        state,
+        masters,
+        zones,
+        actions,
+        onAssignBatch: setBatchEditingIdx,
+        onViewBatch: setViewingBatch,
+        fmt,
+        getItemUoms: itemUoms.get,
+        warehouseLocation,
+        pluginLineFields,
+      });
+      return [...base.slice(0, -1), projectCol, base[base.length - 1]];
+    },
+    [state.lines, masters.items, masters.taxGroups, warehouseLocation, zones, pluginLineFields, projectCol],
   );
 
   return (
@@ -338,16 +385,18 @@ const SOForm: React.FC<{
                 placeholder="Seleccionar..."
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                Almacén de Salida *
-              </label>
-              <SearchableSelect
-                value={state.warehouseId}
-                onChange={setState.setWarehouseId}
-                options={masters.warehouses.map((w: any) => ({ label: w.name, value: w.id }))}
-              />
-            </div>
+            {warehouseLocation !== 'line' && (
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  Almacén de Salida *
+                </label>
+                <SearchableSelect
+                  value={state.warehouseId}
+                  onChange={setState.setWarehouseId}
+                  options={masters.warehouses.map((w: any) => ({ label: w.name, value: w.id }))}
+                />
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -394,6 +443,10 @@ const SOForm: React.FC<{
                 className="h-10 border-blue-100 dark:border-blue-500/20 bg-blue-50/20"
               />
             </div>
+            <InternalOrderHeaderField
+              value={extraState.internalOrderId}
+              onChange={extraState.setInternalOrderId}
+            />
           </div>
         </Card>
 
@@ -438,6 +491,41 @@ const SOForm: React.FC<{
         </div>
       </div>
 
+      {/* Warning retención IRPF si el cliente la tiene por defecto. */}
+      {(() => {
+        const p = masters.partners.find((x: any) => x.id === state.partnerId);
+        const partnerRate = Number(p?.defaultWithholdingRate || 0);
+        const docRate = Number(state.withholdingRate || 0);
+        if (partnerRate > 0 && docRate === 0) {
+          return (
+            <div className="flex items-center justify-between gap-4 p-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10">
+              <div className="flex items-start gap-3 min-w-0">
+                <AlertCircle size={18} className="text-amber-600 dark:text-amber-300 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                    Este cliente tiene retención IRPF por defecto del {partnerRate}%
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300/80 mt-0.5">
+                    El pedido se registrará sin retención. Si el cliente es empresa retenedora y tú eres profesional, debería aplicarse.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setState.setWithholdingRate(partnerRate)}
+                className="shrink-0"
+              >
+                Aplicar {partnerRate}%
+              </Button>
+            </div>
+          );
+        }
+        return null;
+      })()}
+
+      <DocumentFiscalPanel kind="sales" state={state} setState={setState} collapsible />
+
       <Card className="shadow-lg overflow-hidden border-slate-100 dark:border-slate-800" noPadding>
         <Table columns={columns} data={state.lines} />
         <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center border-t border-slate-200 dark:border-slate-700">
@@ -462,6 +550,12 @@ const SOForm: React.FC<{
               <span className="text-[10px] font-black uppercase">Impuestos:</span>
               <span className="font-bold">{computations.taxTotal.toFixed(2)} €</span>
             </div>
+            {Number(computations.withholdingAmount) > 0 && (
+              <div className="flex justify-between px-2 text-rose-600 dark:text-rose-400">
+                <span className="text-[10px] font-black uppercase">Retención IRPF:</span>
+                <span className="font-bold">− {Number(computations.withholdingAmount).toFixed(2)} €</span>
+              </div>
+            )}
             <div className="flex justify-between px-2 pt-2 mt-1 border-t text-xl font-black text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700">
               <span className="text-[10px] uppercase">Total Pedido:</span>
               <span>{computations.total.toFixed(2)} €</span>
@@ -533,6 +627,15 @@ const SODetail: React.FC<{
         />
       }
     >
+      <div className="flex items-center gap-3 mb-4 -mt-2 flex-wrap">
+        <CloneDocumentActions docType="SO" doc={order} show="copy" size={14} />
+        <TraceabilityButton
+          type="SO"
+          id={order.id}
+          docCode={`${order.seriesPrefix}-${order.periodCode}-${String(order.docNum).padStart(6, '0')}`}
+        />
+        <InternalOrderChip internalOrderId={order.internalOrderId} />
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card
           className="md:col-span-2 border-slate-100 dark:border-slate-800"
@@ -616,6 +719,14 @@ const SODetail: React.FC<{
         />
       </Card>
 
+      <PluginFieldsPanel
+        tableName="SalesOrder"
+        values={order}
+        onChange={() => {}}
+        disabled
+        layout="inline"
+        title="Campos de plugin"
+      />
       <AttachmentsPanel entityType="SalesOrder" entityId={order.id} />
     </DocumentDetailLayout>
   );
@@ -648,6 +759,7 @@ export const SalesOrders: React.FC = () => {
   const [deliveryDate, setDeliveryDate] = useState('');
   const [billToAddress, setBillToAddress] = useState('');
   const [shipToAddress, setShipToAddress] = useState('');
+  const [internalOrderId, setInternalOrderId] = useState<string | null>(null);
 
   const doc = useDocument({
     token: token || '',
@@ -656,6 +768,40 @@ export const SalesOrders: React.FC = () => {
     apiEndpoint: '/api/sales',
     permissions: (user as any)?.permissions?.['/sales-orders'],
   });
+  useDocumentScanner(doc, isCreate);
+
+  // Clone from clipboard
+  useEffect(() => {
+    if (!isCreate) return;
+    const raw = sessionStorage.getItem('keirost:cloneInvoice:SO');
+    if (!raw) return;
+    sessionStorage.removeItem('keirost:cloneInvoice:SO');
+    try {
+      const { header, lines } = JSON.parse(raw);
+      if (header?.partnerId) doc.setState.setPartnerId(header.partnerId);
+      if (header?.internalOrderId) setInternalOrderId(header.internalOrderId);
+      if (Array.isArray(lines)) {
+        doc.setState.setLines(
+          lines.map((l: any) => ({
+            itemId: l.itemId,
+            quantity: Number(l.quantity) || 0,
+            price: Number(l.price) || 0,
+            taxGroupId: l.taxGroupId,
+            warehouseId: l.warehouseId,
+            zoneId: l.zoneId,
+            uomId: l.uomId,
+            uomFactor: l.uomFactor != null ? Number(l.uomFactor) : undefined,
+            description: l.description,
+            costCenterId: l.costCenterId,
+            profitCenterId: l.profitCenterId,
+            internalOrderId: l.internalOrderId,
+          })),
+        );
+      }
+    } catch (e) {
+      console.error('Error parseando clone payload', e);
+    }
+  }, [isCreate]);
 
   const authHeaders = {
     Authorization: `Bearer ${token}`,
@@ -705,7 +851,12 @@ export const SalesOrders: React.FC = () => {
 
   const handleSubmit = async (e: any) => {
     try {
-      const data = await doc.actions.submitDocument({ deliveryDate, billToAddress, shipToAddress });
+      const data = await doc.actions.submitDocument({
+        deliveryDate,
+        billToAddress,
+        shipToAddress,
+        internalOrderId,
+      });
       toast.success(`Pedido registrado nº ${data.header.docNum}`);
       notifyDocChange(DocType.SalesOrder);
       currentTab.close();
@@ -747,6 +898,8 @@ export const SalesOrders: React.FC = () => {
           extraState={{
             deliveryDate,
             setDeliveryDate,
+            internalOrderId,
+            setInternalOrderId,
             billToAddress,
             setBillToAddress,
             shipToAddress,
@@ -821,6 +974,10 @@ export const SalesOrders: React.FC = () => {
       loading={loading}
       partners={doc.masters.partners}
       onCreate={() => openTab('/sales-orders/new')}
+      onCreateFromClone={(payload) => {
+        sessionStorage.setItem('keirost:cloneInvoice:SO', JSON.stringify(payload));
+        openTab('/sales-orders/new');
+      }}
       onDetail={(p) => openTab(`/sales-orders/${p.id}`, { title: formatDocCode(p) })}
     />
   );

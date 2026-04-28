@@ -4,16 +4,21 @@ import { TabsHost } from './tabs/TabsHost';
 import { IconSidebar } from './layout/IconSidebar';
 import { TopHeader } from './layout/TopHeader';
 import { ModuleTabBar } from './layout/ModuleTabBar';
+import { MobileBottomNav } from './layout/MobileBottomNav';
+import { DriverLayout } from './layout/DriverLayout';
+import { useAuth } from '../context/AuthContext';
 
 /**
- * Layout principal estilo Odoo:
- *   - IconSidebar (60px) — módulos top-level con iconos
- *   - TopHeader — branding, búsqueda, tenant, tema, usuario
- *   - ModuleTabBar — sub-tabs del módulo activo
- *   - TabBar — pestañas dinámicas (TabsContext)
- *   - TabsHost — render de la página actual
+ * Layout principal. Si el usuario tiene rol `DRIVER`, se pinta la
+ * versión simplificada mobile-first sin sidebar ni topbar.
  */
 export const MainLayout: React.FC = () => {
+  const { user } = useAuth();
+
+  if (user?.role === 'DRIVER') {
+    return <DriverLayout />;
+  }
+
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
       <IconSidebar />
@@ -21,10 +26,11 @@ export const MainLayout: React.FC = () => {
         <TopHeader />
         <ModuleTabBar />
         <TabBar />
-        <main className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 min-h-0">
+        <main className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 min-h-0 pb-16 md:pb-0">
           <TabsHost />
         </main>
       </div>
+      <MobileBottomNav />
     </div>
   );
 };

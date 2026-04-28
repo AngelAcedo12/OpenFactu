@@ -167,7 +167,7 @@ export const ServerCockpit: React.FC = () => {
   }, [token]);
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="p-6 space-y-6 w-full">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 text-primary rounded-lg">

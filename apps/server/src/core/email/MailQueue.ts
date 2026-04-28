@@ -19,6 +19,7 @@
 import crypto from 'crypto';
 import { sendMail, type SendMailInput } from './Mailer';
 import { ClientFactory } from '../tenant/ClientFactory';
+import { NotificationService } from '../notifications/NotificationService';
 
 export type MailStatus = 'queued' | 'sending' | 'sent' | 'failed';
 
@@ -32,6 +33,12 @@ interface QueueItem {
   lastError?: string;
   createdAt: number;
   sentAt?: number;
+  /** Usuario al que notificar cuando termine el envío (éxito o fallo). */
+  notifyUserId?: string;
+  /** Etiqueta humana para la notificación, ej. "Factura FA-2026-0042". */
+  notifyLabel?: string;
+  /** Link al documento, ej. "/sales/invoices/xyz". */
+  notifyLink?: string;
 }
 
 const MAX_ATTEMPTS = 5;
@@ -56,7 +63,11 @@ class Queue {
     this.timer = null;
   }
 
-  enqueue(tenantId: string, input: SendMailInput): string {
+  enqueue(
+    tenantId: string,
+    input: SendMailInput,
+    notify?: { userId?: string; label?: string; link?: string },
+  ): string {
     const id = crypto.randomUUID();
     this.items.push({
       id,
@@ -66,6 +77,9 @@ class Queue {
       nextAttemptAt: Date.now(),
       status: 'queued',
       createdAt: Date.now(),
+      notifyUserId: notify?.userId,
+      notifyLabel: notify?.label,
+      notifyLink: notify?.link,
     });
     return id;
   }
@@ -106,6 +120,22 @@ class Queue {
         await sendMail(next.tenantId, tenantDb, next.input);
         next.status = 'sent';
         next.sentAt = Date.now();
+        // Notifica al usuario que inició el envío (si procede).
+        if (next.notifyUserId) {
+          const label = next.notifyLabel || 'email';
+          const to = Array.isArray(next.input.to) ? next.input.to.join(', ') : next.input.to;
+          try {
+            await NotificationService.notify(tenantDb, {
+              userId: next.notifyUserId,
+              title: `✓ ${label} enviado`,
+              body: `Entregado a ${to}`,
+              level: 'success',
+              link: next.notifyLink,
+            });
+          } catch (nErr: any) {
+            console.warn('[MailQueue] No se pudo crear notificación:', nErr?.message);
+          }
+        }
         // Limpia los sent viejos (>1h) para no crecer infinito.
         const cutoff = Date.now() - 60 * 60 * 1000;
         this.items = this.items.filter(
@@ -119,6 +149,21 @@ class Queue {
             `[MailQueue] ${next.id} falló tras ${MAX_ATTEMPTS} intentos:`,
             next.lastError,
           );
+          // Notifica el fallo definitivo.
+          if (next.notifyUserId) {
+            try {
+              const tenantDb = await ClientFactory.getTenantClient(next.tenantId);
+              await NotificationService.notify(tenantDb, {
+                userId: next.notifyUserId,
+                title: `⚠ Envío fallido: ${next.notifyLabel || 'email'}`,
+                body: `${next.lastError}. Reintenta desde el documento.`,
+                level: 'error',
+                link: next.notifyLink,
+              });
+            } catch {
+              /* silencioso */
+            }
+          }
         } else {
           const backoffMs = BACKOFF_S[next.attempts - 1] * 1000;
           next.status = 'queued';
@@ -140,7 +185,14 @@ mailQueue.start();
 
 /**
  * Enfila un correo y devuelve inmediatamente. El caller NO espera al SMTP.
+ *
+ * Si se pasa `notify.userId`, al terminar el envío el worker inserta una
+ * notificación in-app al usuario indicado (éxito o fallo tras reintentos).
  */
-export function enqueueMail(tenantId: string, input: SendMailInput): string {
-  return mailQueue.enqueue(tenantId, input);
+export function enqueueMail(
+  tenantId: string,
+  input: SendMailInput,
+  notify?: { userId?: string; label?: string; link?: string },
+): string {
+  return mailQueue.enqueue(tenantId, input, notify);
 }

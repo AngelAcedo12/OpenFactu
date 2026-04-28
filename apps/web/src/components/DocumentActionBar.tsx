@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@openfactu/ui';
-import { Trash2, Tag, type LucideIcon } from 'lucide-react';
+import { Trash2, Tag, Mail, type LucideIcon } from 'lucide-react';
 import { PrintTemplateButton } from './PrintTemplateButton';
 import { LabelPrintButton } from './LabelPrintButton';
 
@@ -32,6 +32,8 @@ interface Props {
   cancelLabel?: string;
   isCancelling?: boolean;
   primary?: PrimaryAction;
+  /** Si se provee, muestra botón "Enviar" que abre el modal de email. */
+  onSendEmail?: () => void;
 }
 
 export const DocumentActionBar: React.FC<Props> = ({
@@ -44,6 +46,7 @@ export const DocumentActionBar: React.FC<Props> = ({
   cancelLabel = 'Cancelar',
   isCancelling,
   primary,
+  onSendEmail,
 }) => {
   const PrimaryIcon = primary?.icon;
   return (
@@ -74,6 +77,17 @@ export const DocumentActionBar: React.FC<Props> = ({
         />
       )}
       <PrintTemplateButton docType={docType} pdfUrl={pdfUrl} variant="secondary" />
+      {onSendEmail && (
+        <Button
+          variant="outline"
+          onClick={onSendEmail}
+          className="h-10 gap-2 border-accent/30 text-accent hover:bg-accent/5"
+          title="Enviar por email con PDF adjunto"
+        >
+          <Mail size={14} />
+          <span>Enviar</span>
+        </Button>
+      )}
       {primary && PrimaryIcon && (
         <Button
           onClick={primary.onClick}

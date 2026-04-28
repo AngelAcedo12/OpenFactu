@@ -15,7 +15,7 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   PDN: 'Albarán de Compra',
   SO: 'Pedido de Venta',
   PO: 'Pedido de Compra',
-  FREE: 'Etiqueta libre',
+  FREE: 'Documento Libre',
 };
 
 export const DOC_TYPE_COLORS: Record<DocType, string> = {

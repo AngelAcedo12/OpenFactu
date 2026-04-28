@@ -4,9 +4,11 @@ import {
   BRANDING_DEFAULTS,
   FORMAT_DEFAULTS,
   FLAGS_DEFAULTS,
+  APP_DEFAULTS,
   type BrandingConfig,
   type FormatConfig,
   type FlagsConfig,
+  type AppConfig,
 } from '../core/config/appConfig';
 import { getStorageConfig, setStorageConfig } from '../core/config/storageConfig';
 import { StorageResolver } from '../core/storage/StorageResolver';
@@ -55,6 +57,36 @@ function mount<T extends Record<string, any>>(section: string, defaults: T, enti
 mount<BrandingConfig>('branding', BRANDING_DEFAULTS, 'BrandingConfig');
 mount<FormatConfig>('format', FORMAT_DEFAULTS, 'FormatConfig');
 mount<FlagsConfig>('flags', FLAGS_DEFAULTS, 'FlagsConfig');
+mount<AppConfig>('app', APP_DEFAULTS, 'AppConfig');
+
+// Sección fiscal — agrupa las claves SystemConfig añadidas en la mig 032
+// (IBAN, SWIFT, régimen fiscal, pie legal, color del PDF…).
+interface FiscalConfig {
+  company_iban: string;
+  company_bank_name: string;
+  company_bank_swift: string;
+  company_fiscal_regime: string;
+  company_invoice_footer: string;
+  company_invoice_color: string;
+  // Firma / representante legal — aparece en el PDF de la factura
+  signature_name: string;        // nombre del firmante (p.ej. "Juan García Pérez")
+  signature_role: string;        // cargo (p.ej. "Administrador único")
+  signature_image_url: string;   // URL a la imagen (rubrica escaneada)
+  signature_show_in_pdf: string; // 'true' | 'false' — flag textual
+}
+const FISCAL_DEFAULTS: FiscalConfig = {
+  company_iban: '',
+  company_bank_name: '',
+  company_bank_swift: '',
+  company_fiscal_regime: '',
+  company_invoice_footer: '',
+  company_invoice_color: '#0D9488',
+  signature_name: '',
+  signature_role: '',
+  signature_image_url: '',
+  signature_show_in_pdf: 'false',
+};
+mount<FiscalConfig>('fiscal', FISCAL_DEFAULTS, 'FiscalConfig');
 
 /**
  * GET /api/config/storage — devuelve la config de almacenamiento del tenant

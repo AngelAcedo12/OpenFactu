@@ -17,6 +17,8 @@ import {
   Check,
 } from 'lucide-react';
 import { KeirostLogo } from '../components/branding/KeirostLogo';
+import { IsoField } from '../components/login/IsoField';
+import { LiveFeed } from '../components/login/LiveFeed';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -91,36 +93,37 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white dark:bg-slate-900 overflow-hidden font-sans">
-      {/* SECTION IZQUIERDA: Brand & Visual (Hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-2/5 relative overflow-hidden bg-slate-900">
-        {/* Background Image with Overlay */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src="/assets/login_bg.png"
-            alt="Business Background"
-            className="w-full h-full object-cover opacity-60 scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-950 via-blue-900/60 to-transparent" />
-        </div>
+    <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#0A1628] font-sans relative md:overflow-hidden">
+      {/* Fondo isométrico animado global — siempre visible */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0A1628] via-[#0A1628] to-[#08524A]" />
+        <IsoField />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0A1628]/80 via-transparent to-[#0A1628]/40" />
+      </div>
+
+      {/* SECTION IZQUIERDA: Brand & Visual (solo en pantallas anchas) */}
+      <div className="hidden md:flex md:w-2/5 relative overflow-hidden z-10">
 
         {/* Content Overlay */}
         <div className="relative z-10 w-full flex flex-col p-12 justify-between">
           <div className="flex items-center gap-3">
             <KeirostLogo size={48} variant="accent" />
             <span
-              className="text-2xl font-extrabold text-white tracking-tight"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              className="text-2xl font-bold text-white tracking-tight"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
-              Keirost <span style={{ color: '#5EEAD4' }}>ERP</span>
+              Keirost <span className="k-shimmer-text">ERP</span>
             </span>
           </div>
 
           <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-700">
             <div className="space-y-4">
-              <h2 className="text-5xl font-black text-white leading-[1.1] tracking-tighter">
+              <h2
+                className="text-5xl font-bold text-white leading-[1.1] tracking-tighter"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+              >
                 Gestión centralizada <br />
-                <span className="text-blue-400">para empresas</span> inteligentes.
+                <span className="k-shimmer-text">para empresas</span> inteligentes.
               </h2>
               <p className="text-lg text-slate-300 max-w-sm leading-relaxed font-medium">
                 Optimiza tus compras, ventas y logística en una única plataforma Open Source de alto
@@ -154,28 +157,35 @@ export const Login: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-slate-400 text-[10px] font-black uppercase tracking-widest pt-12 border-t border-white/10">
-            <span>v0.1.0-alpha</span>
-            <div className="flex gap-4">
-              <span className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer">
-                <Globe size={10} /> ES
-              </span>
-              <span className="hover:text-white transition-colors cursor-pointer">
-                Documentación
-              </span>
+          <div className="space-y-3 pt-10">
+            <div className="flex items-center gap-2 text-[10px] font-mono tracking-[2px] uppercase text-white/50">
+              <span className="w-8 h-px bg-white/30" />
+              Actividad del sistema
+            </div>
+            <LiveFeed />
+            <div className="flex items-center justify-between text-slate-400 text-[10px] font-black uppercase tracking-widest pt-4 border-t border-white/10">
+              <span>v0.1.0-alpha</span>
+              <div className="flex gap-4">
+                <span className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer">
+                  <Globe size={10} /> ES
+                </span>
+                <span className="hover:text-white transition-colors cursor-pointer">
+                  Documentación
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* SECTION DERECHA: Login Form */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50/30 dark:bg-slate-800/30 relative">
-        <div className="w-full max-w-md space-y-10 animate-in fade-in zoom-in-95 duration-500">
+      <div className="flex-1 flex flex-col items-center justify-center md:justify-center px-4 py-8 md:p-8 relative z-10 min-h-screen md:min-h-0">
+        <div className="w-full max-w-md space-y-6 md:space-y-8 animate-in fade-in zoom-in-95 duration-500 bg-white/95 dark:bg-[#1A2535]/90 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-[4px] p-6 md:p-8 shadow-2xl my-auto">
           <div className="lg:hidden flex flex-col items-center mb-8">
             <KeirostLogo size={56} variant="dark" className="mb-4" />
             <h1
               className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight"
-              style={{ fontFamily: "'Syne', sans-serif" }}
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               Keirost <span className="text-teal-600">ERP</span>
             </h1>
@@ -192,7 +202,7 @@ export const Login: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="p-4 bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/30 rounded-2xl text-rose-600 dark:text-rose-300 text-sm font-bold flex items-center gap-3 animate-in shake duration-300">
+              <div className="p-4 bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/30 rounded-[4px] text-rose-600 dark:text-rose-300 text-sm font-bold flex items-center gap-3 animate-in shake duration-300">
                 <ShieldCheck size={18} />
                 {error}
               </div>
@@ -205,7 +215,7 @@ export const Login: React.FC = () => {
                   Usuario / Email
                 </label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-4 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:text-blue-300 transition-colors pointer-events-none">
+                  <div className="absolute inset-y-0 left-4 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-[#0D9488] dark:group-focus-within:text-[#0D9488] transition-colors pointer-events-none">
                     <Mail size={18} />
                   </div>
                   <input
@@ -215,7 +225,7 @@ export const Login: React.FC = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     onBlur={(e) => fetchTenantsForUser(e.target.value)}
                     placeholder="admin o usuario@empresa.com"
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-slate-900 dark:text-slate-100 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-semibold shadow-sm"
+                    className="w-full bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-[#2D3A4A] rounded-[4px] py-3.5 pl-12 pr-4 text-[#0A1628] dark:text-slate-100 text-sm placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#0D9488]/20 focus:border-[#0D9488] transition-all font-medium"
                   />
                 </div>
               </div>
@@ -232,7 +242,7 @@ export const Login: React.FC = () => {
                       onClick={() => setTenantOpen((o) => !o)}
                       aria-haspopup="listbox"
                       aria-expanded={tenantOpen}
-                      className="w-full flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-10 text-left text-sm font-semibold shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all hover:border-slate-300 dark:hover:border-slate-600"
+                      className="w-full flex items-center bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-[#2D3A4A] rounded-[4px] py-3.5 pl-12 pr-10 text-left text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0D9488]/20 focus:border-[#0D9488] transition-all hover:border-[#94A3B8]"
                     >
                       <div className="absolute inset-y-0 left-4 flex items-center text-slate-400 dark:text-slate-500">
                         <Building className="w-4 h-4" />
@@ -259,7 +269,7 @@ export const Login: React.FC = () => {
                     {tenantOpen && (
                       <div
                         role="listbox"
-                        className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150"
+                        className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-[#1A2535] border border-[#E2E8F0] dark:border-[#2D3A4A] rounded-[4px] shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150"
                       >
                         <ul className="max-h-64 overflow-auto py-1">
                           {tenants.map((t) => {
@@ -272,9 +282,9 @@ export const Login: React.FC = () => {
                                     setSelectedTenant(t.id);
                                     setTenantOpen(false);
                                   }}
-                                  className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-semibold transition-colors ${
+                                  className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium transition-colors ${
                                     isActive
-                                      ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-200'
+                                      ? 'bg-[#0D9488]/10 text-[#0D9488]'
                                       : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
                                   }`}
                                 >
@@ -282,13 +292,13 @@ export const Login: React.FC = () => {
                                     size={14}
                                     className={
                                       isActive
-                                        ? 'text-blue-500 dark:text-blue-300'
+                                        ? 'text-[#0D9488]'
                                         : 'text-slate-400 dark:text-slate-500'
                                     }
                                   />
                                   <span className="flex-1 truncate">{t.name}</span>
                                   {isActive && (
-                                    <Check size={14} className="text-blue-500 dark:text-blue-300" />
+                                    <Check size={14} className="text-[#0D9488]" />
                                   )}
                                 </button>
                               </li>
@@ -301,9 +311,9 @@ export const Login: React.FC = () => {
                 </div>
               )}
               {tenants.length === 1 && (
-                <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/30 rounded-2xl animate-in fade-in duration-300">
-                  <Building size={14} className="text-blue-500 dark:text-blue-300 shrink-0" />
-                  <span className="text-sm font-bold text-blue-700 dark:text-blue-200">
+                <div className="flex items-center gap-2 px-4 py-3 bg-[#0D9488]/10 border border-[#0D9488]/30 rounded-[4px] animate-in fade-in duration-300">
+                  <Building size={14} className="text-[#0D9488] shrink-0" />
+                  <span className="text-sm font-bold text-[#0D9488]">
                     {tenants[0].name}
                   </span>
                 </div>
@@ -317,13 +327,13 @@ export const Login: React.FC = () => {
                   </label>
                   <button
                     type="button"
-                    className="text-[11px] font-bold text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-200 hover:underline transition"
+                    className="text-[11px] font-bold text-[#0D9488] hover:text-[#0A6E63] hover:underline transition"
                   >
                     ¿Olvidó su contraseña?
                   </button>
                 </div>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-4 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:text-blue-300 transition-colors pointer-events-none">
+                  <div className="absolute inset-y-0 left-4 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-[#0D9488] dark:group-focus-within:text-[#0D9488] transition-colors pointer-events-none">
                     <Lock size={18} />
                   </div>
                   <input
@@ -332,12 +342,12 @@ export const Login: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-12 text-slate-900 dark:text-slate-100 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-semibold shadow-sm"
+                    className="w-full bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-[#2D3A4A] rounded-[4px] py-3.5 pl-12 pr-12 text-[#0A1628] dark:text-slate-100 text-sm placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#0D9488]/20 focus:border-[#0D9488] transition-all font-medium"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-4 flex items-center text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+                    className="absolute inset-y-0 right-4 flex items-center text-slate-400 dark:text-slate-500 hover:text-[#0D9488] dark:hover:text-[#0D9488] transition-colors"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -349,7 +359,7 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-slate-950 p-2 hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4.5 rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 group tracking-tight"
+                className="w-full bg-[#0D9488] hover:bg-[#0A6E63] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-[4px] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group tracking-tight shadow-lg shadow-[#0D9488]/20"
               >
                 {isSubmitting ? (
                   <Loader2 className="animate-spin" size={20} />
@@ -368,7 +378,7 @@ export const Login: React.FC = () => {
             <div className="text-center pt-4">
               <p className="text-slate-500 dark:text-slate-300 text-xs font-bold">
                 ¿Dudas con tu acceso?{' '}
-                <button type="button" className="text-blue-600 dark:text-blue-300 hover:underline">
+                <button type="button" className="text-[#0D9488] hover:text-[#0A6E63] hover:underline">
                   Contactar soporte
                 </button>
               </p>

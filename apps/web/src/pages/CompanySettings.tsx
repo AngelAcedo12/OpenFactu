@@ -11,12 +11,15 @@ import {
   FileBox,
   Upload,
   Mail,
+  Coins,
 } from 'lucide-react';
 import { StorageSettingsTab } from '../components/settings/StorageSettingsTab';
 import { DataTransferTab } from '../components/settings/DataTransferTab';
+import { FiscalSettingsTab } from '../components/settings/FiscalSettingsTab';
 import { EmailSettingsTab } from '../components/settings/EmailSettingsTab';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, THEME_PRESETS } from '../context/ThemeContext';
+import { KeirostLogo } from '../components/branding/KeirostLogo';
 import { formatCurrency, formatDate } from '@openfactu/common';
 import { CountrySelect } from '../components/geo/CountrySelect';
 import { RegionSelect } from '../components/geo/RegionSelect';
@@ -70,11 +73,20 @@ type TabId =
   | 'storage'
   | 'templates'
   | 'data'
-  | 'email';
+  | 'email'
+  | 'catalogs';
 
 export const CompanySettings: React.FC = () => {
   const { token, user } = useAuth();
-  const { branding, format, flags, update: updateTheme, reload: reloadTheme } = useTheme();
+  const {
+    branding,
+    format,
+    flags,
+    update: updateTheme,
+    reload: reloadTheme,
+    applyPreset,
+    activePresetId,
+  } = useTheme();
   const toast = useToast();
   // Soporta deep-link al tab vía `?tab=storage|data|templates|...`. Usado por el
   // sidebar (Configuración → Almacenamiento / Importar/Exportar).
@@ -90,6 +102,7 @@ export const CompanySettings: React.FC = () => {
       'templates',
       'data',
       'email',
+      'catalogs',
     ];
     return allowed.includes(t as TabId) ? (t as TabId) : 'fiscal';
   })();
@@ -202,6 +215,7 @@ export const CompanySettings: React.FC = () => {
     { id: 'branding', label: 'Branding', icon: Palette },
     { id: 'format', label: 'Formato', icon: Globe },
     { id: 'flags', label: 'Comportamiento', icon: SlidersHorizontal },
+    { id: 'catalogs', label: 'Fiscal / Pagos', icon: Coins },
     { id: 'templates', label: 'Plantillas', icon: FileBox },
     { id: 'storage', label: 'Almacenamiento', icon: HardDrive },
     { id: 'email', label: 'Correo', icon: Mail },
@@ -211,21 +225,21 @@ export const CompanySettings: React.FC = () => {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-primary/10 text-primary rounded-lg">
+        <div className="p-2 bg-accent/10 text-accent border border-accent/20 rounded-sm">
           <Building size={22} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl font-bold text-ink-900 dark:text-slate-100 font-display">
             Configuración de Empresa
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-ink-500 dark:text-ink-400">
             Datos fiscales, branding, formato y comportamiento.
           </p>
         </div>
       </div>
 
       {/* Tabs — scroll horizontal cuando no caben, sin wrap */}
-      <div className="border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
+      <div className="border-b border-line dark:border-ink-700 overflow-x-auto">
         <div className="flex gap-1 min-w-max">
           {tabs.map((t) => (
             <button
@@ -233,8 +247,8 @@ export const CompanySettings: React.FC = () => {
               onClick={() => setActiveTab(t.id)}
               className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-bold whitespace-nowrap border-b-2 transition-colors shrink-0 ${
                 activeTab === t.id
-                  ? 'text-primary border-primary'
-                  : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200'
+                  ? 'text-accent border-accent'
+                  : 'text-ink-500 dark:text-ink-400 border-transparent hover:text-accent dark:hover:text-accent'
               }`}
             >
               <t.icon size={13} />
@@ -427,7 +441,88 @@ export const CompanySettings: React.FC = () => {
         <div className="space-y-6">
           <Card>
             <div className="p-6 space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <h2 className="font-mono text-[10px] tracking-[1.5px] uppercase text-[var(--k-ink-400)]">
+                    Presets de tema
+                  </h2>
+                  <p className="text-[12px] text-[var(--k-ink-500)] mt-1">
+                    Elige un tema de marca prediseñado. También puedes ajustar los colores manualmente abajo.
+                  </p>
+                </div>
+                {activePresetId === 'custom' && (
+                  <span className="font-mono text-[10px] tracking-[1px] uppercase text-[var(--k-teal-600)] bg-[var(--k-teal-50)] border border-[var(--k-teal-100)] rounded-[2px] px-2 py-1">
+                    Personalizado
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {THEME_PRESETS.map((preset) => {
+                  const selected = activePresetId === preset.id;
+                  const isDark = preset.themeMode === 'dark';
+                  const logoVariant =
+                    preset.id === 'keirost-teal'
+                      ? 'accent'
+                      : preset.id === 'keirost-slate'
+                        ? 'mono'
+                        : isDark
+                          ? 'dark'
+                          : 'outline';
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => applyPreset(preset.id)}
+                      className={
+                        'group relative flex flex-col items-start gap-3 p-4 rounded-[4px] border transition-colors text-left ' +
+                        (selected
+                          ? 'border-[var(--k-teal-500)] ring-1 ring-[var(--k-teal-500)]'
+                          : 'border-[var(--k-line)] hover:border-[var(--k-ink-400)]')
+                      }
+                      style={{ background: isDark ? preset.colorPrimary : '#ffffff' }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <KeirostLogo size={36} variant={logoVariant as any} />
+                        <div className="flex gap-1">
+                          <span
+                            className="w-3 h-3 rounded-[2px] border border-black/10"
+                            style={{ background: preset.colorPrimary }}
+                          />
+                          <span
+                            className="w-3 h-3 rounded-[2px] border border-black/10"
+                            style={{ background: preset.colorAccent }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div
+                          className="font-display font-semibold text-[14px]"
+                          style={{ color: isDark ? '#fff' : '#0A1628' }}
+                        >
+                          {preset.label}
+                        </div>
+                        <div
+                          className="text-[11px] mt-0.5 leading-snug"
+                          style={{ color: isDark ? 'rgba(255,255,255,0.6)' : '#64748B' }}
+                        >
+                          {preset.description}
+                        </div>
+                      </div>
+                      {selected && (
+                        <span className="absolute top-2 right-2 font-mono text-[9px] tracking-[1px] uppercase text-[var(--k-teal-600)] bg-[var(--k-teal-50)] border border-[var(--k-teal-100)] rounded-[2px] px-1.5 py-0.5">
+                          Activo
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="p-6 space-y-4">
+              <h2 className="font-mono text-[10px] tracking-[1.5px] uppercase text-[var(--k-ink-400)]">
                 Colores
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -725,6 +820,71 @@ export const CompanySettings: React.FC = () => {
                 checked={flagsDraft.enforceWarehouseZones}
                 onChange={(v) => setFlagsDraft({ ...flagsDraft, enforceWarehouseZones: v })}
               />
+              <FlagRow
+                label="Gestión de logística"
+                hint="Activa el módulo de envíos, rutas y seguimiento en tiempo real (mapa + timeline por albarán)."
+                checked={!!flagsDraft.logisticsEnabled}
+                onChange={(v) => setFlagsDraft({ ...flagsDraft, logisticsEnabled: v })}
+              />
+              <FlagRow
+                label="Modo sólo logística"
+                hint="Oculta Ventas, Compras, Contabilidad, RRHH y Analítica. Solo quedan Inicio, Inventario, Interlocutores y Logística. Útil para clientes que sólo contratan el módulo de reparto."
+                checked={!!flagsDraft.logisticsOnly}
+                onChange={(v) => setFlagsDraft({ ...flagsDraft, logisticsOnly: v })}
+              />
+              <FlagRow
+                label="RRHH · Turnos y plantillas"
+                hint="Activa el módulo de plantillas de turno y patrones de rotación cíclica."
+                checked={!!(flagsDraft as any).hrShiftsEnabled}
+                onChange={(v) => setFlagsDraft({ ...flagsDraft, hrShiftsEnabled: v } as any)}
+              />
+              <FlagRow
+                label="RRHH · Planificación"
+                hint="Cuadrante mensual de turnos asignados con vista calendario."
+                checked={!!(flagsDraft as any).hrPlanningEnabled}
+                onChange={(v) => setFlagsDraft({ ...flagsDraft, hrPlanningEnabled: v } as any)}
+              />
+              <FlagRow
+                label="RRHH · Fichajes"
+                hint="Permite a los empleados fichar entrada/salida desde la web o desde kioskos compartidos."
+                checked={!!(flagsDraft as any).hrTimeclockEnabled}
+                onChange={(v) => setFlagsDraft({ ...flagsDraft, hrTimeclockEnabled: v } as any)}
+              />
+              <FlagRow
+                label="RRHH · Incidencias y sustituciones"
+                hint="Tipos de incidencia configurables y flujo de sustitución asistida cuando aplican."
+                checked={!!(flagsDraft as any).hrIncidentsEnabled}
+                onChange={(v) => setFlagsDraft({ ...flagsDraft, hrIncidentsEnabled: v } as any)}
+              />
+              <FlagRow
+                label="RRHH avanzado+ (rendimientos, costes, evaluaciones, comisiones, tareas)"
+                hint="Activa convenios colectivos, evaluaciones de desempeño, objetivos SMART, comisiones comerciales, dashboard de rendimiento, coste laboral, tareas y Gantt."
+                checked={!!(flagsDraft as any).hrAdvancedEnabled}
+                onChange={(v) => setFlagsDraft({ ...flagsDraft, hrAdvancedEnabled: v } as any)}
+              />
+              <div className="flex items-center justify-between py-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex-1 pr-4">
+                  <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                    Ubicación del almacén en documentos
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Elige si el almacén se captura una vez en la cabecera del documento o por línea (junto con la ubicación/zona).
+                  </div>
+                </div>
+                <select
+                  value={flagsDraft.warehouseLocation}
+                  onChange={(e) =>
+                    setFlagsDraft({
+                      ...flagsDraft,
+                      warehouseLocation: e.target.value as 'header' | 'line',
+                    })
+                  }
+                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
+                >
+                  <option value="header">En la cabecera</option>
+                  <option value="line">En cada línea</option>
+                </select>
+              </div>
             </div>
           </Card>
 
@@ -765,6 +925,8 @@ export const CompanySettings: React.FC = () => {
       )}
 
       {activeTab === 'storage' && <StorageSettingsTab />}
+
+      {activeTab === 'catalogs' && <FiscalSettingsTab />}
 
       {activeTab === 'email' && <EmailSettingsTab />}
 

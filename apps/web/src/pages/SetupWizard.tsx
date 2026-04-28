@@ -36,6 +36,11 @@ export const SetupWizard: React.FC = () => {
     companyWebsite: '',
     companyCurrency: 'EUR',
     companyFiscalYearStart: '01-01',
+    // URL pública desde la que los clientes finales abrirán los enlaces de
+    // tracking. Pre-rellena con el origin del navegador del instalador — el
+    // admin puede reescribirlo si despliega bajo otro dominio.
+    publicBaseUrl:
+      typeof window !== 'undefined' ? window.location.origin : '',
   });
 
   const [showDbPass, setShowDbPass] = useState(false);
@@ -75,6 +80,7 @@ export const SetupWizard: React.FC = () => {
             website: formData.companyWebsite,
             currency: formData.companyCurrency,
             fiscalYearStart: formData.companyFiscalYearStart,
+            publicBaseUrl: formData.publicBaseUrl,
           },
         }),
       });
@@ -94,14 +100,14 @@ export const SetupWizard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-800">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0A1628] flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white dark:bg-[#1A2535] rounded-sm p-8 shadow-xl border border-[#E2E8F0] dark:border-[#2D3A4A]">
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-3">
-            <KeirostLogo size={44} variant="dark" />
+            <KeirostLogo size={44} variant="outline" />
             <h1
-              className="text-3xl font-extrabold tracking-tight"
-              style={{ fontFamily: "'Syne', sans-serif", color: '#0A1628' }}
+              className="text-3xl font-bold tracking-tight text-[#0A1628] dark:text-slate-100"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               Keirost <span style={{ color: '#0D9488' }}>ERP</span>
             </h1>
@@ -116,7 +122,7 @@ export const SetupWizard: React.FC = () => {
             ].map((s) => (
               <div key={s.id} className="flex flex-col items-center">
                 <div
-                  className={`h-10 w-10 rounded-full flex items-center justify-center transition-all ${step >= s.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500'}`}
+                  className={`h-10 w-10 rounded-full flex items-center justify-center transition-all ${step >= s.id ? 'bg-[#0D9488] text-white shadow-lg' : 'bg-gray-100 dark:bg-[#1A2535] text-gray-400 dark:text-slate-500'}`}
                 >
                   <s.icon size={20} />
                 </div>
@@ -157,7 +163,7 @@ export const SetupWizard: React.FC = () => {
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0D9488] dark:hover:text-[#0D9488] transition-colors"
                 onClick={() => setShowDbPass(!showDbPass)}
               >
                 {showDbPass ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -165,7 +171,7 @@ export const SetupWizard: React.FC = () => {
             </div>
             <button
               onClick={nextStep}
-              className="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2 group"
+              className="w-full bg-[#0D9488] text-white p-3 rounded-sm font-bold hover:bg-[#0A6E63] transition flex items-center justify-center gap-2 group"
             >
               Siguiente{' '}
               <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
@@ -201,7 +207,7 @@ export const SetupWizard: React.FC = () => {
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0D9488] dark:hover:text-[#0D9488] transition-colors"
                 onClick={() => setShowAdminPass(!showAdminPass)}
               >
                 {showAdminPass ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -216,7 +222,7 @@ export const SetupWizard: React.FC = () => {
               </button>
               <button
                 onClick={nextStep}
-                className="flex-1 bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2 group"
+                className="flex-1 bg-[#0D9488] text-white p-3 rounded-sm font-bold hover:bg-[#0A6E63] transition flex items-center justify-center gap-2 group"
               >
                 Siguiente{' '}
                 <ChevronRight
@@ -254,7 +260,7 @@ export const SetupWizard: React.FC = () => {
               <button
                 onClick={nextStep}
                 disabled={!formData.companyName || !formData.companyNif}
-                className="flex-1 bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 group"
+                className="flex-1 bg-[#0D9488] text-white p-3 rounded-sm font-bold hover:bg-[#0A6E63] transition flex items-center justify-center gap-2 disabled:opacity-50 group"
               >
                 Siguiente{' '}
                 <ChevronRight
@@ -350,6 +356,21 @@ export const SetupWizard: React.FC = () => {
                 }
               />
             </div>
+            <div>
+              <label className="text-xs text-gray-500 dark:text-slate-400 block mb-1">
+                URL pública de la aplicación
+              </label>
+              <input
+                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="https://app.tuempresa.com"
+                value={formData.publicBaseUrl}
+                onChange={(e) => setFormData({ ...formData, publicBaseUrl: e.target.value })}
+              />
+              <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-1">
+                Dominio desde el que tus clientes abrirán los enlaces de
+                seguimiento (emails). Podrás cambiarlo luego en Ajustes.
+              </p>
+            </div>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={prevStep}
@@ -360,7 +381,7 @@ export const SetupWizard: React.FC = () => {
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="flex-1 bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 whitespace-nowrap shadow-md hover:shadow-lg"
+                className="flex-1 bg-[#0D9488] text-white p-3 rounded-sm font-bold hover:bg-[#0A6E63] transition flex items-center justify-center gap-2 disabled:opacity-50 whitespace-nowrap shadow-md hover:shadow-lg"
               >
                 {loading ? (
                   <Loader size="sm" variant="white" className="mr-0" />

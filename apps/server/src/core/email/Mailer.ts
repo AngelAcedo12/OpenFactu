@@ -20,7 +20,7 @@ export interface EmailConfig {
   secure: boolean;     // true para 465 (SSL), false para 587 (STARTTLS)
   user: string;
   password: string;
-  fromAddress: string; // "OpenFactu <noreply@empresa.com>"
+  fromAddress: string; // "Keirost <noreply@empresa.com>"
   fromName: string;    // usado si fromAddress no lleva display name
   enabled: boolean;    // flag maestro — si false, las llamadas fallan con error claro
 }
@@ -92,7 +92,13 @@ export interface SendMailInput {
   html?: string;
   cc?: string | string[];
   bcc?: string | string[];
-  attachments?: Array<{ filename: string; content: Buffer; contentType?: string }>;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType?: string;
+    /** Content-ID para embebidos inline vía `<img src="cid:..."/>`. */
+    cid?: string;
+  }>;
 }
 
 export async function sendMail(

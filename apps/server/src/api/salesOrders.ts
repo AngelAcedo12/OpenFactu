@@ -55,8 +55,17 @@ router.get('/', async (req: any, res) => {
 
 // POST new sales order
 router.post('/', async (req: any, res) => {
-  const { seriesId, periodId, partnerId, date, deliveryDate, documentDate, warehouseId, lines } =
-    req.body;
+  const {
+    seriesId,
+    periodId,
+    partnerId,
+    date,
+    deliveryDate,
+    documentDate,
+    warehouseId,
+    internalOrderId,
+    lines,
+  } = req.body;
 
   try {
     const result = await req.tenantClient.transaction(async (tx: any) => {
@@ -87,9 +96,22 @@ router.post('/', async (req: any, res) => {
 
       const orderId = crypto.randomUUID();
       const linesToInsert = lines.map((line: any, index: number) => {
-        const lineSubtotal = Number(line.quantity) * Number(line.price);
+        const qty = Number(line.quantity);
+        const price = Number(line.price);
+        const gross = qty * price;
+        const discountRate = Number(line.discountRate || 0);
+        const discountAmount =
+          line.discountAmount != null
+            ? Number(line.discountAmount)
+            : gross * (discountRate / 100);
+        const lineSubtotal = gross - discountAmount;
         const taxRate = taxRateMap[line.taxGroupId] || 0;
         const lineTax = lineSubtotal * (taxRate / 100);
+        const withholdingRate = Number(line.withholdingRate || 0);
+        const withholdingAmount =
+          line.withholdingAmount != null
+            ? Number(line.withholdingAmount)
+            : lineSubtotal * (withholdingRate / 100);
 
         calculatedSubtotal += lineSubtotal;
         calculatedTaxTotal += lineTax;
@@ -105,13 +127,26 @@ router.post('/', async (req: any, res) => {
           lineNum: index + 1,
           itemId: line.itemId,
           warehouseId: line.warehouseId || warehouseId || null,
-          orderedQty: String(line.quantity),
+          zoneId: line.zoneId || null,
+          orderedQty: String(qty),
           deliveredQty: '0',
-          price: String(line.price),
+          price: String(price),
           uomId: line.uomId || null,
           uomFactor: line.uomFactor ? String(line.uomFactor) : '1.0000',
           taxGroupId: line.taxGroupId || null,
           lineTotal: String(lineSubtotal + lineTax),
+          // Mig 032 — persistimos el desglose fiscal por línea para que el
+          // detalle muestre IVA y el clone a SDN/SINV lo herede.
+          description: line.description || null,
+          discountRate: String(discountRate),
+          discountAmount: String(discountAmount.toFixed(4)),
+          taxRate: String(taxRate),
+          taxAmount: String(lineTax.toFixed(4)),
+          withholdingRate: withholdingRate ? String(withholdingRate) : null,
+          withholdingAmount: withholdingAmount ? String(withholdingAmount.toFixed(4)) : null,
+          costCenterId: line.costCenterId || null,
+          profitCenterId: line.profitCenterId || null,
+          internalOrderId: line.internalOrderId || internalOrderId || null,
         };
       });
 
@@ -131,6 +166,7 @@ router.post('/', async (req: any, res) => {
           billToAddress: req.body.billToAddress || null,
           shipToAddress: req.body.shipToAddress || null,
           warehouseId: warehouseId || null,
+          internalOrderId: internalOrderId || null,
           subtotal: String(calculatedSubtotal.toFixed(4)),
           taxTotal: String(calculatedTaxTotal.toFixed(4)),
           total: String(finalTotal.toFixed(4)),

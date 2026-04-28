@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { GlobalLoader } from '@openfactu/ui';
+import { GlobalLoader, PopupProvider } from '@openfactu/ui';
 import { SetupWizard } from './pages/SetupWizard';
 import { Login } from './pages/Login';
+import { TrackingPage } from './pages/public/TrackingPage';
+import { KioskMode } from './pages/hr/KioskMode';
 import { useAuth } from './context/AuthContext';
 import { MainLayout } from './components/MainLayout';
 import { TabsProvider } from './context/TabsContext';
+import { MobileNavProvider } from './context/MobileNavContext';
+import { ScannerProvider } from './context/ScannerContext';
 import { DebugPanel } from './components/DebugPanel';
 
 function App() {
@@ -35,6 +39,34 @@ function App() {
     };
     checkSetup();
   }, []);
+
+  // Rutas públicas que deben funcionar sin auth ni wizard — `/track/:token`.
+  // El `BrowserRouter` se remonta dentro de cada rama, así que duplicamos el
+  // check aquí para el caso "cargando".
+  const publicPath = window.location.pathname.startsWith('/track/');
+  const kioskPath = window.location.pathname.startsWith('/kiosk');
+
+  if (publicPath) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/track/:token" element={<TrackingPage />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
+  // Modo kiosko: ruta pública sin chrome del ERP. Se autentica con
+  // x-kiosk-token (header) en cada fichaje. No requiere login del ERP.
+  if (kioskPath) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/kiosk" element={<KioskMode />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
 
   if (!setupChecked || authLoading) {
     return (
@@ -75,7 +107,13 @@ function App() {
   return (
     <>
       <TabsProvider>
-        <MainLayout />
+        <MobileNavProvider>
+          <ScannerProvider>
+            <PopupProvider>
+              <MainLayout />
+            </PopupProvider>
+          </ScannerProvider>
+        </MobileNavProvider>
       </TabsProvider>
       <DebugPanel />
     </>

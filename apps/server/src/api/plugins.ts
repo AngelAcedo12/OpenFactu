@@ -167,10 +167,14 @@ router.get('/fields/:tableName?', async (req: any, res) => {
     fields = await publicClient.select().from(schema.pluginFields);
   }
 
-  // Filtrar por plugins activos del tenant
+  // Filtrar: campos de plugin (plugin activo para el tenant) + campos
+  // creados desde la UI (`__user__`) que pertenezcan a este tenant.
   if (req.tenantId) {
     const activeForTenant = TenantPluginCache.getActivePlugins(req.tenantId);
-    fields = fields.filter((f: any) => activeForTenant.includes(f.pluginId));
+    fields = fields.filter((f: any) => {
+      if (f.pluginId === '__user__') return f.tenantId === req.tenantId;
+      return activeForTenant.includes(f.pluginId);
+    });
   }
 
   res.json(fields);

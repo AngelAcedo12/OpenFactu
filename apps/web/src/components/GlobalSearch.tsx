@@ -1,5 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Users, Package, FileStack, Truck, X } from 'lucide-react';
+import {
+  Search,
+  Users,
+  Package,
+  FileStack,
+  Truck,
+  FileDigit,
+  ScrollText,
+  UserRound,
+  Briefcase,
+  BookOpen,
+  X,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTabs } from '../context/TabsContext';
 import { useFormat } from '../hooks/useFormat';
@@ -11,6 +23,24 @@ interface SearchResults {
   purchaseInvoices: DocResult[];
   salesDeliveryNotes: DocResult[];
   purchaseDeliveryNotes: DocResult[];
+  salesOrders: DocResult[];
+  purchaseOrders: DocResult[];
+  journalEntries: {
+    id: string;
+    number: number;
+    date: string;
+    description: string | null;
+    status: string;
+  }[];
+  employees: {
+    id: string;
+    code: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+  }[];
+  internalOrders: { id: string; code: string; name: string; status: string }[];
+  chartOfAccounts: { id: string; code: string; name: string; type: string }[];
   total: number;
 }
 interface DocResult {
@@ -29,6 +59,12 @@ const EMPTY: SearchResults = {
   purchaseInvoices: [],
   salesDeliveryNotes: [],
   purchaseDeliveryNotes: [],
+  salesOrders: [],
+  purchaseOrders: [],
+  journalEntries: [],
+  employees: [],
+  internalOrders: [],
+  chartOfAccounts: [],
   total: 0,
 };
 
@@ -170,6 +206,78 @@ export const GlobalSearch: React.FC = () => {
             id: d.id,
             primary: d.docCode,
             secondary: `${d.partnerName} · ${fmt.money(d.total)}`,
+          })),
+        },
+        {
+          key: 'salesOrders',
+          label: 'Pedidos Venta',
+          icon: FileDigit,
+          route: '/sales-orders',
+          perItemRoute: true,
+          items: results.salesOrders.map((d) => ({
+            id: d.id,
+            primary: d.docCode,
+            secondary: `${d.partnerName} · ${fmt.money(d.total)}`,
+          })),
+        },
+        {
+          key: 'purchaseOrders',
+          label: 'Pedidos Compra',
+          icon: FileDigit,
+          route: '/purchase-orders',
+          perItemRoute: true,
+          items: results.purchaseOrders.map((d) => ({
+            id: d.id,
+            primary: d.docCode,
+            secondary: `${d.partnerName} · ${fmt.money(d.total)}`,
+          })),
+        },
+        {
+          key: 'journalEntries',
+          label: 'Asientos',
+          icon: ScrollText,
+          route: '/journal-entries',
+          perItemRoute: false,
+          items: results.journalEntries.map((j) => ({
+            id: j.id,
+            primary: `Nº ${j.number}`,
+            secondary: j.description || fmt.date(j.date),
+          })),
+        },
+        {
+          key: 'employees',
+          label: 'Empleados',
+          icon: UserRound,
+          route: '/hr/employees',
+          perItemRoute: false,
+          items: results.employees.map((e) => ({
+            id: e.id,
+            primary: `${e.firstName} ${e.lastName}`,
+            secondary: `${e.code}${e.email ? ` · ${e.email}` : ''}`,
+          })),
+        },
+        {
+          key: 'internalOrders',
+          label: 'Proyectos',
+          icon: Briefcase,
+          route: '/internal-orders',
+          perItemRoute: false,
+          items: results.internalOrders.map((p) => ({
+            id: p.id,
+            primary: p.name,
+            secondary: `${p.code} · ${p.status}`,
+          })),
+        },
+        {
+          key: 'chartOfAccounts',
+          label: 'Plan contable',
+          icon: BookOpen,
+          route: '/chart-of-accounts',
+          perItemRoute: false,
+          items: results.chartOfAccounts.map((a) => ({
+            id: a.id,
+            primary: `${a.code} · ${a.name}`,
+            secondary: a.type,
           })),
         },
       ].filter((s) => s.items.length > 0),

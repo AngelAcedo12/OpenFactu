@@ -3,11 +3,14 @@ import { Table, Card, Button, Input, Loader, useToast, Badge, Modal } from '@ope
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Package, Plus, Trash2, Search, Settings2, Boxes, Scale, Tag } from 'lucide-react';
+import { usePluginListColumns } from '../components/plugin-fields';
 import { SearchableSelect } from '@openfactu/ui';
 import { PluginFieldsPanel } from '../components/PluginFieldsPanel';
 import { LabelPrintButton } from '../components/LabelPrintButton';
 import { AttachmentsPanel } from '../components/AttachmentsPanel';
 import { validateBarcode, generateEan13 } from '../utils/barcodeValidation';
+import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
+import { BarcodeScanButton } from '../components/scanner/BarcodeScanButton';
 
 const AlternativeUomsPanel: React.FC<{
   itemId?: string;
@@ -224,31 +227,52 @@ export const Items: React.FC = () => {
   const [categoryId, setCategoryId] = useState('');
   const [basePrice, setBasePrice] = useState('0');
   const [manageBy, setManageBy] = useState('N'); // N: None, B: Batch, S: Serial
+  const [kind, setKind] = useState<'product' | 'box'>('product');
+  const [boxLengthMm, setBoxLengthMm] = useState<string>('');
+  const [boxWidthMm, setBoxWidthMm] = useState<string>('');
+  const [boxHeightMm, setBoxHeightMm] = useState<string>('');
+  const [boxMaxWeightKg, setBoxMaxWeightKg] = useState<string>('');
+  const [boxTareWeightKg, setBoxTareWeightKg] = useState<string>('');
+  const [defaultWarehouseId, setDefaultWarehouseId] = useState('');
+  const [defaultZoneId, setDefaultZoneId] = useState('');
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [customValues, setCustomValues] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'generales' | 'logistica' | 'unidades'>('generales');
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const toast = useToast();
 
+  // Escáner de código de barras (HID externo o cámara desde bottom-nav móvil)
+  useBarcodeScanner(
+    React.useCallback((code: string) => {
+      setSearchTerm(code);
+      toast.success(`Escaneado: ${code}`);
+    }, [toast]),
+  );
+
   const fetchData = async () => {
     setLoading(true);
     try {
       const headers = { Authorization: `Bearer ${token}`, 'x-tenant-id': user?.tenantId || '' };
-      const [iRes, cRes, uRes, zRes] = await Promise.all([
+      const [iRes, cRes, uRes, zRes, wRes] = await Promise.all([
         fetch('/api/items', { headers }),
         fetch('/api/categories', { headers }),
         fetch('/api/uom', { headers }),
         fetch('/api/zones', { headers }),
+        fetch('/api/warehouses', { headers }),
       ]);
       const iData = await iRes.json();
       const cData = await cRes.json();
       const uData = await uRes.json();
       const zData = await zRes.json();
+      const wData = await wRes.json();
 
       setItems(Array.isArray(iData) ? iData : []);
       setCategories(Array.isArray(cData) ? cData : []);
       setUoms(Array.isArray(uData) ? uData : []);
       setZones(Array.isArray(zData) ? zData : []);
+      setWarehouses(Array.isArray(wData) ? wData : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -269,6 +293,20 @@ export const Items: React.FC = () => {
       setCategoryId(selectedItem.categoryId || '');
       setBasePrice(selectedItem.basePrice?.toString() || '0');
       setManageBy(selectedItem.manageBy || 'N');
+      setKind(selectedItem.kind === 'box' ? 'box' : 'product');
+      setBoxLengthMm(selectedItem.boxLengthMm?.toString() || '');
+      setBoxWidthMm(selectedItem.boxWidthMm?.toString() || '');
+      setBoxHeightMm(selectedItem.boxHeightMm?.toString() || '');
+      setBoxMaxWeightKg(selectedItem.boxMaxWeightKg?.toString() || '');
+      setBoxTareWeightKg(selectedItem.boxTareWeightKg?.toString() || '');
+      setDefaultWarehouseId(selectedItem.defaultWarehouseId || '');
+      setDefaultZoneId(selectedItem.defaultZoneId || '');
+      // Extraer los campos custom (`p_*`) del item para pre-rellenar el panel.
+      const custom: Record<string, any> = {};
+      for (const [k, v] of Object.entries(selectedItem)) {
+        if (k.startsWith('p_')) custom[k] = v;
+      }
+      setCustomValues(custom);
       setActiveTab('generales');
     } else {
       setCode('');
@@ -278,6 +316,15 @@ export const Items: React.FC = () => {
       setCategoryId('');
       setBasePrice('0');
       setManageBy('N');
+      setKind('product');
+      setBoxLengthMm('');
+      setBoxWidthMm('');
+      setBoxHeightMm('');
+      setBoxMaxWeightKg('');
+      setBoxTareWeightKg('');
+      setDefaultWarehouseId('');
+      setDefaultZoneId('');
+      setCustomValues({});
     }
   }, [selectedItem]);
 
@@ -314,6 +361,17 @@ export const Items: React.FC = () => {
           categoryId: categoryId || null,
           basePrice: parseFloat(basePrice),
           manageBy,
+          kind,
+          boxLengthMm: kind === 'box' && boxLengthMm ? Number(boxLengthMm) : null,
+          boxWidthMm: kind === 'box' && boxWidthMm ? Number(boxWidthMm) : null,
+          boxHeightMm: kind === 'box' && boxHeightMm ? Number(boxHeightMm) : null,
+          boxMaxWeightKg:
+            kind === 'box' && boxMaxWeightKg ? Number(boxMaxWeightKg) : null,
+          boxTareWeightKg:
+            kind === 'box' && boxTareWeightKg ? Number(boxTareWeightKg) : null,
+          defaultWarehouseId: defaultWarehouseId || null,
+          defaultZoneId: defaultZoneId || null,
+          ...customValues, // campos personalizados p_*
         }),
       });
 
@@ -362,6 +420,8 @@ export const Items: React.FC = () => {
   const columns = [
     {
       header: 'Código / Nombre',
+      sortable: true,
+      sortAccessor: (i: any) => `${i.code} ${i.name}`.toLowerCase(),
       accessor: (i: any) => (
         <div className="flex flex-col">
           <span className="font-black text-blue-600 dark:text-blue-300 text-[10px] uppercase tracking-tighter">
@@ -375,6 +435,8 @@ export const Items: React.FC = () => {
     },
     {
       header: 'UoM',
+      sortable: true,
+      sortAccessor: (i: any) => uoms.find((u) => u.id === i.uomId)?.code || '',
       accessor: (i: any) => {
         const uom = uoms.find((u) => u.id === i.uomId);
         return (
@@ -489,6 +551,14 @@ export const Items: React.FC = () => {
     },
   ];
 
+  // Columnas extra aportadas por campos personalizados. Se insertan ANTES
+  // de la última columna del core (Acciones) para que Acciones quede a la
+  // derecha del todo.
+  const pluginCols = usePluginListColumns('Item');
+  const actionsCol = columns[columns.length - 1];
+  const restCols = columns.slice(0, -1);
+  const allColumns = [...restCols, ...pluginCols, actionsCol];
+
   const handleViewStock = async (item: any) => {
     setSelectedStockItem(item);
     setStockDetailLoading(true);
@@ -505,11 +575,14 @@ export const Items: React.FC = () => {
     }
   };
 
-  const filteredItems = items.filter(
-    (i) =>
-      i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      i.code.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filteredItems = items.filter((i) => {
+    const q = searchTerm.toLowerCase();
+    return (
+      i.name.toLowerCase().includes(q) ||
+      i.code.toLowerCase().includes(q) ||
+      (i.barcode || '').toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="p-4 space-y-8 animate-in fade-in duration-500">
@@ -523,17 +596,22 @@ export const Items: React.FC = () => {
             Gestión de datos maestros de productos y servicios.
           </p>
         </div>
-        <div className="relative group flex gap-4">
+        <div className="relative group flex gap-2 items-center">
           <div className="relative w-full md:w-80">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 dark:text-blue-300 transition-colors"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-accent transition-colors"
             />
             <Input
-              placeholder="Buscar por código o nombre..."
+              placeholder="Buscar por código, nombre o barcode…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-10 w-full shadow-sm"
+              className="pl-10 pr-10 h-10 w-full shadow-sm"
+            />
+            <BarcodeScanButton
+              onScan={(code) => setSearchTerm(code)}
+              className="absolute right-1 top-1/2 -translate-y-1/2 !p-1.5"
+              aria-label="Escanear con cámara"
             />
           </div>
         </div>
@@ -560,7 +638,7 @@ export const Items: React.FC = () => {
               </Button>
             }
           >
-            <Table columns={columns} data={filteredItems} isLoading={loading} />
+            <Table columns={allColumns} data={filteredItems} isLoading={loading} />
           </Card>
         </div>
       </div>
@@ -902,6 +980,111 @@ export const Items: React.FC = () => {
 
             {activeTab === 'logistica' && (
               <div className="space-y-6 animate-in slide-in-from-right-2 duration-200">
+                {/* Tipo de artículo — producto normal o caja de embalaje. Las cajas se
+                    muestran en el selector "Caja" del modal de Paquetes. */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                  <label className="text-[11px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest mb-3 block">
+                    Tipo de artículo
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'product', label: 'Producto', desc: 'Artículo normal de stock' },
+                      { id: 'box', label: 'Caja', desc: 'Embalaje usado en Logística → Paquetes' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setKind(opt.id as 'product' | 'box')}
+                        className={`p-3 rounded-lg border text-left transition-all ${
+                          kind === opt.id
+                            ? 'bg-emerald-600 border-emerald-700 text-white shadow-md'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-400'
+                        }`}
+                      >
+                        <p className="text-xs font-bold leading-none">{opt.label}</p>
+                        <p
+                          className={`text-[10px] mt-1 ${
+                            kind === opt.id
+                              ? 'text-emerald-100'
+                              : 'text-slate-400 dark:text-slate-500 font-medium'
+                          }`}
+                        >
+                          {opt.desc}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+
+                  {kind === 'box' && (
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50 space-y-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Dimensiones de la caja (opcional)
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">
+                            Largo (mm)
+                          </label>
+                          <input
+                            type="number"
+                            value={boxLengthMm}
+                            onChange={(e) => setBoxLengthMm(e.target.value)}
+                            className="w-full h-9 px-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">
+                            Ancho (mm)
+                          </label>
+                          <input
+                            type="number"
+                            value={boxWidthMm}
+                            onChange={(e) => setBoxWidthMm(e.target.value)}
+                            className="w-full h-9 px-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">
+                            Alto (mm)
+                          </label>
+                          <input
+                            type="number"
+                            value={boxHeightMm}
+                            onChange={(e) => setBoxHeightMm(e.target.value)}
+                            className="w-full h-9 px-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">
+                            Peso máx. (kg)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={boxMaxWeightKg}
+                            onChange={(e) => setBoxMaxWeightKg(e.target.value)}
+                            className="w-full h-9 px-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">
+                            Tara (kg)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={boxTareWeightKg}
+                            onChange={(e) => setBoxTareWeightKg(e.target.value)}
+                            className="w-full h-9 px-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50">
                   <label className="text-[11px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest mb-4 block">
                     Trazabilidad Obligatoria
@@ -939,6 +1122,61 @@ export const Items: React.FC = () => {
                     ))}
                   </div>
                 </div>
+
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                  <label className="text-[11px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest mb-3 block">
+                    Ubicación por defecto
+                  </label>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-4">
+                    Cuando selecciones este artículo en un pedido o albarán se rellenará automáticamente su almacén y ubicación. Puedes cambiarlo por línea.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
+                        Almacén
+                      </label>
+                      <select
+                        value={defaultWarehouseId}
+                        onChange={(e) => {
+                          setDefaultWarehouseId(e.target.value);
+                          // Si la zona guardada no pertenece al nuevo almacén, limpiarla
+                          const stillValid = zones.find(
+                            (z: any) => z.id === defaultZoneId && z.warehouseId === e.target.value,
+                          );
+                          if (!stillValid) setDefaultZoneId('');
+                        }}
+                        className="w-full h-10 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold px-3 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                      >
+                        <option value="">(Sin almacén)</option>
+                        {warehouses.map((w: any) => (
+                          <option key={w.id} value={w.id}>
+                            {w.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
+                        Ubicación / Bin
+                      </label>
+                      <select
+                        value={defaultZoneId}
+                        onChange={(e) => setDefaultZoneId(e.target.value)}
+                        disabled={!defaultWarehouseId}
+                        className="w-full h-10 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold px-3 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 disabled:opacity-50"
+                      >
+                        <option value="">(Sin ubicación)</option>
+                        {zones
+                          .filter((z: any) => !defaultWarehouseId || z.warehouseId === defaultWarehouseId)
+                          .map((z: any) => (
+                            <option key={z.id} value={z.id}>
+                              {z.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -951,6 +1189,14 @@ export const Items: React.FC = () => {
                 tenantId={user?.tenantId || ''}
               />
             )}
+
+            <PluginFieldsPanel
+              tableName="Item"
+              values={customValues}
+              onChange={(k, v) => setCustomValues((prev) => ({ ...prev, [k]: v }))}
+              layout="inline"
+              title="Campos personalizados"
+            />
 
             {selectedItem?.id && (
               <div className="mt-4">

@@ -26,12 +26,36 @@ router.get('/', async (req: any, res) => {
         basePrice: schema.items.basePrice,
         stock: schema.items.stock,
         manageBy: schema.items.manageBy,
+        defaultWarehouseId: schema.items.defaultWarehouseId,
+        defaultZoneId: schema.items.defaultZoneId,
         committed: sql`(SELECT COALESCE(SUM("quantity" - "deliveredQty"), 0) FROM "SalesOrderLine" WHERE "itemId" = ${schema.items.id})`,
         ordered: sql`(SELECT COALESCE(SUM("quantity" - "receivedQty"), 0) FROM "PurchaseOrderLine" WHERE "itemId" = ${schema.items.id})`,
       })
       .from(schema.items)
       .leftJoin(schema.unitsOfMeasure, eq(schema.items.uomId, schema.unitsOfMeasure.id))
       .orderBy(desc(schema.items.createdAt));
+
+    // Los campos custom `p_*` no los proyecta Drizzle. Lee el resto en raw
+    // y mergéalo por id para que el frontend reciba todos los valores.
+    try {
+      const schemaName = req.tenantSchema || req.tenant?.schemaName;
+      if (schemaName && rows.length > 0) {
+        const r: any = await req.tenantClient.execute(
+          sql.raw(`SELECT * FROM "${schemaName}"."Item"`),
+        );
+        const byId: Record<string, Record<string, any>> = {};
+        for (const row of r.rows || []) {
+          const pc: Record<string, any> = {};
+          for (const [k, v] of Object.entries(row)) {
+            if (k.startsWith('p_')) pc[k] = v;
+          }
+          byId[(row as any).id] = pc;
+        }
+        for (const item of rows) Object.assign(item as any, byId[(item as any).id] || {});
+      }
+    } catch {
+      /* tolerante */
+    }
 
     // Permitir a plugins inyectar/mutar filas
     const hookCtx = {
@@ -89,11 +113,17 @@ router.post('/', async (req: any, res) => {
     if (req.body.manageBy && !['N', 'B', 'S'].includes(req.body.manageBy))
       return res.status(400).json({ error: 'Gestión inválida.' });
 
+    // Separar los campos custom (`p_*`) — Drizzle no los conoce, así que
+    // los metemos con un UPDATE crudo después del INSERT.
+    const { customCols, coreBody } = splitCustomCols(req.body);
+
     const id = crypto.randomUUID();
     const [item] = await req.tenantClient
       .insert(schema.items)
-      .values({ ...req.body, code, id, basePrice: (basePrice ?? 0).toString() })
+      .values({ ...coreBody, code, id, basePrice: (basePrice ?? 0).toString() })
       .returning();
+
+    await applyCustomCols(req, id, customCols);
 
     res.json(item);
 
@@ -111,6 +141,42 @@ router.post('/', async (req: any, res) => {
   }
 });
 
+/** Separa claves `p_*` del body. */
+function splitCustomCols(body: any) {
+  const coreBody: Record<string, any> = {};
+  const customCols: Record<string, any> = {};
+  for (const [k, v] of Object.entries(body || {})) {
+    if (k.startsWith('p_')) customCols[k] = v;
+    else coreBody[k] = v;
+  }
+  return { coreBody, customCols };
+}
+
+/** UPDATE crudo de columnas `p_*` por id. */
+async function applyCustomCols(req: any, id: string, custom: Record<string, any>) {
+  const keys = Object.keys(custom);
+  if (keys.length === 0) return;
+  const schemaName = req.tenantSchema || req.tenant?.schemaName;
+  if (!schemaName) return;
+  const { sql } = await import('drizzle-orm');
+  const sets = keys.map((k) => {
+    const v = custom[k];
+    if (v === null || v === undefined) return `"${k}" = NULL`;
+    if (typeof v === 'number') return `"${k}" = ${v}`;
+    if (typeof v === 'boolean') return `"${k}" = ${v ? 'TRUE' : 'FALSE'}`;
+    if (typeof v === 'object') {
+      const json = JSON.stringify(v).replace(/'/g, "''");
+      return `"${k}" = '${json}'::jsonb`;
+    }
+    return `"${k}" = '${String(v).replace(/'/g, "''")}'`;
+  });
+  await req.tenantClient.execute(
+    sql.raw(
+      `UPDATE "${schemaName}"."Item" SET ${sets.join(', ')} WHERE "id" = '${String(id).replace(/'/g, "''")}'`,
+    ),
+  );
+}
+
 /**
  * PATCH /api/items/:id
  */
@@ -122,11 +188,15 @@ router.patch('/:id', async (req: any, res) => {
       .from(schema.items)
       .where(eq(schema.items.id, id));
 
+    const { coreBody, customCols } = splitCustomCols(req.body);
+
     const [item] = await req.tenantClient
       .update(schema.items)
-      .set({ ...req.body, updatedAt: new Date() })
+      .set({ ...coreBody, updatedAt: new Date() })
       .where(eq(schema.items.id, id))
       .returning();
+
+    await applyCustomCols(req, id, customCols);
 
     res.json(item);
 

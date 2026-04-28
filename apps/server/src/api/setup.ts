@@ -3,6 +3,7 @@ import { ClientFactory } from '../core/tenant/ClientFactory';
 import { SchemaManager } from '../core/tenant/SchemaManager';
 import { AuthService } from '../core/auth/AuthService';
 import { setCompanyConfig } from '../core/config/companyConfig';
+import { setConfigSection } from '../core/config/systemConfigSection';
 import * as schema from '../db/schema';
 import { eq } from 'drizzle-orm';
 import fs from 'fs';
@@ -191,6 +192,32 @@ router.post('/init', async (req, res) => {
         currency: company.currency || 'EUR',
         fiscalYearStart: company.fiscalYearStart || '01-01',
       });
+
+      // URL pública para los enlaces de emails (tracking, etc.). Si el
+      // instalador la pasó explícitamente, la respetamos; si no, usamos el
+      // Origin del navegador del admin como mejor aproximación.
+      const publicBaseUrl =
+        (company.publicBaseUrl as string | undefined)?.trim() ||
+        (req.headers.origin as string | undefined)?.trim() ||
+        '';
+      if (publicBaseUrl) {
+        await setConfigSection(
+          tenantDb,
+          'app',
+          { publicBaseUrl: '' },
+          { publicBaseUrl: publicBaseUrl.replace(/\/$/, '') },
+        );
+      }
+
+      // Seed de tipos de documento fiscales según país (F1/F2/R1 en ES,
+      // 33/34/61 en CL, I/E/T en MX...). Idempotente.
+      const { seedDocumentTypesForCountry } = await import('../core/documents/seedDocumentTypes');
+      const count = await seedDocumentTypesForCountry(tenantDb, company.country || 'ES');
+      if (count > 0) {
+        console.log(
+          `[Setup] Sembrados ${count} tipos de documento para ${company.country || 'ES'}`,
+        );
+      }
     } catch (err: any) {
       console.warn('[Setup] No se pudieron sembrar datos de empresa en SystemConfig:', err.message);
     }

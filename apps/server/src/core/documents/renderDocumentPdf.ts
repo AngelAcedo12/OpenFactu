@@ -77,6 +77,21 @@ export async function renderDocumentPdf(
         },
       };
       finalHtml = buildVisualTemplate(docType, finalOpts);
+    } else if ((payload as any).doc?.paymentStatus === 'paid') {
+      // Si la factura está totalmente pagada, marca de agua "PAGADA" en verde.
+      finalOpts = {
+        ...baseOpts,
+        watermark: {
+          ...baseOpts.watermark,
+          enabled: true,
+          text: 'PAGADA',
+          color: '#16A34A',
+          opacity: 0.18,
+          rotation: -25,
+          fontSize: 140,
+        },
+      };
+      finalHtml = buildVisualTemplate(docType, finalOpts);
     }
   } catch (err: any) {
     console.warn(
@@ -85,8 +100,27 @@ export async function renderDocumentPdf(
     );
   }
 
-  // 5. Renderizar
+  // 4.b Toggle local `showInternalOrder` (extensión propia, no parte del
+  // paquete @openfactu/pdf). Cuando está activo y el documento tiene
+  // proyecto asociado, lo inyectamos como customField "Proyecto" para que
+  // se renderice junto al resto de campos custom de cabecera.
+  if ((finalOpts as any).showInternalOrder) {
+    const io = (payload.doc as any).internalOrder;
+    if (io && io.code) {
+      const docAny = payload.doc as any;
+      docAny.customFields = {
+        ...(docAny.customFields || {}),
+        Proyecto: `${io.code}${io.name ? ' — ' + io.name : ''}`,
+      };
+    }
+  }
+
+  // 5. Renderizar — añade pageFooter con QR+Code-128+hash si la plantilla
+  // tiene showDocQr / showDocBarcode activos.
   const renderOptions = PdfRenderer.renderOptionsFromVisual(finalOpts);
+  if (finalOpts.showDocQr || finalOpts.showDocBarcode) {
+    renderOptions.pageFooter = PdfRenderer.pageFooterFromPayload(payload, finalOpts.footer.text);
+  }
   const buffer = await PdfRenderer.render(finalHtml, payload, renderOptions);
 
   // 4. Responder

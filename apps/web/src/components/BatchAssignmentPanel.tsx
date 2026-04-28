@@ -10,8 +10,11 @@ import {
   AlertCircle,
   Barcode,
   Package,
+  Camera,
+  Zap,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { BarcodeCameraModal } from './scanner/BarcodeCameraModal';
 
 export interface BatchDetail {
   batchNum: string;
@@ -94,6 +97,7 @@ export const BatchAssignmentPanel: React.FC<Props> = ({
   const [draftBatch, setDraftBatch] = useState('');
   const [draftQty, setDraftQty] = useState<string>('');
   const [draftExpiry, setDraftExpiry] = useState('');
+  const [cameraOpen, setCameraOpen] = useState(false);
   const draftInputRef = useRef<HTMLInputElement>(null);
   const [autoAdvance, setAutoAdvance] = useState(true);
 
@@ -606,15 +610,22 @@ export const BatchAssignmentPanel: React.FC<Props> = ({
                     : `${manageBy === 'S' ? 'Series' : 'Lotes'} existentes`}
                 </p>
                 {isSale && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
+                    type="button"
                     onClick={autoFillRemaining}
-                    className="h-6 px-2 text-[9px] font-black uppercase tracking-wider text-primary hover:bg-primary/10"
                     disabled={isBalanced}
+                    title="Asigna automáticamente en orden FIFO hasta completar la cantidad pendiente"
+                    className={cn(
+                      'inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg',
+                      'text-[10px] font-black uppercase tracking-[0.15em] transition-all',
+                      isBalanced
+                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                        : 'bg-primary text-white shadow-sm hover:shadow-md hover:brightness-110 active:scale-[0.98]',
+                    )}
                   >
+                    <Zap size={11} className={isBalanced ? '' : 'animate-pulse'} />
                     Auto FIFO
-                  </Button>
+                  </button>
                 )}
               </div>
 
@@ -630,7 +641,7 @@ export const BatchAssignmentPanel: React.FC<Props> = ({
                     placeholder={`Buscar ${manageBy === 'S' ? 'serie' : 'lote'}...`}
                     value={leftSearch}
                     onChange={(e) => setLeftSearch(e.target.value)}
-                    className="w-full h-8 pl-7 pr-2 text-xs bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    className="w-full h-8 pl-7 pr-2.5 text-xs bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-shadow"
                   />
                 </div>
               </div>
@@ -650,7 +661,7 @@ export const BatchAssignmentPanel: React.FC<Props> = ({
                           ? 'S0001 o S0001,S0002 o S0001-S0010...'
                           : 'L-001 o L-001,L-002...'
                       }
-                      className="flex-1 min-w-0 h-8 px-2 text-[11px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-primary"
+                      className="flex-1 min-w-0 h-8 px-2.5 text-[11px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-shadow"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
@@ -665,7 +676,7 @@ export const BatchAssignmentPanel: React.FC<Props> = ({
                           value={draftQty}
                           onChange={(e) => setDraftQty(e.target.value)}
                           placeholder="Cant."
-                          className="w-16 h-8 px-1.5 text-[11px] text-right font-bold tabular-nums bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-primary"
+                          className="w-16 h-8 px-2 text-[11px] text-right font-bold tabular-nums bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-shadow"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
@@ -677,15 +688,23 @@ export const BatchAssignmentPanel: React.FC<Props> = ({
                           type="date"
                           value={draftExpiry}
                           onChange={(e) => setDraftExpiry(e.target.value)}
-                          className="w-32 h-8 px-1.5 text-[10px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-primary"
+                          className="w-32 h-8 px-2 text-[10px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-shadow"
                         />
                       </>
                     )}
                     <button
                       type="button"
+                      onClick={() => setCameraOpen(true)}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:shadow-sm active:scale-[0.96] transition-all shrink-0"
+                      title="Escanear con cámara"
+                    >
+                      <Camera size={14} />
+                    </button>
+                    <button
+                      type="button"
                       onClick={addDraft}
                       disabled={!draftBatch.trim() || (manageBy === 'B' && !draftQty)}
-                      className="h-8 w-8 flex items-center justify-center rounded-md bg-primary text-primary-fg hover:bg-primary-hover disabled:opacity-40 disabled:pointer-events-none transition-colors shrink-0"
+                      className="h-8 w-8 flex items-center justify-center rounded-lg bg-primary text-white shadow-sm hover:shadow-md hover:brightness-110 active:scale-[0.96] disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none transition-all shrink-0"
                       title="Añadir nuevo (Enter)"
                     >
                       <Plus size={14} />
@@ -693,7 +712,8 @@ export const BatchAssignmentPanel: React.FC<Props> = ({
                   </div>
                   <p className="text-[9px] text-slate-400 dark:text-slate-500 italic px-1 leading-tight">
                     Pega con <kbd className="font-mono">,</kbd> <kbd className="font-mono">;</kbd> o
-                    saltos de línea · rangos tipo <kbd className="font-mono">S0001-S0010</kbd>
+                    saltos de línea · rangos tipo <kbd className="font-mono">S0001-S0010</kbd> · usa{' '}
+                    <kbd className="font-mono">📷</kbd> para escanear con cámara o un lector USB
                   </p>
                 </div>
               )}
@@ -827,7 +847,7 @@ export const BatchAssignmentPanel: React.FC<Props> = ({
                     onChange={(e) => {
                       if (e.target.value) setZoneForAll(e.target.value);
                     }}
-                    className="flex-1 h-7 px-2 text-[11px] font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-primary"
+                    className="flex-1 h-7 px-2.5 text-[11px] font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-shadow"
                   >
                     <option value="">— aplicar a todas las filas —</option>
                     {availableZones.map((z) => (
@@ -971,6 +991,20 @@ export const BatchAssignmentPanel: React.FC<Props> = ({
           </div>
         </div>
       </div>
+
+      <BarcodeCameraModal
+        open={cameraOpen}
+        continuous
+        onClose={() => {
+          setCameraOpen(false);
+          setTimeout(() => draftInputRef.current?.focus(), 50);
+        }}
+        onScan={(code) => {
+          // Cada lectura se añade inmediatamente (no bloquea el modal — escáner
+          // continuo). Separamos con coma para que `parseBatchInput` lo tokenice.
+          setDraftBatch((prev) => (prev ? `${prev.trim()},${code}` : code));
+        }}
+      />
     </Modal>
   );
 };

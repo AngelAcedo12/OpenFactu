@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTabs } from '../../context/TabsContext';
 import { Card, Button, Input, useToast, SearchableSelect, cn } from '@openfactu/ui';
 import { ArrowLeft, Save, PanelRightOpen, PanelRightClose, LayoutTemplate } from 'lucide-react';
 import {
@@ -32,6 +33,7 @@ interface Props {
 export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, token, tenantId }) => {
   const toast = useToast();
   const navigate = useNavigate();
+  const { openTab } = useTabs();
   const initialMeta = template?.html ? parseMeta(template.html) : null;
   const isNewTemplate = !template;
   // Si la plantilla fue diseñada con el canvas designer (legacyHtml === false),
@@ -148,7 +150,7 @@ export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, toke
   const openDesigner = async () => {
     // Si ya existe, navegación directa.
     if (template?.id) {
-      navigate(`/document-templates/${template.id}/designer`);
+      openTab(`/document-templates/${template.id}/designer`);
       return;
     }
     // Si es una plantilla nueva, la creamos ahora mismo para tener un id y
@@ -174,7 +176,7 @@ export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, toke
       });
       if (!res.ok) throw new Error('No se pudo crear la plantilla');
       const { id } = (await res.json()) as { id: string };
-      navigate(`/document-templates/${id}/designer`);
+      openTab(`/document-templates/${id}/designer`);
     } catch (e: any) {
       toast.error(e.message || 'No se pudo abrir el diseñador');
     } finally {
@@ -272,7 +274,7 @@ export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, toke
           type="button"
           disabled={saving}
           onClick={openDesigner}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-3 py-2 rounded-xs text-xs font-bold bg-accent text-white hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shadow-accent/20"
           title={
             template?.id
               ? 'Abrir diseñador drag-and-drop a pantalla completa'

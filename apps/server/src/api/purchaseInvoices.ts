@@ -4,6 +4,11 @@ import * as schema from '../db/schema';
 import { DocumentEngine } from '../core/documents/DocumentEngine';
 import { renderDocumentPdf } from '../core/documents/renderDocumentPdf';
 import { logAudit } from '../utils/audit';
+import {
+  buildPaymentDueLines,
+  computeWithholding,
+  latestDueDate,
+} from '../core/documents/invoiceLock';
 
 const router = Router();
 
@@ -20,6 +25,10 @@ router.get('/', async (req: any, res) => {
         partnerId: schema.purchaseInvoices.partnerId,
         total: schema.purchaseInvoices.total,
         status: schema.purchaseInvoices.status,
+        paymentStatus: schema.purchaseInvoices.paymentStatus,
+        amountPaid: schema.purchaseInvoices.amountPaid,
+        isLocked: schema.purchaseInvoices.isLocked,
+        dueDate: schema.purchaseInvoices.dueDate,
         baseDocCode: sql<string | null>`(
         SELECT COALESCE(ds."prefix", '') || '-' || COALESCE(ap."code", '') || '-' || LPAD(pdn."docNum"::text, 6, '0')
         FROM "PurchaseDeliveryNote" pdn
@@ -154,7 +163,7 @@ router.post('/', async (req: any, res) => {
   }
 });
 
-// POST — asienta un borrador (D → O)
+// POST — asienta un borrador (D → O) y lockea la factura
 router.post('/:id/post', async (req: any, res) => {
   try {
     const [header] = await req.tenantClient
@@ -165,12 +174,61 @@ router.post('/:id/post', async (req: any, res) => {
     if (header.status !== 'D')
       return res.status(400).json({ error: 'Solo se pueden asentar facturas en estado Borrador.' });
 
+    let paymentDueLines: Array<{ date: string; amount: number }> = [];
+    let dueDate: string | null = header.dueDate || null;
+    if (header.paymentTermId) {
+      const [term] = await req.tenantClient
+        .select()
+        .from(schema.paymentTerms)
+        .where(eq(schema.paymentTerms.id, header.paymentTermId));
+      if (term && Array.isArray(term.lines) && term.lines.length > 0) {
+        paymentDueLines = buildPaymentDueLines(
+          new Date(header.date),
+          term.lines as Array<{ days: number; percentage: number }>,
+          Number(header.total),
+        );
+        dueDate = latestDueDate(paymentDueLines) || dueDate;
+      }
+    }
+
+    const withholdingAmount = computeWithholding(Number(header.subtotal), header.withholdingRate);
+
     await req.tenantClient
       .update(schema.purchaseInvoices)
-      .set({ status: 'O' })
+      .set({
+        status: 'O',
+        isLocked: true,
+        lockedAt: new Date(),
+        paymentDueLines,
+        dueDate,
+        withholdingAmount: withholdingAmount != null ? String(withholdingAmount) : null,
+      })
       .where(eq(schema.purchaseInvoices.id, req.params.id));
 
-    res.json({ success: true });
+    // Generación automática de asiento (best-effort).
+    let journalEntryId: string | null = null;
+    try {
+      const { JournalEngine } = await import('../core/accounting/JournalEngine');
+      const fresh = { ...header, isLocked: true };
+      const invoiceLines = await req.tenantClient
+        .select()
+        .from(schema.purchaseInvoiceLines)
+        .where(eq(schema.purchaseInvoiceLines.invoiceId, req.params.id));
+      const result = await JournalEngine.createFromPurchaseInvoice(
+        req.tenantClient,
+        fresh,
+        invoiceLines,
+        req.user?.id,
+      );
+      if (result) {
+        await JournalEngine.post(req.tenantClient, result.id, req.user?.id);
+        journalEntryId = result.id;
+      }
+    } catch (je: any) {
+      console.warn('[PurchaseInvoice post] No se pudo generar asiento:', je.message);
+    }
+
+    res.json({ success: true, isLocked: true, paymentDueLines, dueDate, journalEntryId });
     logAudit({
       tenantClient: req.tenantClient,
       tenantId: req.tenantId || '',
@@ -178,8 +236,8 @@ router.post('/:id/post', async (req: any, res) => {
       entityType: 'PurchaseInvoice',
       entityId: req.params.id,
       action: 'UPDATE',
-      oldValue: { status: 'D' },
-      newValue: { status: 'O' },
+      oldValue: { status: 'D', isLocked: false },
+      newValue: { status: 'O', isLocked: true, lockedAt: new Date() },
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

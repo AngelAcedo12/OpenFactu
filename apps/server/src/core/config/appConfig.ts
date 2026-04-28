@@ -20,13 +20,33 @@ export interface FlagsConfig {
   watermarkDraft: boolean;
   confirmBeforeCancel: boolean;
   enforceWarehouseZones: boolean;
+  /** Dónde se captura el almacén en documentos con movimiento de stock.
+   *  `'header'` — un almacén único para todo el documento (default).
+   *  `'line'` — cada línea lleva su almacén + ubicación. */
+  warehouseLocation: 'header' | 'line';
+  /** Activa el módulo de logística / seguimiento de envíos y rutas.
+   *  Cuando está false, nada del menú de logística aparece. */
+  logisticsEnabled: boolean;
+  /** Modo "sólo logística" — oculta ventas, compras, contabilidad, RRHH y
+   *  analítica. Útil para clientes que nos contratan únicamente la logística
+   *  sin el resto del ERP. */
+  logisticsOnly: boolean;
+  /** Sub-módulos de RRHH avanzado. Cada uno es independiente y desbloquea
+   *  un menú/ruta distinta sobre el módulo HR base. */
+  hrShiftsEnabled: boolean;
+  hrTimeclockEnabled: boolean;
+  hrIncidentsEnabled: boolean;
+  hrPlanningEnabled: boolean;
+  /** RRHH avanzado+ : convenios, evaluaciones, comisiones, rendimiento,
+   *  coste laboral, tareas y Gantt. */
+  hrAdvancedEnabled: boolean;
 }
 
 export const BRANDING_DEFAULTS: BrandingConfig = {
-  colorPrimary: '#2563eb',
-  colorAccent: '#10b981',
+  colorPrimary: '#0A1628',
+  colorAccent: '#0D9488',
   logoUrl: '',
-  appName: 'OpenFactu',
+  appName: 'Keirost',
   fontFamily: 'sans',
   themeMode: 'light',
 };
@@ -44,6 +64,28 @@ export const FLAGS_DEFAULTS: FlagsConfig = {
   watermarkDraft: true,
   confirmBeforeCancel: true,
   enforceWarehouseZones: false,
+  warehouseLocation: 'header',
+  logisticsEnabled: false,
+  logisticsOnly: false,
+  hrShiftsEnabled: false,
+  hrTimeclockEnabled: false,
+  hrIncidentsEnabled: false,
+  hrPlanningEnabled: false,
+  hrAdvancedEnabled: false,
 };
 
-export type ConfigSectionName = 'branding' | 'format' | 'flags';
+/**
+ * Ajustes del despliegue de la app (URL pública, etc.). Se fija en el
+ * SetupWizard y es editable desde Ajustes → Empresa.
+ */
+export interface AppConfig {
+  /** URL base pública desde la que los clientes finales abrirán enlaces
+   *  (emails de tracking, webhooks externos, etc.). */
+  publicBaseUrl: string;
+}
+
+export const APP_DEFAULTS: AppConfig = {
+  publicBaseUrl: '',
+};
+
+export type ConfigSectionName = 'branding' | 'format' | 'flags' | 'app';

@@ -1,63 +1,98 @@
-# OpenFactu
+# Keirost ERP
 
-ERP de facturacion open source. Multi-tenant, extensible con plugins, desplegable con Docker en Windows, Mac y Linux.
+> **Keirost** es un ERP open-source construido sobre el motor **OpenFactu**.
+>
+> - **Keirost** → la experiencia de producto (marca, UI, módulos operativos).
+> - **OpenFactu** → el núcleo técnico: runtime, plugin SDK, librerías `@openfactu/*`, CLI de despliegue. Es el framework sobre el que puedes construir tu propio ERP si no quieres la marca Keirost.
 
-## Instalacion rapida
+Multi-tenant, extensible con plugins, desplegable con Docker en Windows, macOS y Linux.
+
+## Instalación rápida
 
 ```bash
 # 1. Instalar el CLI
 npm i -g @openfactu/cli
 
-# 2. Descargar OpenFactu (te deja elegir la version)
+# 2. Descargar Keirost (el CLI te deja elegir versión)
 openfactu install
 
 # 3. Desplegar
-cd openfactu
+cd keirost
 openfactu deploy
 ```
 
-Eso es todo. El CLI descarga la release, levanta Docker y configura todo.
+El CLI descarga la release, levanta Docker y configura todo.
 
-## Que incluye
+## Qué incluye
 
-- **Facturacion completa** -- Pedidos, albaranes, facturas (ventas y compras)
-- **Multi-empresa** -- Cada empresa tiene su esquema de BD aislado
-- **Inventario** -- Almacenes, zonas, lotes, series, stock por ubicacion
-- **Partners** -- Clientes y proveedores con grupos, direcciones, listas de precios
-- **Impuestos** -- IVA configurable por grupo fiscal
-- **Plantillas PDF** -- Documentos personalizables con HTML/Handlebars
-- **Plugins** -- Sistema de extensiones activables por empresa
-- **API REST** -- CRUD completo para todas las entidades
-- **FactuAPI** -- API programatica con transacciones atomicas e IDs pre-asignados
-- **Dark mode** -- Interfaz con soporte completo para modo oscuro
-- **Audit log** -- Registro de todos los cambios
+| Área | Detalles |
+|------|----------|
+| **Facturación** | Pedidos, albaranes, facturas (ventas y compras), series, periodos |
+| **Inventario** | Almacenes, zonas, lotes, series, stock por ubicación |
+| **Partners** | Clientes y proveedores con grupos, direcciones, tarifas |
+| **Impuestos** | IVA configurable por grupo fiscal, desglose por factura |
+| **Plantillas PDF** | Documentos personalizables con HTML+Handlebars y editor visual (drag & drop) |
+| **Trazabilidad** | Lotes/series embebidos en PDFs + QR de verificación + Code-128 + hash SHA-256 del documento |
+| **Escáner** | Soporte HID (USB/Bluetooth) y cámara (ZXing) — lee código → busca artículo → añade línea |
+| **Plugins** | Extensiones activables por empresa, con SDK (`@openfactu/plugin-sdk`) |
+| **API REST** | CRUD completo + FactuAPI (transacciones atómicas, IDs pre-asignados) |
+| **Temas** | 9 presets visuales (Keirost Classic, Midnight, Carbon, Deep Ocean, Forest, Plum, Nebula…). Plugins pueden aportar los suyos. |
+| **Mobile** | UI adaptable con drawer + bottom nav + botón central para escáner |
+| **Audit log** | Registro inmutable de cambios por tenant |
 
 ## Stack
 
-| Capa | Tecnologia |
+| Capa | Tecnología |
 |------|------------|
 | Frontend | React 19, Tailwind CSS, Vite |
 | Backend | Express, TypeScript, Drizzle ORM |
-| Base de datos | PostgreSQL 15 |
+| Base de datos | PostgreSQL 15 (schema por tenant) |
+| PDF | Puppeteer + Handlebars (`@openfactu/pdf`) |
+| Escáner cámara | `@zxing/browser` |
 | Infra | Docker, Docker Compose |
 | CLI | Commander.js, Inquirer |
+
+## Arquitectura: Keirost sobre OpenFactu
+
+```
+┌───────────────────────────────────────────────┐
+│  Keirost ERP — aplicación visible             │
+│  (marca, módulos operativos, plantillas PDF)  │
+└───────────────────────────────────────────────┘
+                      │
+                      ▼
+┌───────────────────────────────────────────────┐
+│  OpenFactu — motor open-source                │
+│  @openfactu/ui      componentes compartidos   │
+│  @openfactu/common  hooks + modelos           │
+│  @openfactu/pdf     renderer PDF + plantillas │
+│  @openfactu/plugin-sdk  SDK de extensiones    │
+│  @openfactu/cli     instalador + despliegue   │
+└───────────────────────────────────────────────┘
+```
+
+Esto permite:
+
+- Consumir OpenFactu directamente como framework para levantar tu propio ERP con otra marca.
+- Plugins portables entre instancias Keirost y forks basados en OpenFactu.
+- Publicar piezas técnicas de forma independiente (bump semver de `@openfactu/pdf` sin tocar Keirost).
 
 ## Estructura del monorepo
 
 ```
 apps/
-  server/          API REST + logica de negocio
-  web/             Frontend React
+  server/          API REST + lógica de negocio
+  web/             Frontend React (Keirost)
 
-packages/
-  cli/             CLI (@openfactu/cli)
-  ui/              Componentes UI compartidos
-  common/          Hooks y utilidades React
-  pdf/             Generacion de PDFs
-  sdk/             SDK para integraciones externas
-  plugin-sdk/      SDK para desarrollo de plugins
+plugins/           Plugins instalados localmente
 
-plugins/           Plugins instalados
+# Paquetes npm externos (repos propios en la org OpenFactu):
+#   @openfactu/ui
+#   @openfactu/common
+#   @openfactu/pdf
+#   @openfactu/plugin-sdk
+#   @openfactu/cli
+#   @openfactu/sdk
 ```
 
 ## CLI
@@ -66,12 +101,12 @@ plugins/           Plugins instalados
 npm i -g @openfactu/cli
 ```
 
-| Comando | Descripcion |
+| Comando | Descripción |
 |---------|-------------|
 | `openfactu install` | Descarga e instala (elige release de GitHub) |
 | `openfactu deploy` | Configura acceso externo (LAN / internet) |
 | `openfactu deploy:status` | Estado de los contenedores |
-| `openfactu setup` | Configuracion inicial de BD |
+| `openfactu setup` | Configuración inicial de BD |
 | `openfactu migrate` | Ejecuta migraciones pendientes |
 | `openfactu migrate:status` | Estado de migraciones por tenant |
 | `openfactu tenant list` | Lista empresas |
@@ -89,11 +124,22 @@ npm install
 npm run dev:all
 ```
 
-Esto levanta PostgreSQL en Docker y arranca server + web en modo desarrollo.
+Levanta PostgreSQL en Docker y arranca server + web en modo desarrollo.
+
+### Trabajar en los paquetes `@openfactu/*`
+
+Los paquetes externos viven en repos propios clonados junto al monorepo (p.ej. `../openfactu_package/pdf`). Para desarrollar sin publicar cada vez:
+
+```bash
+rm -rf node_modules/@openfactu/pdf
+ln -s /ruta/a/openfactu_package/pdf node_modules/@openfactu/pdf
+```
+
+El server ya vigila cambios en `node_modules/@openfactu/pdf/dist` vía `ts-node-dev --watch`.
 
 ## Plugins
 
-Los plugins se instalan en la carpeta `/plugins/` y se activan/desactivan por empresa desde la interfaz web (Gestor de Plugins) o via API:
+Se instalan en `/plugins/` y se activan/desactivan por empresa desde la UI (Gestor de Plugins) o vía API:
 
 ```
 POST /api/plugins/{pluginId}/activate
@@ -101,12 +147,11 @@ POST /api/plugins/{pluginId}/deactivate
 GET  /api/plugins/available
 ```
 
-Crear un plugin:
+Crear un plugin mínimo:
 
 ```typescript
 // plugins/mi-plugin/index.ts
 export const init = async ({ hooks, migration, factuApi }) => {
-  // Añadir campo a la BD
   await migration.addCustomField({
     pluginId: 'mi-plugin',
     tableName: 'BusinessPartner',
@@ -115,12 +160,13 @@ export const init = async ({ hooks, migration, factuApi }) => {
     label: 'Puntos de fidelidad',
   });
 
-  // Hook antes de crear factura
   hooks.register('salesInvoice.beforeCreate', async (ctx) => {
-    // tu logica
+    // tu lógica
   });
 };
 ```
+
+Los plugins también pueden aportar módulos/sub-tabs, temas visuales y widgets de dashboard vía el manifest `ui`.
 
 ## Licencia
 

@@ -1,15 +1,18 @@
 import React from 'react';
-import { Barcode, Plus, Trash2, Copy as CopyIcon, Tag } from 'lucide-react';
+import { Barcode, Plus, Trash2, Copy as CopyIcon, Tag, Layers3, Package, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button, Input, SearchableSelect } from '@openfactu/ui';
 import type { TableColumn } from '@openfactu/ui';
 import { DocKind, DocSide, DocStatus } from '@openfactu/common';
 import { LabelPrintButton } from './LabelPrintButton';
+import { PluginFieldInput, PluginFieldValue } from './plugin-fields';
 
 export type { DocKind, DocSide } from '@openfactu/common';
 
 interface Masters {
   items: any[];
   taxGroups?: any[];
+  warehouses?: any[];
+  internalOrders?: any[];
 }
 
 interface BuilderOpts {
@@ -22,6 +25,32 @@ interface BuilderOpts {
     money: (v: number | string | null | undefined) => string;
     number: (v: number | string | null | undefined, precision?: number) => string;
   };
+  /** Campos de plugin renderizados como columnas read-only al final. */
+  pluginLineFields?: Array<{
+    id: string;
+    fieldName: string;
+    fieldType:
+      | 'TEXT'
+      | 'INTEGER'
+      | 'DECIMAL'
+      | 'BOOLEAN'
+      | 'DATE'
+      | 'JSONB'
+      | 'ENUM'
+      | 'MULTISELECT'
+      | 'CURRENCY'
+      | 'PERCENT'
+      | 'URL'
+      | 'EMAIL'
+      | 'PHONE'
+      | 'COLOR'
+      | 'REFERENCE'
+      | 'FILE';
+    label: string;
+    options?: Array<{ value: string; label: string }> | null;
+    required?: boolean;
+    readOnly?: boolean;
+  }>;
 }
 
 const cellBase = 'tabular-nums';
@@ -65,7 +94,14 @@ function BatchBadge({
 }) {
   const count = line.batchDetails?.length ?? 0;
   if (count === 0) return null;
-  const label = item?.manageBy === 'S' ? 'SERIES' : 'LOTES';
+  const label = item?.manageBy === 'S' ? 'Series' : 'Lotes';
+  const IconLead = item?.manageBy === 'S' ? Layers3 : Package;
+  const required = Number(line.quantity || 0);
+  const assigned = (line.batchDetails ?? []).reduce(
+    (acc: number, b: any) => acc + (item?.manageBy === 'S' ? 1 : Number(b.quantity || 0)),
+    0,
+  );
+  const balanced = required > 0 && Math.abs(required - assigned) < 0.0001;
   return (
     <button
       type="button"
@@ -73,10 +109,21 @@ function BatchBadge({
         e.stopPropagation();
         onViewBatch?.(line);
       }}
-      className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-500/20 text-[9px] font-black uppercase tracking-wider hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors shrink-0"
+      title={`${label}: ${assigned} de ${required}`}
+      className={`ml-auto inline-flex items-center gap-1.5 h-7 pl-2 pr-1 rounded-lg border text-[10px] font-black uppercase tracking-[0.1em] transition-all hover:shadow-sm active:scale-[0.97] shrink-0 ${
+        balanced
+          ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'
+          : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/30 hover:bg-indigo-100 dark:hover:bg-indigo-500/20'
+      }`}
     >
-      <Barcode size={10} />
-      {label} ({count})
+      <IconLead size={12} className="shrink-0" />
+      <span>{label}</span>
+      <span className="inline-flex items-center gap-0.5 font-mono tabular-nums bg-white/70 dark:bg-black/30 rounded-md px-1.5 py-0.5 text-[10px] shadow-inner">
+        {item?.manageBy === 'S' ? count : assigned.toFixed(0)}
+        <span className="opacity-50">/</span>
+        {required.toFixed(0)}
+      </span>
+      {balanced && <CheckCircle2 size={12} className="shrink-0 ml-0.5" />}
     </button>
   );
 }
@@ -210,6 +257,40 @@ export function buildDetailLineColumns(opts: BuilderOpts): TableColumn<any>[] {
     },
   });
 
+  // Proyecto (read-only)
+  if ((masters.internalOrders?.length ?? 0) > 0) {
+    columns.push({
+      header: 'Proyecto',
+      width: '12%',
+      align: 'left',
+      cell: (l: any) => {
+        if (!l.internalOrderId) return <span className="text-slate-300 dark:text-slate-600">—</span>;
+        const p = masters.internalOrders?.find((x: any) => x.id === l.internalOrderId);
+        if (!p) return <span className="font-mono text-[11px]">{l.internalOrderId.slice(0, 8)}…</span>;
+        return (
+          <div className="flex flex-col leading-tight">
+            <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400">
+              {p.code}
+            </span>
+            <span className="text-xs text-slate-700 dark:text-slate-200 truncate">{p.name}</span>
+          </div>
+        );
+      },
+    });
+  }
+
+  // Columnas read-only de plugins — delegan en PluginFieldValue.
+  for (const f of opts.pluginLineFields ?? []) {
+    columns.push({
+      header: f.label || f.fieldName.replace(/^p_/, ''),
+      width: '12%',
+      align: 'left',
+      cell: (l: any) => (
+        <PluginFieldValue def={f as any} value={l[f.fieldName]} fmt={fmt as any} />
+      ),
+    });
+  }
+
   // Acciones por línea: imprimir etiqueta del artículo. El modal se abre con
   // params.itemId precargado a partir de la línea y muestra las plantillas
   // FREE disponibles para que el usuario elija una.
@@ -260,6 +341,35 @@ interface FormBuilderOpts {
   fmt: BuilderOpts['fmt'];
   /** Getter cacheado de UoMs disponibles por itemId (hook useItemUoms) */
   getItemUoms?: (itemId: string) => AvailableUom[];
+  /** Si 'line' añade columnas Almacén + Ubicación por línea en todos los kinds. */
+  warehouseLocation?: 'header' | 'line';
+  /** Campos de plugin que se pintan como columnas extra al final. Cada
+   *  definición trae `fieldName` con prefijo `p_`. */
+  pluginLineFields?: Array<{
+    id: string;
+    fieldName: string;
+    fieldType:
+      | 'TEXT'
+      | 'INTEGER'
+      | 'DECIMAL'
+      | 'BOOLEAN'
+      | 'DATE'
+      | 'JSONB'
+      | 'ENUM'
+      | 'MULTISELECT'
+      | 'CURRENCY'
+      | 'PERCENT'
+      | 'URL'
+      | 'EMAIL'
+      | 'PHONE'
+      | 'COLOR'
+      | 'REFERENCE'
+      | 'FILE';
+    label: string;
+    options?: Array<{ value: string; label: string }> | null;
+    required?: boolean;
+    readOnly?: boolean;
+  }>;
 }
 
 const disabledInputCls =
@@ -302,26 +412,63 @@ function FormArticleCell({
         placeholder="Seleccionar artículo..."
         className={locked ? 'opacity-60' : ''}
       />
-      {needsTrace && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            // En formulario siempre abrimos el panel de asignación para poder editar.
-            onAssignBatch?.(idx);
-          }}
-          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider transition-colors ${
-            hasTrace
-              ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border-indigo-100 dark:border-indigo-500/20 hover:bg-indigo-100 dark:hover:bg-indigo-500/20'
-              : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-500/20 hover:bg-amber-100 dark:hover:bg-amber-500/20'
-          }`}
-        >
-          {hasTrace ? <Barcode size={10} /> : <Plus size={10} />}
-          {hasTrace
-            ? `${item?.manageBy === 'S' ? 'SERIES' : 'LOTES'} (${count})`
-            : 'ASIGNAR TRAZABILIDAD'}
-        </button>
-      )}
+      {needsTrace &&
+        (() => {
+          const required = Number(line.quantity || 0);
+          const assigned = (line.batchDetails ?? []).reduce(
+            (acc: number, b: any) =>
+              acc + (item?.manageBy === 'S' ? 1 : Number(b.quantity || 0)),
+            0,
+          );
+          const balanced = required > 0 && Math.abs(required - assigned) < 0.0001;
+          const partial = hasTrace && !balanced;
+          const tone = balanced
+            ? 'emerald'
+            : partial
+              ? 'amber'
+              : hasTrace
+                ? 'indigo'
+                : 'amber';
+          const toneCls: Record<string, string> = {
+            emerald:
+              'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-100 dark:hover:bg-emerald-500/20',
+            amber:
+              'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-500/20',
+            indigo:
+              'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/30 hover:bg-indigo-100 dark:hover:bg-indigo-500/20',
+          };
+          const IconLead = item?.manageBy === 'S' ? Layers3 : Package;
+          const IconTrail = balanced ? CheckCircle2 : partial ? AlertTriangle : Plus;
+          const label = item?.manageBy === 'S' ? 'Series' : 'Lotes';
+          return (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAssignBatch?.(idx);
+              }}
+              title={
+                hasTrace
+                  ? `${label}: ${assigned} de ${required}`
+                  : 'Asignar trazabilidad a esta línea'
+              }
+              className={`group inline-flex items-center gap-1.5 h-7 pl-2 pr-1 rounded-lg border text-[10px] font-black uppercase tracking-[0.1em] transition-all hover:shadow-sm active:scale-[0.97] ${toneCls[tone]}`}
+            >
+              <IconLead size={12} className="shrink-0" />
+              <span>{label}</span>
+              {hasTrace ? (
+                <span className="inline-flex items-center gap-0.5 font-mono tabular-nums bg-white/70 dark:bg-black/30 rounded-md px-1.5 py-0.5 text-[10px] shadow-inner">
+                  {item?.manageBy === 'S' ? count : assigned.toFixed(0)}
+                  <span className="opacity-50">/</span>
+                  {required.toFixed(item?.manageBy === 'S' ? 0 : 0)}
+                </span>
+              ) : (
+                <span className="font-mono opacity-70">pendiente</span>
+              )}
+              <IconTrail size={12} className="shrink-0 ml-0.5" />
+            </button>
+          );
+        })()}
       {locked && hasTrace && (
         <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase italic leading-none tracking-wider">
           Vinculado al albarán origen
@@ -343,6 +490,11 @@ function ZoneSelectCell({
   actions: FormBuilderOpts['actions'];
 }) {
   const locked = !!line.baseId;
+  // Filtrar por el almacén de la línea; si la línea no tiene warehouse,
+  // mostramos todas (el prefiltrado ya se hace por header en modo 'header').
+  const filtered = line.warehouseId
+    ? (zones ?? []).filter((z: any) => z.warehouseId === line.warehouseId)
+    : zones ?? [];
   return (
     <select
       value={line.zoneId || ''}
@@ -351,7 +503,7 @@ function ZoneSelectCell({
       className={`h-9 w-full max-w-[160px] border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-left px-2 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 ${locked ? disabledInputCls : ''}`}
     >
       <option value="">(Sin Ubicación)</option>
-      {(zones ?? []).map((z: any) => (
+      {filtered.map((z: any) => (
         <option key={z.id} value={z.id}>
           {z.name}
         </option>
@@ -371,13 +523,17 @@ export function buildFormLineColumns(opts: FormBuilderOpts): TableColumn<any>[] 
     onDuplicateLine,
     fmt,
     getItemUoms,
+    warehouseLocation,
   } = opts;
+
+  const perLineWarehouse = warehouseLocation === 'line';
+  const showZoneCol = kind === 'deliveryNote' || perLineWarehouse;
 
   const columns: TableColumn<any>[] = [];
 
   columns.push({
     header: 'Artículo',
-    width: kind === 'deliveryNote' ? '36%' : '44%',
+    width: kind === 'deliveryNote' || perLineWarehouse ? '30%' : '44%',
     cell: (line: any, idx: number) => (
       <FormArticleCell
         line={line}
@@ -391,7 +547,33 @@ export function buildFormLineColumns(opts: FormBuilderOpts): TableColumn<any>[] 
     ),
   });
 
-  if (kind === 'deliveryNote') {
+  if (perLineWarehouse) {
+    columns.push({
+      header: 'Almacén',
+      width: '14%',
+      align: 'center',
+      cell: (line: any, idx: number) => {
+        const locked = !!line.baseId;
+        return (
+          <select
+            value={line.warehouseId || ''}
+            disabled={locked}
+            onChange={(e) => actions.updateLine(idx, 'warehouseId', e.target.value)}
+            className={`h-9 w-full max-w-[160px] border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-left px-2 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 ${locked ? disabledInputCls : ''}`}
+          >
+            <option value="">(Sin almacén)</option>
+            {(masters.warehouses ?? []).map((w: any) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+        );
+      },
+    });
+  }
+
+  if (showZoneCol) {
     columns.push({
       header: 'Ubicación',
       width: '14%',
@@ -404,8 +586,8 @@ export function buildFormLineColumns(opts: FormBuilderOpts): TableColumn<any>[] 
 
   columns.push({
     header: 'Cantidad',
-    width: '16%',
-    align: 'center',
+    width: '18%',
+    align: 'right',
     cell: (line: any, idx: number) => {
       const locked = !!line.baseId;
       const displayValue =
@@ -436,7 +618,7 @@ export function buildFormLineColumns(opts: FormBuilderOpts): TableColumn<any>[] 
       };
 
       return (
-        <div className="flex items-center justify-center gap-1">
+        <div className="flex items-center justify-end gap-1.5 w-full">
           <Input
             type="text"
             inputMode="decimal"
@@ -445,14 +627,14 @@ export function buildFormLineColumns(opts: FormBuilderOpts): TableColumn<any>[] 
             onFocus={(e) => e.target.select()}
             onChange={(e) => actions.updateLine(idx, 'quantity', e.target.value)}
             placeholder="0"
-            className={`w-16 text-center font-bold tabular-nums h-9 ${locked ? disabledInputCls : ''}`}
+            className={`flex-1 min-w-0 text-right font-bold tabular-nums h-9 ${locked ? disabledInputCls : ''}`}
           />
           {hasAlternatives ? (
             <select
               value={currentUomId}
               disabled={locked}
               onChange={(e) => handleUomChange(e.target.value)}
-              className={`h-9 max-w-[72px] border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 px-1 ${locked ? disabledInputCls : ''}`}
+              className={`h-9 w-[70px] shrink-0 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 px-1 ${locked ? disabledInputCls : ''}`}
               title="Unidad de medida"
             >
               {availUoms.map((u) => (
@@ -462,7 +644,7 @@ export function buildFormLineColumns(opts: FormBuilderOpts): TableColumn<any>[] 
               ))}
             </select>
           ) : uomCode ? (
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0 min-w-[22px]">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0 w-[46px] text-left">
               {uomCode}
             </span>
           ) : null}
@@ -473,11 +655,20 @@ export function buildFormLineColumns(opts: FormBuilderOpts): TableColumn<any>[] 
 
   columns.push({
     header: 'Precio',
-    width: '12%',
+    width: '14%',
     align: 'right',
     cell: (line: any, idx: number) => {
       const locked = !!line.baseId;
-      const displayValue = line.price == null || Number(line.price) === 0 ? '' : String(line.price);
+      // Evita mostrar "200.0000" para un 200: recortar ceros a la derecha
+      // dejando como mínimo 2 decimales si los tiene.
+      const formatPriceForEdit = (v: any): string => {
+        if (v == null || v === '' || Number(v) === 0) return '';
+        const num = Number(v);
+        if (!Number.isFinite(num)) return String(v);
+        const s = num.toFixed(4).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
+        return s;
+      };
+      const displayValue = formatPriceForEdit(line.price);
       return (
         <Input
           type="text"
@@ -487,7 +678,7 @@ export function buildFormLineColumns(opts: FormBuilderOpts): TableColumn<any>[] 
           onFocus={(e) => e.target.select()}
           onChange={(e) => actions.updateLine(idx, 'price', e.target.value)}
           placeholder="0,00"
-          className={`w-24 text-right font-medium tabular-nums h-9 ${locked ? disabledInputCls : ''}`}
+          className={`w-full text-right font-medium tabular-nums h-9 ${locked ? disabledInputCls : ''}`}
         />
       );
     },
@@ -504,7 +695,7 @@ export function buildFormLineColumns(opts: FormBuilderOpts): TableColumn<any>[] 
           value={line.taxGroupId || ''}
           disabled={locked}
           onChange={(e) => actions.updateLine(idx, 'taxGroupId', e.target.value)}
-          className={`h-9 w-20 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-center bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 ${locked ? disabledInputCls : ''}`}
+          className={`h-9 w-full border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-center bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-2 ${locked ? disabledInputCls : ''}`}
         >
           <option value="">0%</option>
           {(masters.taxGroups ?? []).map((t: any) => (
@@ -535,6 +726,59 @@ export function buildFormLineColumns(opts: FormBuilderOpts): TableColumn<any>[] 
       );
     },
   });
+
+  // Proyecto — campo nativo `internalOrderId` de la línea. Siempre
+  // disponible si hay proyectos activos cargados en `masters`.
+  if ((masters.internalOrders?.length ?? 0) > 0) {
+    columns.push({
+      header: 'Proyecto',
+      width: '12%',
+      align: 'left',
+      cell: (line: any, idx: number) => {
+        const locked = !!line.baseId;
+        return (
+          <select
+            value={line.internalOrderId || ''}
+            disabled={locked}
+            onChange={(e) =>
+              actions.updateLine(idx, 'internalOrderId', e.target.value || null)
+            }
+            className={`h-9 w-full border border-slate-200 dark:border-slate-700 rounded-lg text-xs px-2 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 ${locked ? disabledInputCls : ''}`}
+          >
+            <option value="">—</option>
+            {(masters.internalOrders ?? [])
+              .filter((p: any) => p.status === 'open' || p.id === line.internalOrderId)
+              .map((p: any) => (
+                <option key={p.id} value={p.id}>
+                  {p.code} · {p.name}
+                </option>
+              ))}
+          </select>
+        );
+      },
+    });
+  }
+
+  // Columnas extra aportadas por plugins. Delegamos en `PluginFieldInput`
+  // para tener un único switch de tipos en toda la app.
+  for (const f of opts.pluginLineFields ?? []) {
+    columns.push({
+      header: (f.label || f.fieldName.replace(/^p_/, '')) + (f.required ? ' *' : ''),
+      width: '12%',
+      align: 'left',
+      cell: (line: any, idx: number) => {
+        const locked = !!line.baseId;
+        return (
+          <PluginFieldInput
+            def={f as any}
+            value={line[f.fieldName]}
+            disabled={locked}
+            onChange={(v) => actions.updateLine(idx, f.fieldName, v)}
+          />
+        );
+      },
+    });
+  }
 
   columns.push({
     header: '',

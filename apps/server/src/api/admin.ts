@@ -14,6 +14,8 @@ import * as schema from '../db/schema';
 import { ClientFactory } from '../core/tenant/ClientFactory';
 import { TenantBackup } from '../core/tenant/TenantBackup';
 import { ErpDataExporter } from '../core/export/ErpDataExporter';
+import { MigrationManager } from '../core/tenant/MigrationManager';
+import { seedAccountingDefaults } from '../core/accounting/seedAccountingDefaults';
 
 const router = Router();
 const upload = multer({
@@ -114,6 +116,34 @@ router.get('/tenants/:id/export-data', async (req: any, res) => {
   } catch (e: any) {
     console.error('[Admin.exportData] error:', e?.stack || e);
     res.status(500).json({ error: e?.message || 'Error al exportar datos' });
+  }
+});
+
+/**
+ * POST /api/admin/seed-accounting — siembra plan contable mínimo (PGC
+ * abreviado) + mapeos de cuenta por defecto. Idempotente. Pensado para
+ * que un usuario no contable pueda probar la contabilidad en un clic.
+ */
+router.post('/seed-accounting', async (req: any, res) => {
+  try {
+    const result = await seedAccountingDefaults(req.tenantClient);
+    res.json({ ok: true, ...result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/migrate — fuerza `MigrationManager.syncAllTenants()` sin
+ * reiniciar el servidor. Útil tras pullear migrations nuevas o añadir
+ * columnas en schema.ts sin poder reiniciar el proceso.
+ */
+router.post('/migrate', async (_req: any, res) => {
+  try {
+    await MigrationManager.syncAllTenants();
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 

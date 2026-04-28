@@ -3,12 +3,36 @@ import * as schema from '../../db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 
+/** Opción para campos tipo `ENUM`. Se acepta un string simple (valor=etiqueta)
+ *  o un objeto con {value, label}. */
+export type EnumOption = string | { value: string; label: string };
+
 interface CustomFieldRequest {
   pluginId: string;
   tableName: string;
   fieldName: string;
-  type: 'TEXT' | 'INTEGER' | 'DECIMAL' | 'BOOLEAN' | 'JSONB'; // Cambiado fieldType a type por consistencia
+  type:
+    | 'TEXT'
+    | 'INTEGER'
+    | 'DECIMAL'
+    | 'BOOLEAN'
+    | 'DATE'
+    | 'JSONB'
+    | 'ENUM'
+    | 'MULTISELECT'
+    | 'CURRENCY'
+    | 'PERCENT'
+    | 'URL'
+    | 'EMAIL'
+    | 'PHONE'
+    | 'COLOR'
+    | 'REFERENCE'
+    | 'FILE';
   label: string;
+  /** Solo para `ENUM`/`MULTISELECT`: lista de valores permitidos. */
+  options?: EnumOption[];
+  /** Si `true`, el documento no se puede guardar sin valor para este campo. */
+  required?: boolean;
 }
 
 interface PluginColumn {
@@ -126,15 +150,31 @@ export class MigrationEngine {
         ),
       );
 
+    const normalizedOptions =
+      request.type === 'ENUM' && request.options
+        ? request.options.map((o) =>
+            typeof o === 'string' ? { value: o, label: o } : { value: o.value, label: o.label },
+          )
+        : null;
+
     if (!existing) {
       await db.insert(schema.pluginFields).values({
         id: crypto.randomUUID(),
         pluginId: request.pluginId,
         tableName: request.tableName,
         fieldName: prefixedFieldName,
-        fieldType: request.type, // Cambiado de fieldType a type
+        fieldType: request.type,
         label: request.label,
+        options: normalizedOptions,
+        required: !!request.required,
       });
+    } else {
+      // En cada activación refrescamos options y required para que el
+      // plugin pueda cambiarlos sin tocar los datos ya guardados.
+      await db
+        .update(schema.pluginFields)
+        .set({ options: normalizedOptions, required: !!request.required })
+        .where(eq(schema.pluginFields.id, existing.id));
     }
 
     const tenantsList = await db.select().from(schema.tenants);
@@ -235,9 +275,20 @@ export class MigrationEngine {
     const sqlTypes: Record<string, string> = {
       TEXT: 'TEXT',
       INTEGER: 'INTEGER',
-      DECIMAL: 'DECIMAL(10,2)',
+      DECIMAL: 'DECIMAL(15,4)',
       BOOLEAN: 'BOOLEAN',
+      DATE: 'TIMESTAMP',
       JSONB: 'JSONB',
+      ENUM: 'TEXT',
+      MULTISELECT: 'JSONB', // array de strings
+      CURRENCY: 'DECIMAL(15,4)',
+      PERCENT: 'DECIMAL(10,4)',
+      URL: 'TEXT',
+      EMAIL: 'TEXT',
+      PHONE: 'TEXT',
+      COLOR: 'TEXT',
+      REFERENCE: 'TEXT', // UUID de la entidad referenciada
+      FILE: 'TEXT', // id / path del adjunto
     };
 
     const sqlType = sqlTypes[field.type];

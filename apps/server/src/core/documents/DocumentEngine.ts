@@ -59,6 +59,7 @@ export class DocumentEngine {
       def.eventPrefix.charAt(0).toUpperCase() + def.eventPrefix.slice(1),
       request,
       tenantId,
+      user?.role,
     );
 
     const result = await db.transaction(async (tx: any) => {
@@ -77,14 +78,49 @@ export class DocumentEngine {
         return acc;
       }, {});
 
+      // Helper para aplicar discount a nivel línea (explícito o por rate)
+      const computeLineAmounts = (line: any): {
+        bruto: number;
+        discount: number;
+        neto: number;
+        taxRate: number;
+        taxAmount: number;
+        withholding: number;
+      } => {
+        const bruto = Number(line.quantity || 0) * Number(line.price || 0);
+        const discRate = Number(line.discountRate || 0);
+        const discAmt = Number(line.discountAmount || 0);
+        const discount = discAmt > 0 ? discAmt : (bruto * discRate) / 100;
+        const neto = bruto - discount;
+        const taxRate = line.taxRate != null
+          ? Number(line.taxRate)
+          : taxRateMap[line.taxGroupId] || 0;
+        const taxAmount = (neto * taxRate) / 100;
+        const whAmt = Number(line.withholdingAmount || 0);
+        const whRate = Number(line.withholdingRate || 0);
+        const withholding = whAmt > 0 ? whAmt : (neto * whRate) / 100;
+        return { bruto, discount, neto, taxRate, taxAmount, withholding };
+      };
+
       let preliminarySubtotal = 0;
       let preliminaryTaxTotal = 0;
+      let preliminaryWithholding = 0;
       for (const line of request.lines) {
-        const lineSubtotal = Number(line.quantity || 0) * Number(line.price || 0);
-        const taxRate = taxRateMap[line.taxGroupId] || 0;
-        preliminarySubtotal += lineSubtotal;
-        preliminaryTaxTotal += (lineSubtotal * taxRate) / 100;
+        const a = computeLineAmounts(line);
+        preliminarySubtotal += a.neto;
+        preliminaryTaxTotal += a.taxAmount;
+        preliminaryWithholding += a.withholding;
       }
+      // Retención a nivel documento: si se especifica a nivel cabecera, gana
+      // sobre las de línea para no doblar.
+      const docWhRate = Number((request as any).withholdingRate || 0);
+      const docWhAmt = Number((request as any).withholdingAmount || 0);
+      const docWithholding =
+        docWhAmt > 0
+          ? docWhAmt
+          : docWhRate > 0
+            ? (preliminarySubtotal * docWhRate) / 100
+            : preliminaryWithholding;
 
       // 4. Hook Before Create
       await HookManager.trigger(`${def.eventPrefix}.beforeCreate`, {
@@ -95,7 +131,8 @@ export class DocumentEngine {
           docNum,
           subtotal: preliminarySubtotal,
           taxTotal: preliminaryTaxTotal,
-          total: preliminarySubtotal + preliminaryTaxTotal,
+          withholdingAmount: docWithholding,
+          total: preliminarySubtotal + preliminaryTaxTotal - docWithholding,
         },
         user,
       });
@@ -134,6 +171,19 @@ export class DocumentEngine {
         headerValues.warehouseId = request.warehouseId || null;
       }
 
+      // Proyecto en cabecera (las líneas heredan si no traen propio).
+      if (def.schemaTable.internalOrderId) {
+        headerValues.internalOrderId = (request as any).internalOrderId || null;
+      }
+
+      // Comercial atribuido (para comisiones).
+      if ((def.schemaTable as any).salesAgentId !== undefined) {
+        headerValues.salesAgentId = (request as any).salesAgentId || null;
+      }
+
+      const creatorUserId = user?.id || null;
+      if (creatorUserId) headerValues.createdBy = creatorUserId;
+
       await tx.insert(def.schemaTable).values(headerValues);
 
       // 5. Procesar Líneas
@@ -158,9 +208,10 @@ export class DocumentEngine {
           }
         }
 
-        const lineSubtotal = Number(line.quantity) * Number(line.price);
-        const taxRate = taxRateMap[line.taxGroupId] || 0;
-        const lineTax = lineSubtotal * (taxRate / 100);
+        const amounts = computeLineAmounts(line);
+        const lineSubtotal = amounts.neto; // base imponible con descuento aplicado
+        const taxRate = amounts.taxRate;
+        const lineTax = amounts.taxAmount;
 
         calculatedSubtotal += lineSubtotal;
         calculatedTaxTotal += lineTax;
@@ -172,7 +223,8 @@ export class DocumentEngine {
 
         const lineId = crypto.randomUUID();
 
-        // Insertar Línea
+        // Insertar Línea — incluye los campos de descuento/tax/retención
+        // persistidos (se usan en el PDF y en re-cálculos posteriores).
         const lineValues: any = {
           id: lineId,
           lineNum: i + 1,
@@ -180,9 +232,21 @@ export class DocumentEngine {
           quantity: String(line.quantity),
           price: String(line.price),
           taxGroupId: line.taxGroupId || null,
-          lineTotal: String(lineSubtotal + lineTax),
+          lineTotal: String((lineSubtotal + lineTax).toFixed(4)),
           uomId: line.uomId || null,
           uomFactor: line.uomFactor ? String(line.uomFactor) : '1.0000',
+          description: (line as any).description || null,
+          discountRate: String(Number((line as any).discountRate || 0)),
+          discountAmount: String(amounts.discount.toFixed(4)),
+          taxRate: String(taxRate),
+          taxAmount: String(lineTax.toFixed(4)),
+          withholdingRate: (line as any).withholdingRate != null
+            ? String(Number((line as any).withholdingRate))
+            : null,
+          withholdingAmount: amounts.withholding > 0
+            ? String(amounts.withholding.toFixed(4))
+            : null,
+          projectId: (line as any).projectId || null,
         };
 
         // Mapear el ID de cabecera según la tabla
@@ -199,9 +263,43 @@ export class DocumentEngine {
 
         if (def.lineSchemaTable.warehouseId)
           lineValues.warehouseId = line.warehouseId || request.warehouseId || null;
+        if (def.lineSchemaTable.zoneId && (line as any).zoneId)
+          lineValues.zoneId = (line as any).zoneId;
+        if (def.lineSchemaTable.internalOrderId) {
+          // Si la línea no trae proyecto, hereda el de la cabecera.
+          lineValues.internalOrderId =
+            (line as any).internalOrderId || (request as any).internalOrderId || null;
+        }
+        if (def.lineSchemaTable.costCenterId && (line as any).costCenterId)
+          lineValues.costCenterId = (line as any).costCenterId;
+        if (def.lineSchemaTable.profitCenterId && (line as any).profitCenterId)
+          lineValues.profitCenterId = (line as any).profitCenterId;
         if (line.baseType) lineValues.baseType = line.baseType;
         if (line.baseId) lineValues.baseId = line.baseId;
         if (line.baseLine) lineValues.baseLine = line.baseLine;
+
+        // Campos custom de plugins a nivel de línea. Se persisten como
+        // columnas físicas con prefijo `p_` creadas vía
+        // `MigrationEngine.addCustomField`. El tableName esperado por
+        // `validateAndExtract` es el nombre PG real (PascalCase singular).
+        const LINE_TABLE_BY_DEF: Record<string, string> = {
+          salesOrders: 'SalesOrderLine',
+          salesDeliveryNotes: 'SalesDeliveryNoteLine',
+          salesInvoices: 'SalesInvoiceLine',
+          purchaseOrders: 'PurchaseOrderLine',
+          purchaseDeliveryNotes: 'PurchaseDeliveryNoteLine',
+          purchaseInvoices: 'PurchaseInvoiceLine',
+        };
+        const pgLineTable = LINE_TABLE_BY_DEF[def.tableName];
+        if (pgLineTable) {
+          const linePluginFields = await PluginFieldManager.validateAndExtract(
+            pgLineTable,
+            line,
+            tenantId,
+            user?.role,
+          );
+          Object.assign(lineValues, linePluginFields);
+        }
 
         await tx.insert(def.lineSchemaTable).values(lineValues);
 
@@ -219,16 +317,37 @@ export class DocumentEngine {
         }
       }
 
-      // 7. Actualizar Totales Finales
-      const finalTotal = calculatedSubtotal + calculatedTaxTotal;
+      // 7. Actualizar Totales Finales — resta la retención del documento
+      const finalTotal = calculatedSubtotal + calculatedTaxTotal - docWithholding;
+      const updatePayload: any = {
+        subtotal: String(calculatedSubtotal.toFixed(4)),
+        taxTotal: String(calculatedTaxTotal.toFixed(4)),
+        total: String(finalTotal.toFixed(4)),
+        taxBreakdown: JSON.stringify(breakdownMap),
+      };
+      // Campos fiscales/pago sólo si la tabla los tiene (facturas sí, pedidos/albaranes no)
+      if ((def.schemaTable as any).withholdingRate !== undefined) {
+        updatePayload.withholdingRate = docWhRate > 0 ? String(docWhRate) : null;
+        updatePayload.withholdingAmount = docWithholding > 0
+          ? String(docWithholding.toFixed(4))
+          : null;
+      }
+      if ((def.schemaTable as any).documentTypeId !== undefined) {
+        if ((request as any).documentTypeId) updatePayload.documentTypeId = (request as any).documentTypeId;
+        if ((request as any).paymentMethodId) updatePayload.paymentMethodId = (request as any).paymentMethodId;
+        if ((request as any).paymentTermId) updatePayload.paymentTermId = (request as any).paymentTermId;
+        if ((request as any).currencyId) updatePayload.currencyId = (request as any).currencyId;
+        if ((request as any).dueDate) updatePayload.dueDate = (request as any).dueDate;
+        if ((request as any).supplyDate) updatePayload.supplyDate = (request as any).supplyDate;
+        if ((request as any).notes != null) updatePayload.notes = (request as any).notes;
+        if ((request as any).internalNotes != null) updatePayload.internalNotes = (request as any).internalNotes;
+        if ((request as any).rectifyRef) updatePayload.rectifyRef = (request as any).rectifyRef;
+        if ((request as any).rectifyReason) updatePayload.rectifyReason = (request as any).rectifyReason;
+        if ((request as any).rectifyType) updatePayload.rectifyType = (request as any).rectifyType;
+      }
       await tx
         .update(def.schemaTable)
-        .set({
-          subtotal: String(calculatedSubtotal.toFixed(4)),
-          taxTotal: String(calculatedTaxTotal.toFixed(4)),
-          total: String(finalTotal.toFixed(4)),
-          taxBreakdown: JSON.stringify(breakdownMap),
-        })
+        .set(updatePayload)
         .where(eq(def.schemaTable.id, documentId));
 
       // 8. Cierre de documentos base (si aplica)

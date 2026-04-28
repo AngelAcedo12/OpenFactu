@@ -6,6 +6,7 @@ import { logAudit } from '../utils/audit';
 import { ClientFactory } from '../core/tenant/ClientFactory';
 import { validateTaxId } from '@openfactu/common';
 import { HookManager } from '../core/plugins/HookManager';
+import { validateIban, normalizeIban } from '../utils/ibanValidation';
 
 const router = Router();
 
@@ -76,6 +77,13 @@ router.post('/', async (req: any, res) => {
     // Validación de NIF según país
     const taxErr = await checkTaxId(restBody.nif, restBody.countryCode);
     if (taxErr) return res.status(400).json({ error: taxErr });
+
+    // Validación de IBAN si se informa
+    if (restBody.iban) {
+      const ibanCheck = validateIban(restBody.iban);
+      if (!ibanCheck.ok) return res.status(400).json({ error: `IBAN inválido: ${ibanCheck.reason}` });
+      restBody.iban = normalizeIban(restBody.iban);
+    }
 
     let finalCode = code;
 
@@ -167,6 +175,14 @@ router.patch('/:id', async (req: any, res) => {
     const effectiveNif = restBody.nif !== undefined ? restBody.nif : oldPartner?.nif;
     const taxErr = await checkTaxId(effectiveNif, effectiveCountry);
     if (taxErr) return res.status(400).json({ error: taxErr });
+
+    // Validación de IBAN si se informa
+    if (restBody.iban) {
+      const ibanCheck = validateIban(restBody.iban);
+      if (!ibanCheck.ok) return res.status(400).json({ error: `IBAN inválido: ${ibanCheck.reason}` });
+      restBody.iban = normalizeIban(restBody.iban);
+    }
+
     const sanitizedBody = Object.keys(restBody).reduce((acc: any, key) => {
       acc[key] = restBody[key] === '' ? null : restBody[key];
       return acc;

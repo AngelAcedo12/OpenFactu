@@ -13,6 +13,7 @@ import {
 import { useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTabs, useCurrentTab } from '../context/TabsContext';
+import { useTheme } from '../context/ThemeContext';
 import {
   Truck,
   Plus,
@@ -27,8 +28,15 @@ import {
   Download,
 } from 'lucide-react';
 import { DocumentActionBar } from '../components/DocumentActionBar';
+import { InternalOrderHeaderField } from '../components/InternalOrderHeaderField';
+import { InternalOrderChip } from '../components/InternalOrderChip';
+import { useInternalOrderLineColumn } from '../hooks/useLineInternalOrderColumn';
 import { DocumentDetailLayout } from '../components/DocumentDetailLayout';
 import { AttachmentsPanel } from '../components/AttachmentsPanel';
+import { CloneDocumentActions } from '../components/common/CloneDocumentActions';
+import { PreparationButton } from '../components/common/PreparationButton';
+import { DocumentFiscalPanel } from '../components/documents/DocumentFiscalPanel';
+import { TraceabilityButton } from '../components/common/TraceabilityButton';
 import { DocumentTotalsBlock } from '../components/DocumentTotalsBlock';
 import {
   buildDetailLineColumns,
@@ -41,8 +49,11 @@ import { useFormat } from '../hooks/useFormat';
 import { BatchSelectionModal } from '../components/BatchSelectionModal';
 import { BatchAssignmentPanel } from '../components/BatchAssignmentPanel';
 import { useItemUoms } from '../hooks/useItemUoms';
+import { usePluginLineFields } from '../hooks/usePluginLineFields';
 import { PluginFieldsPanel } from '../components/PluginFieldsPanel';
 import { useDocument, useDataTable, DocType, DocKind, DocSide } from '@openfactu/common';
+import { useDocumentScanner } from '../hooks/useDocumentScanner';
+import { BulkSendToolbar } from '../components/documents/BulkSendToolbar';
 
 // --- Sub-componente: VISTA DE LISTADO ---
 const SDNList: React.FC<{
@@ -50,13 +61,16 @@ const SDNList: React.FC<{
   loading: boolean;
   partners: any[];
   onCreate: () => void;
+  onCreateFromClone?: (payload: { header: any; lines: any[] }) => void;
   onDetail: (sdn: any) => void;
   onCopyToInvoice: (sdn: any) => void;
   doc: any;
-}> = ({ data, loading, partners, onCreate, onDetail, onCopyToInvoice, doc }) => {
+}> = ({ data, loading, partners, onCreate, onCreateFromClone, onDetail, onCopyToInvoice, doc }) => {
   const { token, user } = useAuth();
+  const [selectedKeys, setSelectedKeys] = useState<Set<string | number>>(new Set());
   const toast = useToast();
   const fmt = useFormat();
+  const tabs = (() => { try { return useTabs(); } catch { return null; } })();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const handleQuickPdf = async (id: string) => {
     setDownloadingId(id);
@@ -97,6 +111,8 @@ const SDNList: React.FC<{
   const columns = [
     {
       header: 'No. Albarán',
+      sortable: true,
+      sortAccessor: (item: any) => `${item.seriesPrefix||''}-${String(item.docNum||0).padStart(6,'0')}`,
       accessor: (item: any) => (
         <div className="flex flex-col">
           <span className="font-bold text-slate-900 dark:text-slate-100 leading-none">
@@ -108,9 +124,11 @@ const SDNList: React.FC<{
         </div>
       ),
     },
-    { header: 'Fecha', accessor: (item: any) => fmt.date(item.date) },
+    { header: 'Fecha', sortable: true, sortAccessor: (item: any) => new Date(item.date).getTime(), accessor: (item: any) => fmt.date(item.date) },
     {
       header: 'Cliente',
+      sortable: true,
+      sortAccessor: (item: any) => item.partnerName || '',
       accessor: (item: any) =>
         item.partnerName || partners.find((p) => p.id === item.partnerId)?.name || '...',
     },
@@ -130,6 +148,8 @@ const SDNList: React.FC<{
     {
       header: 'Total',
       align: 'right' as const,
+      sortable: true,
+      sortAccessor: (item: any) => Number(item.total) || 0,
       accessor: (item: any) => (
         <span className="font-black text-slate-900 dark:text-slate-100">
           {fmt.money(item.total)}
@@ -139,12 +159,15 @@ const SDNList: React.FC<{
     {
       header: 'Estado',
       align: 'center' as const,
+      sortable: true,
+      sortAccessor: (item: any) => item.status || '',
       cell: (item: any) => (
-        <>
+        <div className="flex items-center gap-1.5 flex-wrap">
           {item.status === 'O' && <Badge variant="warning">Abierto</Badge>}
           {item.status === 'C' && <Badge variant="success">Facturado</Badge>}
           {item.status === 'X' && <Badge variant="error">Cancelado</Badge>}
-        </>
+          {item.hasActiveShipment && <Badge variant="info">En preparación</Badge>}
+        </div>
       ),
     },
     {
@@ -160,7 +183,7 @@ const SDNList: React.FC<{
               handleQuickPdf(item.id);
             }}
             isLoading={downloadingId === item.id}
-            className="h-8 w-8 p-0 text-slate-500 dark:text-slate-400 hover:text-primary"
+            className="h-8 w-8 p-0 text-ink-500 dark:text-ink-400 hover:text-accent hover:bg-accent/10 dark:hover:bg-accent/15"
             title="Descargar PDF"
           >
             <Download size={14} />
@@ -176,6 +199,29 @@ const SDNList: React.FC<{
               className="text-blue-600 dark:text-blue-300 font-bold hover:bg-blue-50 dark:hover:bg-blue-500/10 gap-1 uppercase text-[10px]"
             >
               <Copy size={12} /> Facturar
+            </Button>
+          )}
+          {item.status === 'O' && !item.hasActiveShipment && (
+            <div onClick={(e) => e.stopPropagation()} className="inline-flex">
+              <PreparationButton docType="SDN" docId={item.id} />
+            </div>
+          )}
+          {item.hasActiveShipment && item.activeShipmentId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                const path = `/logistics/shipments/${item.activeShipmentId}`;
+                if (tabs && (tabs as any).openTab) {
+                  (tabs as any).openTab(path, { title: 'Envío en preparación' });
+                } else {
+                  window.location.href = path;
+                }
+              }}
+              className="text-accent font-bold hover:bg-accent/10 gap-1 uppercase text-[10px]"
+            >
+              Ver preparación
             </Button>
           )}
           <Button
@@ -214,6 +260,9 @@ const SDNList: React.FC<{
           )}
         </div>
         <div className="flex items-center gap-3">
+          {doc.state.canWrite && onCreateFromClone && (
+            <CloneDocumentActions docType="SDN" onPaste={onCreateFromClone} show="paste" />
+          )}
           <Button
             onClick={onCreate}
             disabled={!doc.state.canWrite}
@@ -252,12 +301,8 @@ const SDNList: React.FC<{
           ]}
           searchPlaceholder="Buscar albarán..."
         />
-        <Table
-          columns={columns}
-          data={filteredData || []}
-          isLoading={loading}
-          onRowClick={onDetail}
-        />
+        <BulkSendToolbar selectedKeys={selectedKeys} rows={filteredData || []} partners={partners} docType="SDN" onClear={() => setSelectedKeys(new Set())} onSent={() => setSelectedKeys(new Set())} />
+        <Table columns={columns} data={filteredData || []} isLoading={loading} onRowClick={onDetail} selectable selectedKeys={selectedKeys} onSelectionChange={setSelectedKeys} />
       </Card>
     </div>
   );
@@ -274,6 +319,8 @@ const SDNForm: React.FC<{
   computations: any;
   zones: any[];
   orderId: string | null;
+  internalOrderId: string | null;
+  setInternalOrderId: (id: string | null) => void;
   setViewingBatch: (l: any) => void;
 }> = ({
   onBack,
@@ -285,30 +332,41 @@ const SDNForm: React.FC<{
   computations,
   zones,
   orderId,
+  internalOrderId,
+  setInternalOrderId,
   setViewingBatch,
 }) => {
   const [batchEditingIdx, setBatchEditingIdx] = useState<number | null>(null);
   const fmt = useFormat();
   const itemUoms = useItemUoms();
+  const { flags } = useTheme();
+  const warehouseLocation = flags.warehouseLocation;
+  const pluginLineFields = usePluginLineFields('SalesDeliveryNoteLine');
 
   const filteredZones = zones.filter(
     (z) => !state.warehouseId || z.warehouseId === state.warehouseId,
   );
 
+  const projectCol = useInternalOrderLineColumn(actions.updateLine);
   const columns = useMemo(
-    () => buildFormLineColumns({
-      kind: DocKind.DeliveryNote,
-      side: DocSide.Sale,
-      state,
-      masters,
-      zones: filteredZones,
-      actions,
-      onAssignBatch: setBatchEditingIdx,
-      onViewBatch: setViewingBatch,
-      fmt,
-      getItemUoms: itemUoms.get,
-    }),
-    [state.lines, masters.items, masters.taxGroups],
+    () => {
+      const base = buildFormLineColumns({
+        kind: DocKind.DeliveryNote,
+        side: DocSide.Sale,
+        state,
+        masters,
+        zones: warehouseLocation === 'line' ? zones : filteredZones,
+        actions,
+        onAssignBatch: setBatchEditingIdx,
+        onViewBatch: setViewingBatch,
+        fmt,
+        getItemUoms: itemUoms.get,
+        warehouseLocation,
+        pluginLineFields,
+      });
+      return [...base.slice(0, -1), projectCol, base[base.length - 1]];
+    },
+    [state.lines, masters.items, masters.taxGroups, warehouseLocation, zones, pluginLineFields, projectCol],
   );
 
   return (
@@ -365,16 +423,18 @@ const SDNForm: React.FC<{
                 placeholder="Seleccionar cliente..."
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">
-                Almacén de Salida *
-              </label>
-              <SearchableSelect
-                value={state.warehouseId}
-                onChange={setState.setWarehouseId}
-                options={masters.warehouses.map((w: any) => ({ label: w.name, value: w.id }))}
-              />
-            </div>
+            {warehouseLocation !== 'line' && (
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">
+                  Almacén de Salida *
+                </label>
+                <SearchableSelect
+                  value={state.warehouseId}
+                  onChange={setState.setWarehouseId}
+                  options={masters.warehouses.map((w: any) => ({ label: w.name, value: w.id }))}
+                />
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
             <div className="space-y-2">
@@ -388,6 +448,10 @@ const SDNForm: React.FC<{
                 className="font-bold h-10"
               />
             </div>
+            <InternalOrderHeaderField
+              value={internalOrderId}
+              onChange={setInternalOrderId}
+            />
           </div>
         </Card>
 
@@ -431,6 +495,40 @@ const SDNForm: React.FC<{
           />
         </div>
       </div>
+
+      {(() => {
+        const p = masters.partners.find((x: any) => x.id === state.partnerId);
+        const partnerRate = Number(p?.defaultWithholdingRate || 0);
+        const docRate = Number(state.withholdingRate || 0);
+        if (partnerRate > 0 && docRate === 0) {
+          return (
+            <div className="flex items-center justify-between gap-4 p-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10">
+              <div className="flex items-start gap-3 min-w-0">
+                <AlertCircle size={18} className="text-amber-600 dark:text-amber-300 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                    Este cliente tiene retención IRPF por defecto del {partnerRate}%
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300/80 mt-0.5">
+                    El albarán se emitirá sin retención. Si aplica, aplícala aquí para que herede a la factura.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setState.setWithholdingRate(partnerRate)}
+                className="shrink-0"
+              >
+                Aplicar {partnerRate}%
+              </Button>
+            </div>
+          );
+        }
+        return null;
+      })()}
+
+      <DocumentFiscalPanel kind="sales" state={state} setState={setState} collapsible />
 
       <Card className="shadow-lg overflow-hidden border-slate-100 dark:border-slate-800" noPadding>
         <Table columns={columns} data={state.lines || []} />
@@ -576,6 +674,16 @@ const SDNDetail: React.FC<{
         />
       }
     >
+      <div className="flex items-center gap-3 mb-4 -mt-2 flex-wrap">
+        <CloneDocumentActions docType="SDN" doc={sdn} show="copy" size={14} />
+        <TraceabilityButton
+          type="SDN"
+          id={sdn.id}
+          docCode={`${sdn.seriesPrefix}-${sdn.periodCode}-${String(sdn.docNum).padStart(6, '0')}`}
+        />
+        <InternalOrderChip internalOrderId={sdn.internalOrderId} />
+        {sdn.status === 'O' && <PreparationButton docType="SDN" docId={sdn.id} />}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card
           className="md:col-span-2 border-slate-100 dark:border-slate-800"
@@ -640,6 +748,14 @@ const SDNDetail: React.FC<{
         />
       </Card>
 
+      <PluginFieldsPanel
+        tableName="SalesDeliveryNote"
+        values={sdn}
+        onChange={() => {}}
+        disabled
+        layout="inline"
+        title="Campos de plugin"
+      />
       <AttachmentsPanel entityType="SalesDeliveryNote" entityId={sdn.id} />
     </DocumentDetailLayout>
   );
@@ -668,6 +784,7 @@ export const SalesDeliveryNotes: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(isDetail);
   const [zones, setZones] = useState<any[]>([]);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [internalOrderId, setInternalOrderId] = useState<string | null>(null);
   const [viewingBatch, setViewingBatch] = useState<any>(null);
 
   const doc = useDocument({
@@ -677,6 +794,7 @@ export const SalesDeliveryNotes: React.FC = () => {
     apiEndpoint: '/api/sales/delivery-notes',
     permissions: user?.permissions?.['/sales/delivery-notes'],
   });
+  useDocumentScanner(doc, isCreate);
 
   const authHeaders = {
     Authorization: `Bearer ${token}`,
@@ -735,6 +853,40 @@ export const SalesDeliveryNotes: React.FC = () => {
     })();
   }, [isDetail, detailId, user?.tenantId, dataVersion]);
 
+  // Clone from clipboard
+  useEffect(() => {
+    if (!isCreate) return;
+    const raw = sessionStorage.getItem('keirost:cloneInvoice:SDN');
+    if (!raw) return;
+    sessionStorage.removeItem('keirost:cloneInvoice:SDN');
+    try {
+      const { header, lines } = JSON.parse(raw);
+      if (header?.partnerId) doc.setState.setPartnerId(header.partnerId);
+      if (header?.internalOrderId) setInternalOrderId(header.internalOrderId);
+      if (header?.warehouseId) doc.setState.setWarehouseId(header.warehouseId);
+      if (Array.isArray(lines)) {
+        doc.setState.setLines(
+          lines.map((l: any) => ({
+            itemId: l.itemId,
+            quantity: Number(l.quantity) || 0,
+            price: Number(l.price) || 0,
+            taxGroupId: l.taxGroupId,
+            warehouseId: l.warehouseId,
+            zoneId: l.zoneId,
+            uomId: l.uomId,
+            uomFactor: l.uomFactor != null ? Number(l.uomFactor) : undefined,
+            description: l.description,
+            costCenterId: l.costCenterId,
+            profitCenterId: l.profitCenterId,
+            internalOrderId: l.internalOrderId,
+          })),
+        );
+      }
+    } catch (e) {
+      console.error('Error parseando clone payload', e);
+    }
+  }, [isCreate]);
+
   // Copy-from: /sales/delivery-notes/new?copyFrom=<id>
   useEffect(() => {
     if (!isCreate) return;
@@ -747,15 +899,28 @@ export const SalesDeliveryNotes: React.FC = () => {
       setOrderId(order.id);
       doc.setState.setPartnerId(order.partnerId);
       doc.setState.setWarehouseId(order.warehouseId);
+      if (order.internalOrderId) setInternalOrderId(order.internalOrderId);
       doc.setState.setLines(
         order.lines.map((l: any) => ({
           itemId: l.itemId,
           quantity: Number(l.orderedQty) - Number(l.deliveredQty),
           price: l.price,
+          taxGroupId: l.taxGroupId,
           warehouseId: l.warehouseId || order.warehouseId,
           zoneId: l.zoneId || '',
           baseLine: l.lineNum,
           lineNum: l.lineNum,
+          uomId: l.uomId,
+          uomFactor: l.uomFactor != null ? Number(l.uomFactor) : undefined,
+          // Desglose fiscal heredado del pedido.
+          description: l.description,
+          discountRate: l.discountRate != null ? Number(l.discountRate) : undefined,
+          discountAmount: l.discountAmount != null ? Number(l.discountAmount) : undefined,
+          withholdingRate: l.withholdingRate != null ? Number(l.withholdingRate) : undefined,
+          withholdingAmount: l.withholdingAmount != null ? Number(l.withholdingAmount) : undefined,
+          costCenterId: l.costCenterId,
+          profitCenterId: l.profitCenterId,
+          internalOrderId: l.internalOrderId,
         })),
       );
     } catch (e) {
@@ -765,7 +930,7 @@ export const SalesDeliveryNotes: React.FC = () => {
 
   const handleSubmit = async (e: any) => {
     try {
-      const data = await doc.actions.submitDocument({ orderId });
+      const data = await doc.actions.submitDocument({ orderId, internalOrderId });
       toast.success(`Albarán registrado nº ${data.docNum}`);
       notifyDocChange(DocType.SalesDeliveryNote);
       currentTab.close();
@@ -775,22 +940,53 @@ export const SalesDeliveryNotes: React.FC = () => {
   };
 
   const handleCancel = async (id: string) => {
+    const reason = window.prompt(
+      'Motivo de la cancelación (opcional — quedará registrado en auditoría y se enviará en emails/webhooks):',
+      '',
+    );
+    if (reason === null) return;
     if (
       !confirm(
-        '¿Seguro que deseas cancelar este albarán? Se devolverá el stock y se reabrirá el pedido origen.',
+        '¿Cancelar el albarán? Se devolverá el stock, se reabrirá el pedido origen y, si hay envío en curso, también se cancelará.',
       )
     )
       return;
-    try {
+    const doCall = async (force: boolean) => {
       const res = await fetch(`/api/sales/delivery-notes/${id}/cancel`, {
         method: 'POST',
-        headers: authHeaders,
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason || null, force }),
       });
+      return res;
+    };
+    try {
+      let res = await doCall(false);
+      if (res.status === 409) {
+        const err = await res.json().catch(() => ({}));
+        if (err.requiresForce) {
+          // Envío ya en ruta — pedir confirmación explícita antes de forzar.
+          if (
+            !confirm(
+              'El envío está en ruta. El conductor tendrá que volver sin entregar.\n\n¿Cancelar de todos modos?',
+            )
+          )
+            return;
+          res = await doCall(true);
+        } else {
+          toast.error(err.error || 'No se puede cancelar');
+          return;
+        }
+      }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Error al cancelar');
       }
-      toast.success('Albarán cancelado y stock revertido');
+      const d = await res.json().catch(() => ({}));
+      toast.success(
+        d.shipmentCancelled
+          ? 'Albarán y envío cancelados. Stock revertido.'
+          : 'Albarán cancelado y stock revertido.',
+      );
       notifyDocChange(DocType.SalesDeliveryNote);
       currentTab.close();
     } catch (e: any) {
@@ -811,6 +1007,8 @@ export const SalesDeliveryNotes: React.FC = () => {
           computations={doc.computations}
           zones={zones}
           orderId={orderId}
+          internalOrderId={internalOrderId}
+          setInternalOrderId={setInternalOrderId}
           setViewingBatch={setViewingBatch}
         />
         {viewingBatch && (
@@ -880,6 +1078,10 @@ export const SalesDeliveryNotes: React.FC = () => {
       loading={loading}
       partners={doc.masters.partners}
       onCreate={() => openTab('/sales/delivery-notes/new')}
+      onCreateFromClone={(payload) => {
+        sessionStorage.setItem('keirost:cloneInvoice:SDN', JSON.stringify(payload));
+        openTab('/sales/delivery-notes/new');
+      }}
       onDetail={(p) => openTab(`/sales/delivery-notes/${p.id}`, { title: formatDocCode(p) })}
       onCopyToInvoice={(p) => {
         fetch(`/api/sales/delivery-notes/${p.id}`, { headers: authHeaders })

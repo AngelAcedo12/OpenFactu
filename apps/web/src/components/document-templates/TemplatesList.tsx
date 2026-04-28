@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
-import { Table, Card, Button, Badge, Loader } from '@openfactu/ui';
-import { FileCode, Plus, Trash2, Copy, Star, AlertCircle } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Table, Card, Button, Badge, Loader, useToast } from '@openfactu/ui';
+import { FileCode, Plus, Trash2, Copy, Star, AlertCircle, RefreshCw } from 'lucide-react';
 import { DOC_TYPE_LABELS, DOC_TYPE_COLORS, type DocType, type TemplateRow } from './constants';
+import { useAuth } from '../../context/AuthContext';
 
 interface Props {
   data: TemplateRow[];
@@ -11,6 +12,7 @@ interface Props {
   onSetDefault: (t: TemplateRow) => Promise<void>;
   onDuplicate: (t: TemplateRow) => Promise<void>;
   onDelete: (t: TemplateRow) => Promise<void>;
+  onReload?: () => void;
 }
 
 export const TemplatesList: React.FC<Props> = ({
@@ -21,7 +23,38 @@ export const TemplatesList: React.FC<Props> = ({
   onSetDefault,
   onDuplicate,
   onDelete,
+  onReload,
 }) => {
+  const { token, user } = useAuth();
+  const toast = useToast();
+  const [resyncing, setResyncing] = useState(false);
+  const handleResyncDefaults = async () => {
+    if (!confirm(
+      '¿Regenerar TODAS las plantillas por defecto con el diseño Keirost actual?\n\n'
+      + 'Esto sustituirá el HTML de las plantillas marcadas como "por defecto" de cada tipo de documento.\n'
+      + 'Tus plantillas personalizadas NO se tocan.',
+    )) return;
+    setResyncing(true);
+    try {
+      const res = await fetch('/api/document-templates/resync-defaults', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-tenant-id': user?.tenantId || '',
+          'Content-Type': 'application/json',
+        },
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error || 'Error');
+      toast.success(`Plantillas regeneradas: ${body.count}`);
+      onReload?.();
+    } catch (e: any) {
+      toast.error(e.message || 'Error al regenerar plantillas');
+    } finally {
+      setResyncing(false);
+    }
+  };
+
   const grouped = useMemo(() => {
     const map: Record<string, TemplateRow[]> = {};
     for (const row of data) {
@@ -98,24 +131,36 @@ export const TemplatesList: React.FC<Props> = ({
 
   return (
     <div className="p-4 space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-line dark:border-ink-700 pb-6">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-4 tracking-tighter">
-            <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-600 shadow-sm border border-indigo-100">
-              <FileCode size={32} />
+          <h1 className="text-3xl font-bold text-ink-900 dark:text-slate-100 flex items-center gap-4 tracking-tight font-display">
+            <div className="p-3 bg-accent/10 rounded-sm text-accent border border-accent/20">
+              <FileCode size={28} />
             </div>
             Plantillas de Documento
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium ml-1">
+          <p className="text-ink-500 dark:text-ink-400 mt-2 font-medium ml-1">
             Formatos PDF personalizables para facturas, albaranes y pedidos.
           </p>
         </div>
-        <Button
-          onClick={onCreate}
-          className="flex items-center gap-2 shadow-xl shadow-indigo-500/10 h-12 px-6"
-        >
-          <Plus size={20} /> Nueva Plantilla
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            onClick={handleResyncDefaults}
+            disabled={resyncing}
+            variant="outline"
+            className="flex items-center gap-2 h-12 px-5 border-accent/40 text-accent hover:bg-accent/5"
+            title="Regenera las plantillas por defecto con la paleta Keirost + trazabilidad. No toca plantillas custom."
+          >
+            <RefreshCw size={16} className={resyncing ? 'animate-spin' : ''} />
+            {resyncing ? 'Regenerando…' : 'Regenerar estándares'}
+          </Button>
+          <Button
+            onClick={onCreate}
+            className="flex items-center gap-2 shadow-lg shadow-accent/10 h-12 px-6"
+          >
+            <Plus size={18} /> Nueva Plantilla
+          </Button>
+        </div>
       </div>
 
       {loading && <Loader />}

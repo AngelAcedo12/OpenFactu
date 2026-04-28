@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev": "ts-node-dev --respawn --transpile-only --watch ../../node_modules/@openfactu/pdf/dist,../../node_modules/@openfactu/common/dist src/server.ts",
     "build": "tsc --noEmit && tsc && npm run copy-assets",
     "copy-assets": "mkdir -p dist/core/tenant/migrations dist/seed-data && cp src/core/tenant/migrations/*.sql dist/core/tenant/migrations/ && cp src/seed-data/* dist/seed-data/",
     "start": "node dist/server.js",
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@openfactu/common": "^0.0.2",
-    "@openfactu/pdf": "^0.0.2",
+    "@openfactu/pdf": "^0.1.1",
     "@types/adm-zip": "^0.5.8",
     "@types/multer": "^2.1.0",
     "@types/nodemailer": "^6.4.23",

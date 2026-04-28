@@ -339,6 +339,17 @@ export const DocumentTemplateDesigner: React.FC = () => {
     };
   }, [previewUrl]);
 
+  // Auto-refresh del preview cuando el layout cambia — debounced a 900 ms
+  // para no martillear al server en cada drag.
+  useEffect(() => {
+    if (!template) return;
+    const handle = setTimeout(() => {
+      handlePreview();
+    }, 900);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout, template?.docType]);
+
   const handleExportJson = () => {
     const blob = new Blob([JSON.stringify(layout, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
