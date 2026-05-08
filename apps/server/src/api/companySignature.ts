@@ -76,7 +76,7 @@ router.post('/', upload.single('file'), async (req: any, res) => {
           req.tenantClient,
           tenantSchema,
         );
-        await prevAdapter.remove({ tenantSchema, externalId: prev.externalId });
+        await prevAdapter.delete({ tenantSchema, externalId: prev.externalId });
       } catch {
         /* best effort */
       }
@@ -177,7 +177,7 @@ router.delete('/', async (req: any, res) => {
           req.tenantClient,
           tenantSchema,
         );
-        await adapter.remove({ tenantSchema, externalId: row.externalId });
+        await adapter.delete({ tenantSchema, externalId: row.externalId });
       } catch {
         /* best effort */
       }

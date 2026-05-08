@@ -726,8 +726,8 @@ router.get('/profit-project', async (req: any, res) => {
       .groupBy(schema.purchaseInvoiceLines.internalOrderId);
 
     const projects = await req.tenantClient.select().from(schema.internalOrders);
-    const incMap = new Map(income.map((r: any) => [r.internalOrderId, Number(r.amount)]));
-    const expMap = new Map(expense.map((r: any) => [r.internalOrderId, Number(r.amount)]));
+    const incMap = new Map<string, number>(income.map((r: any) => [r.internalOrderId as string, Number(r.amount)]));
+    const expMap = new Map<string, number>(expense.map((r: any) => [r.internalOrderId as string, Number(r.amount)]));
     const rows = projects.map((p: any) => {
       const ing = incMap.get(p.id) || 0;
       const gas = expMap.get(p.id) || 0;
@@ -768,8 +768,8 @@ router.get('/profit-cost-center', async (req: any, res) => {
       .where(sql`${schema.purchaseInvoiceLines.costCenterId} IS NOT NULL`)
       .groupBy(schema.purchaseInvoiceLines.costCenterId);
     const ccs = await req.tenantClient.select().from(schema.costCenters);
-    const incMap = new Map(income.map((r: any) => [r.id, Number(r.amount)]));
-    const expMap = new Map(expense.map((r: any) => [r.id, Number(r.amount)]));
+    const incMap = new Map<string, number>(income.map((r: any) => [r.id as string, Number(r.amount)]));
+    const expMap = new Map<string, number>(expense.map((r: any) => [r.id as string, Number(r.amount)]));
     const rows = ccs.map((c: any) => {
       const ing = incMap.get(c.id) || 0;
       const gas = expMap.get(c.id) || 0;

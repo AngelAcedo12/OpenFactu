@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# Install postgresql-client for pg_dump (tenant export)
+RUN apk add --no-cache postgresql-client
+
 WORKDIR /app
 
 # 1. Copiar manifiestos y server
