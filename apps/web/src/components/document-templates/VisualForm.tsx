@@ -347,6 +347,14 @@ export const VisualForm: React.FC<Props> = ({ opts, updateOpt }) => {
             title="Mostrar albarán origen"
             description="En facturas creadas desde un albarán"
           />
+          {/* Extensión propia: el toggle no está en el paquete @openfactu/pdf
+              (se serializa en el meta y lo lee renderDocumentPdf en el server). */}
+          <CheckboxRow
+            checked={Boolean((opts as any).showInternalOrder)}
+            onChange={(v) => (updateOpt as unknown as (k: string, val: boolean) => void)('showInternalOrder', v)}
+            title="Mostrar proyecto"
+            description="Si el documento tiene un proyecto/orden interna asignado en cabecera"
+          />
         </div>
       </Section>
 
@@ -404,6 +412,27 @@ export const VisualForm: React.FC<Props> = ({ opts, updateOpt }) => {
             title="Total en letras"
             description="Añadir el total escrito en español bajo los totales"
           />
+        </div>
+      </Section>
+
+      <Section title="Campos personalizados" icon={<Stamp size={14} />}>
+        <div className="space-y-2">
+          <CheckboxRow
+            checked={!!opts.showCustomFields}
+            onChange={(v) => updateOpt('showCustomFields', v)}
+            title="Mostrar campos personalizados"
+            description="Vuelca automáticamente los campos custom definidos para este documento (`visibleIn=pdf`) al final del PDF."
+          />
+          {opts.showCustomFields && (
+            <div className="space-y-1">
+              <FieldLabel>Título del bloque</FieldLabel>
+              <Input
+                value={opts.customFieldsLabel ?? 'Datos adicionales'}
+                onChange={(e) => updateOpt('customFieldsLabel', e.target.value)}
+                placeholder="Datos adicionales"
+              />
+            </div>
+          )}
         </div>
       </Section>
 

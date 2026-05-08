@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTabs } from '../../context/TabsContext';
 import { Card, Button, Input, useToast, SearchableSelect, cn } from '@openfactu/ui';
-import { ArrowLeft, Save, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { ArrowLeft, Save, PanelRightOpen, PanelRightClose, LayoutTemplate } from 'lucide-react';
 import {
   buildVisualTemplate,
   parseMeta,
@@ -14,6 +16,11 @@ import { AdvancedEditor, type AdvancedEditorHandle } from './AdvancedEditor';
 import { PreviewPane } from './PreviewPane';
 import { usePreview } from './usePreview';
 import { FieldExplorer } from './FieldExplorer';
+import { compileCanvas } from './canvas/compileCanvas';
+import {
+  buildSimpleLabelLayout,
+  defaultSimpleArticleSettings,
+} from './canvas/buildSimpleLabel';
 
 interface Props {
   template: TemplateRow | null;
@@ -25,33 +32,77 @@ interface Props {
 
 export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, token, tenantId }) => {
   const toast = useToast();
+  const navigate = useNavigate();
+  const { openTab } = useTabs();
   const initialMeta = template?.html ? parseMeta(template.html) : null;
   const isNewTemplate = !template;
+  // Si la plantilla fue diseñada con el canvas designer (legacyHtml === false),
+  // su `html` ya está compilado por ese diseñador y NO debe regenerarse desde
+  // este editor (visual o advanced). Forzamos modo advanced y deshabilitamos
+  // la regeneración para que el preview muestre el diseño real.
+  const isCanvasTemplate = (template as any)?.legacyHtml === false;
 
   const [name, setName] = useState(template?.name || 'Nueva plantilla');
   const [docType, setDocType] = useState<DocType>(template?.docType || 'SINV');
   const [isDefault, setIsDefault] = useState(!!template?.isDefault);
+  // FREE no tiene modo visual: el editor de visualOptions asume un documento
+  // con header/totales/líneas que no aplica a una etiqueta libre. Forzamos
+  // advanced para que el HTML se construya desde el diseñador canvas (o a mano).
+  const isFreeTemplate = docType === 'FREE';
   const [mode, setMode] = useState<EditorMode>(
-    isNewTemplate || initialMeta ? 'visual' : 'advanced',
+    isCanvasTemplate || isFreeTemplate
+      ? 'advanced'
+      : isNewTemplate || initialMeta
+        ? 'visual'
+        : 'advanced',
   );
   const [visualOpts, setVisualOpts] = useState<VisualOptions>(
     initialMeta || DEFAULT_VISUAL_OPTIONS,
   );
+  // Layout del canvas — sólo lo usamos para FREE (etiquetas) en este editor:
+  // si el usuario elige FREE precargamos un layout de etiqueta hecho con el
+  // builder del modo simple (defaults de artículo) para que la plantilla nueva
+  // se abra directamente en el editor visual simple, sin necesidad de tocar
+  // el canvas avanzado.
+  const initialFreeLayout = React.useRef(
+    buildSimpleLabelLayout(defaultSimpleArticleSettings()),
+  );
+  const [canvasLayoutForSave, setCanvasLayoutForSave] = useState<any>(
+    (template as any)?.canvasLayout ?? null,
+  );
+
   const [html, setHtml] = useState(
-    template?.html || buildVisualTemplate('SINV', DEFAULT_VISUAL_OPTIONS),
+    template?.html ||
+      (docType === 'FREE'
+        ? compileCanvas(initialFreeLayout.current, { docType: 'FREE' })
+        : buildVisualTemplate('SINV', DEFAULT_VISUAL_OPTIONS)),
   );
   const [saving, setSaving] = useState(false);
   const [explorerOpen, setExplorerOpen] = useState(true);
 
   const advancedEditorRef = useRef<AdvancedEditorHandle | null>(null);
 
-  // En modo visual, regenerar el HTML cada vez que cambian los opts o el docType
+  // En modo visual, regenerar el HTML cada vez que cambian los opts o el docType.
+  // Excepción: las plantillas hechas con el canvas designer no se regeneran
+  // nunca desde aquí — su html viene del compileCanvas.
   useEffect(() => {
+    if (isCanvasTemplate) return;
+    if (isFreeTemplate) {
+      // Cuando el usuario cambia el tipo a FREE (sobre una plantilla nueva o
+      // que tenía html visual previo), regeneramos al layout de etiqueta y
+      // cargamos su canvasLayout para que se persista al guardar y el
+      // diseñador lo abra preconfigurado.
+      if (!template?.html) {
+        setHtml(compileCanvas(initialFreeLayout.current, { docType: 'FREE' }));
+        setCanvasLayoutForSave(initialFreeLayout.current);
+      }
+      return;
+    }
     if (mode === 'visual') {
-      setHtml(buildVisualTemplate(docType, visualOpts));
+      setHtml(buildVisualTemplate(docType as Exclude<DocType, 'FREE'>, visualOpts));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visualOpts, docType, mode]);
+  }, [visualOpts, docType, mode, isCanvasTemplate, isFreeTemplate]);
 
   const { previewUrl, previewing, refresh } = usePreview(html, docType, token, tenantId, (msg) =>
     toast.error(msg),
@@ -74,7 +125,14 @@ export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, toke
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave({ id: template?.id, name, docType, html, isDefault });
+      // Para FREE persistimos también canvasLayout + legacyHtml=false para
+      // que el diseñador abra la plantilla con su layout completo.
+      const payload: any = { id: template?.id, name, docType, html, isDefault };
+      if (isFreeTemplate && canvasLayoutForSave) {
+        payload.canvasLayout = canvasLayoutForSave;
+        payload.legacyHtml = false;
+      }
+      await onSave(payload);
       toast.success('Plantilla guardada');
     } catch (e: any) {
       toast.error(e.message);
@@ -86,6 +144,43 @@ export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, toke
   const handleInsertField = (variablePath: string) => {
     if (mode === 'advanced' && advancedEditorRef.current) {
       advancedEditorRef.current.insertText(variablePath);
+    }
+  };
+
+  const openDesigner = async () => {
+    // Si ya existe, navegación directa.
+    if (template?.id) {
+      openTab(`/document-templates/${template.id}/designer`);
+      return;
+    }
+    // Si es una plantilla nueva, la creamos ahora mismo para tener un id y
+    // entrar al diseñador sin requerir al usuario un paso extra.
+    setSaving(true);
+    try {
+      const res = await fetch('/api/document-templates', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-tenant-id': tenantId,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          docType,
+          name,
+          html,
+          isDefault,
+          ...(isFreeTemplate && canvasLayoutForSave
+            ? { canvasLayout: canvasLayoutForSave, legacyHtml: false }
+            : {}),
+        }),
+      });
+      if (!res.ok) throw new Error('No se pudo crear la plantilla');
+      const { id } = (await res.json()) as { id: string };
+      openTab(`/document-templates/${id}/designer`);
+    } catch (e: any) {
+      toast.error(e.message || 'No se pudo abrir el diseñador');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -164,9 +259,31 @@ export const TemplateEditor: React.FC<Props> = ({ template, onBack, onSave, toke
         </div>
       </div>
 
-      {/* Tabs de modo */}
-      <div className="flex-shrink-0">
+      {isCanvasTemplate && (
+        <div className="flex-shrink-0 px-3 py-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 text-xs text-amber-800 dark:text-amber-200">
+          Esta plantilla se diseñó con el <strong>diseñador canvas</strong>. El HTML
+          mostrado abajo se genera desde ese diseño. Si editas aquí, perderás los
+          cambios al volver a abrir el diseñador. Pulsa <em>«Abrir diseñador»</em>.
+        </div>
+      )}
+
+      {/* Tabs de modo + acceso al diseñador canvas */}
+      <div className="flex-shrink-0 flex items-center gap-3">
         <ModeTabs mode={mode} onVisual={switchToVisual} onAdvanced={switchToAdvanced} />
+        <button
+          type="button"
+          disabled={saving}
+          onClick={openDesigner}
+          className="flex items-center gap-2 px-3 py-2 rounded-xs text-xs font-bold bg-accent text-white hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shadow-accent/20"
+          title={
+            template?.id
+              ? 'Abrir diseñador drag-and-drop a pantalla completa'
+              : 'Crear la plantilla y abrir el diseñador'
+          }
+        >
+          <LayoutTemplate size={14} />{' '}
+          {template?.id ? 'Abrir diseñador' : 'Crear y abrir diseñador'}
+        </button>
       </div>
 
       {/* Split: editor | preview | explorer (3 paneles flex) */}

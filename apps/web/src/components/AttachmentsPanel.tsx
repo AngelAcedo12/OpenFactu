@@ -1,0 +1,248 @@
+/**
+ * Panel reutilizable de adjuntos. Lista los archivos vinculados a una entidad
+ * (entityType + entityId), permite drag-and-drop o click para subir, descargar
+ * y borrar. Compatible con cualquier entidad del ERP — el endpoint
+ * `/api/attachments` es genérico.
+ *
+ * Uso típico:
+ *   <AttachmentsPanel entityType="SalesInvoice" entityId={inv.id} />
+ *
+ * El backend físico (local, Drive, OneDrive) lo decide el StorageResolver
+ * server-side según la config del tenant — el front no se entera.
+ */
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Paperclip, Upload, Trash2, Download, FileText } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+
+interface Attachment {
+  id: string;
+  entityType: string;
+  entityId: string;
+  fileName: string;
+  mime: string;
+  size: number;
+  provider: 'local' | 'gdrive' | 'onedrive';
+  externalId: string;
+  uploadedBy: string | null;
+  uploadedAt: string;
+  deletedAt: string | null;
+}
+
+interface Props {
+  entityType: string;
+  entityId: string;
+  /** Si true, se renderiza compacto (sin card y sin título). Default false. */
+  compact?: boolean;
+  /** Texto de la cabecera. Default "Adjuntos". */
+  title?: string;
+}
+
+export const AttachmentsPanel: React.FC<Props> = ({
+  entityType,
+  entityId,
+  compact = false,
+  title = 'Adjuntos',
+}) => {
+  const { token, user } = useAuth();
+  const [items, setItems] = useState<Attachment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const headers = {
+    Authorization: `Bearer ${token ?? ''}`,
+    'x-tenant-id': user?.tenantId ?? '',
+  };
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/attachments?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`,
+        { headers },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setItems(await res.json());
+    } catch (e: any) {
+      setError(e?.message || 'Error al cargar adjuntos');
+    } finally {
+      setLoading(false);
+    }
+  }, [entityType, entityId, token, user?.tenantId]);
+
+  useEffect(() => {
+    if (entityId) refresh();
+  }, [entityId, refresh]);
+
+  const upload = async (files: FileList | File[]) => {
+    setUploading(true);
+    setError(null);
+    try {
+      for (const file of Array.from(files)) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch(
+          `/api/attachments?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`,
+          { method: 'POST', headers, body: fd },
+        );
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.error || `HTTP ${res.status} subiendo ${file.name}`);
+        }
+      }
+      await refresh();
+    } catch (e: any) {
+      setError(e?.message || 'Error al subir');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const onDelete = async (id: string) => {
+    if (!confirm('¿Eliminar este adjunto?')) return;
+    try {
+      const res = await fetch(`/api/attachments/${id}`, { method: 'DELETE', headers });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await refresh();
+    } catch (e: any) {
+      setError(e?.message || 'Error al borrar');
+    }
+  };
+
+  const onDownload = (a: Attachment) => {
+    const tenantId = user?.tenantId ?? '';
+    // Forzamos descarga vía `<a>` con headers no posibles → usamos fetch
+    // y blob para preservar la auth del JWT.
+    fetch(`/api/attachments/${a.id}/download`, {
+      headers: { Authorization: `Bearer ${token ?? ''}`, 'x-tenant-id': tenantId },
+    })
+      .then((r) => r.blob())
+      .then((blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = a.fileName;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      })
+      .catch((e) => setError(e?.message || 'Error al descargar'));
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files?.length) upload(e.dataTransfer.files);
+  };
+
+  const inner = (
+    <>
+      {!compact && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
+            <Paperclip size={16} />
+            <h3 className="text-sm font-bold uppercase tracking-wider">{title}</h3>
+            <span className="text-xs text-slate-400">({items.length})</span>
+          </div>
+        </div>
+      )}
+
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={onDrop}
+        onClick={() => inputRef.current?.click()}
+        className={`mt-2 px-4 py-3 rounded-lg border-2 border-dashed cursor-pointer transition-all text-center text-xs ${
+          dragOver
+            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200'
+            : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600'
+        }`}
+      >
+        <input
+          type="file"
+          multiple
+          ref={inputRef}
+          className="hidden"
+          onChange={(e) => e.target.files && upload(e.target.files)}
+        />
+        <Upload size={16} className="inline mr-1.5" />
+        {uploading ? 'Subiendo…' : 'Arrastra archivos aquí o haz click para seleccionar'}
+      </div>
+
+      {error && (
+        <div className="mt-2 text-xs text-rose-500 dark:text-rose-400">⚠ {error}</div>
+      )}
+
+      {loading ? (
+        <div className="mt-3 text-xs text-slate-400 italic">Cargando adjuntos…</div>
+      ) : items.length === 0 ? (
+        <div className="mt-3 text-xs text-slate-400 italic">Sin adjuntos.</div>
+      ) : (
+        <ul className="mt-3 space-y-1">
+          {items.map((a) => (
+            <li
+              key={a.id}
+              className="flex items-center gap-2 px-2 py-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750"
+            >
+              <FileText size={14} className="text-slate-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
+                  {a.fileName}
+                </div>
+                <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                  <span>{formatBytes(a.size)}</span>
+                  <span>·</span>
+                  <span className="font-mono">{a.provider}</span>
+                  <span>·</span>
+                  <span>{new Date(a.uploadedAt).toLocaleString()}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onDownload(a)}
+                title="Descargar"
+                className="p-1.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600"
+              >
+                <Download size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(a.id)}
+                title="Eliminar"
+                className="p-1.5 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-400 hover:text-rose-500"
+              >
+                <Trash2 size={13} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+
+  if (compact) return <div>{inner}</div>;
+
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+      {inner}
+    </div>
+  );
+};
+
+function formatBytes(n: number): string {
+  if (!n) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let i = 0;
+  let v = n;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
+}

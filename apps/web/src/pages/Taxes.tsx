@@ -104,7 +104,7 @@ export const Taxes: React.FC = () => {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-8 w-full space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-1">

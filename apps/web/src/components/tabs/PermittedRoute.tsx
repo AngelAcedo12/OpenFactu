@@ -9,8 +9,13 @@ interface PermittedRouteProps {
 
 export const PermittedRoute: React.FC<PermittedRouteProps> = ({ path, children }) => {
   const { user } = useAuth();
-  if (user?.role === 'SUPERUSER' || user?.role === 'ADMIN') return children;
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  // Rutas del cockpit/sistema solo son accesibles al rol SUPERUSER. El backend
+  // también rechaza al resto con 403, pero así evitamos montar la página en UI.
+  if (normalizedPath.startsWith('/system/')) {
+    return user?.role === 'SUPERUSER' ? children : <Navigate to="/" replace />;
+  }
+  if (user?.role === 'SUPERUSER' || user?.role === 'ADMIN') return children;
   if (user?.permissions?.[normalizedPath]?.read) return children;
   return <Navigate to="/" replace />;
 };

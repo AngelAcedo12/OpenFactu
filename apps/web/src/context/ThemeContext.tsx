@@ -30,13 +30,21 @@ export interface FlagsConfig {
   watermarkDraft: boolean;
   confirmBeforeCancel: boolean;
   enforceWarehouseZones: boolean;
+  /** 'header' = un almacén único en la cabecera; 'line' = almacén + ubicación por línea. */
+  warehouseLocation: 'header' | 'line';
+  /** Activa el módulo de logística (envíos, rutas, mapa en tiempo real). */
+  logisticsEnabled: boolean;
 }
 
+// Defaults de la marca Keirost — paleta teal + ink (brand guide v1.0).
+// El usuario puede sobreescribir colorPrimary / colorAccent / logoUrl /
+// themeMode desde Ajustes → Empresa → Branding; estos son solo el punto de
+// partida.
 export const BRANDING_DEFAULTS: BrandingConfig = {
-  colorPrimary: '#2563eb',
-  colorAccent: '#10b981',
+  colorPrimary: '#0A1628', // ink — texto/botones principales
+  colorAccent: '#0D9488',  // teal — acento, links, CTAs
   logoUrl: '',
-  appName: 'OpenFactu',
+  appName: 'Keirost',
   fontFamily: 'sans',
   themeMode: 'light',
 };
@@ -54,7 +62,106 @@ export const FLAGS_DEFAULTS: FlagsConfig = {
   watermarkDraft: true,
   confirmBeforeCancel: true,
   enforceWarehouseZones: false,
+  warehouseLocation: 'header',
+  logisticsEnabled: false,
 };
+
+export interface ThemePreset {
+  id: string;
+  label: string;
+  description: string;
+  colorPrimary: string;
+  colorAccent: string;
+  themeMode: 'light' | 'dark';
+}
+
+// Presets de tema inspirados en las variantes del logo del brand guide v1.0.
+// "custom" se asigna automáticamente cuando el usuario edita un color a mano.
+export const THEME_PRESETS: ThemePreset[] = [
+  {
+    id: 'keirost-classic',
+    label: 'Keirost Clásico',
+    description: 'Ink + Teal — el predeterminado del brand guide.',
+    colorPrimary: '#0A1628',
+    colorAccent: '#0D9488',
+    themeMode: 'light',
+  },
+  {
+    id: 'keirost-teal',
+    label: 'Teal Fuerte',
+    description: 'Teal protagonista, ink secundario. Para marcas activas.',
+    colorPrimary: '#0D9488',
+    colorAccent: '#0A6E63',
+    themeMode: 'light',
+  },
+  {
+    id: 'keirost-slate',
+    label: 'Slate Monocromo',
+    description: 'Gris neutro, sin acento de marca. Look discreto.',
+    colorPrimary: '#1E293B',
+    colorAccent: '#64748B',
+    themeMode: 'light',
+  },
+  {
+    id: 'keirost-midnight',
+    label: 'Midnight',
+    description: 'Base oscura con acento teal. Ideal para salas de control.',
+    colorPrimary: '#0A1628',
+    colorAccent: '#0D9488',
+    themeMode: 'dark',
+  },
+  {
+    id: 'keirost-carbon',
+    label: 'Carbon',
+    description: 'Grafito profundo con acento ámbar. Sobrio, industrial.',
+    colorPrimary: '#18181B',
+    colorAccent: '#F59E0B',
+    themeMode: 'dark',
+  },
+  {
+    id: 'keirost-deep-ocean',
+    label: 'Deep Ocean',
+    description: 'Azul abisal con acento cyan. Fresco y tecnológico.',
+    colorPrimary: '#0C1E3A',
+    colorAccent: '#22D3EE',
+    themeMode: 'dark',
+  },
+  {
+    id: 'keirost-forest',
+    label: 'Forest',
+    description: 'Verde bosque con acento lima. Natural, calmado.',
+    colorPrimary: '#0F1F1A',
+    colorAccent: '#84CC16',
+    themeMode: 'dark',
+  },
+  {
+    id: 'keirost-plum',
+    label: 'Plum',
+    description: 'Ciruela oscuro con acento rosa. Elegante y contrastado.',
+    colorPrimary: '#1E102C',
+    colorAccent: '#EC4899',
+    themeMode: 'dark',
+  },
+  {
+    id: 'keirost-nebula',
+    label: 'Nebula',
+    description: 'Azul noche con acento violeta. Inmersivo, premium.',
+    colorPrimary: '#0F1430',
+    colorAccent: '#8B5CF6',
+    themeMode: 'dark',
+  },
+];
+
+/** Devuelve el id del preset que coincide con branding actual, o 'custom'. */
+export function detectPreset(b: BrandingConfig): string {
+  const match = THEME_PRESETS.find(
+    (p) =>
+      p.colorPrimary.toLowerCase() === b.colorPrimary.toLowerCase() &&
+      p.colorAccent.toLowerCase() === b.colorAccent.toLowerCase() &&
+      p.themeMode === b.themeMode,
+  );
+  return match?.id ?? 'custom';
+}
 
 interface ThemeContextType {
   branding: BrandingConfig;
@@ -63,6 +170,8 @@ interface ThemeContextType {
   loading: boolean;
   reload: () => Promise<void>;
   update: (section: 'branding' | 'format' | 'flags', patch: any) => Promise<void>;
+  applyPreset: (presetId: string) => Promise<void>;
+  activePresetId: string;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -91,6 +200,20 @@ function darkenRgb(rgb: [number, number, number], amount: number): [number, numb
 function contrastingFgRgb(rgb: [number, number, number]): [number, number, number] {
   const luminance = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
   return luminance > 0.6 ? [15, 23, 42] : [255, 255, 255];
+}
+
+/** Devuelve el RGB aclarado un porcentaje (0..1) hacia blanco. */
+function lightenRgb(rgb: [number, number, number], amount: number): [number, number, number] {
+  return [
+    Math.min(255, Math.floor(rgb[0] + (255 - rgb[0]) * amount)),
+    Math.min(255, Math.floor(rgb[1] + (255 - rgb[1]) * amount)),
+    Math.min(255, Math.floor(rgb[2] + (255 - rgb[2]) * amount)),
+  ];
+}
+
+function rgbToHex(rgb: [number, number, number]): string {
+  const toHex = (n: number) => n.toString(16).padStart(2, '0');
+  return `#${toHex(rgb[0])}${toHex(rgb[1])}${toHex(rgb[2])}`;
 }
 
 function fontStackForFamily(family: BrandingConfig['fontFamily']): string {
@@ -262,6 +385,26 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     document.title = branding.appName;
     root.classList.toggle('dark', branding.themeMode === 'dark');
 
+    // En modo dark, derivamos el fondo de app/card del color primario del tema.
+    // Así cada preset oscuro (Midnight, Carbon, Deep Ocean, Forest, Plum,
+    // Nebula) tiene su propio color base en lugar de compartir #0A1628.
+    if (branding.themeMode === 'dark') {
+      const bgApp = rgbToHex(primaryRgb);
+      const bgCard = rgbToHex(lightenRgb(primaryRgb, 0.06));
+      const borderDefault = rgbToHex(lightenRgb(primaryRgb, 0.14));
+      root.style.setProperty('--bg-app', bgApp);
+      root.style.setProperty('--bg-card', bgCard);
+      root.style.setProperty('--border-default', borderDefault);
+      // Fuerza que el <html> y body vean el fondo correcto antes del siguiente
+      // pintado (evita flash de #0A1628 hardcoded en index.css).
+      root.style.background = bgApp;
+    } else {
+      root.style.removeProperty('--bg-app');
+      root.style.removeProperty('--bg-card');
+      root.style.removeProperty('--border-default');
+      root.style.removeProperty('background');
+    }
+
     // Persistir cache con las tres secciones completas + RGB precomputados
     // para que el script inline en index.html aplique el tema antes de React.
     try {
@@ -289,8 +432,25 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [branding, format, flags, user?.tenantId]);
 
+  const applyPreset = useCallback(
+    async (presetId: string) => {
+      const preset = THEME_PRESETS.find((p) => p.id === presetId);
+      if (!preset) return;
+      await update('branding', {
+        colorPrimary: preset.colorPrimary,
+        colorAccent: preset.colorAccent,
+        themeMode: preset.themeMode,
+      });
+    },
+    [update],
+  );
+
+  const activePresetId = detectPreset(branding);
+
   return (
-    <ThemeContext.Provider value={{ branding, format, flags, loading, reload, update }}>
+    <ThemeContext.Provider
+      value={{ branding, format, flags, loading, reload, update, applyPreset, activePresetId }}
+    >
       {children}
     </ThemeContext.Provider>
   );

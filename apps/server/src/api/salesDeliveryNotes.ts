@@ -1,11 +1,13 @@
 import { Router } from 'express';
-import { eq, sql, desc } from 'drizzle-orm';
+import { and, eq, inArray, notInArray, sql, desc } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import crypto from 'crypto';
 import { renderDocumentPdf } from '../core/documents/renderDocumentPdf';
 import { getConfigSection } from '../core/config/systemConfigSection';
 import { FLAGS_DEFAULTS } from '../core/config/appConfig';
 import { logAudit } from '../utils/audit';
+import { notifyShipmentStageChange } from '../core/logistics/shipmentNotifications';
+import { dispatchEvent } from '../core/webhooks/WebhookQueue';
 
 const router = Router();
 
@@ -37,7 +39,40 @@ router.get('/', async (req: any, res) => {
         eq(schema.salesDeliveryNotes.periodId, schema.accountingPeriods.id),
       )
       .orderBy(desc(schema.salesDeliveryNotes.date));
-    res.json(results);
+
+    // Enriquecer con info de preparación — ¿tiene shipment vivo vinculado?
+    // Así el UI puede mostrar un badge "En preparación" y ocultar el botón
+    // Preparar cuando ya se ha disparado. Una sola query + map en memoria.
+    const ids = results.map((r: any) => r.id);
+    let shipmentMap = new Map<string, string>();
+    if (ids.length > 0) {
+      const activeShipments = await req.tenantClient
+        .select({
+          id: schema.shipments.id,
+          sourceDocId: schema.shipments.sourceDocId,
+        })
+        .from(schema.shipments)
+        .where(
+          and(
+            eq(schema.shipments.sourceDocType, 'SDN'),
+            inArray(schema.shipments.sourceDocId, ids),
+            notInArray(schema.shipments.preparationStatus, [
+              'cancelled',
+              'delivered',
+              'returned',
+            ]),
+          ),
+        );
+      for (const s of activeShipments as any[]) {
+        if (s.sourceDocId) shipmentMap.set(s.sourceDocId, s.id);
+      }
+    }
+    const enriched = results.map((r: any) => ({
+      ...r,
+      hasActiveShipment: shipmentMap.has(r.id),
+      activeShipmentId: shipmentMap.get(r.id) || null,
+    }));
+    res.json(enriched);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -121,7 +156,8 @@ router.get('/:id/pdf', async (req: any, res) => {
 
 // POST new sales delivery note (Relieved Goods)
 router.post('/', async (req: any, res) => {
-  const { seriesId, periodId, partnerId, orderId, date, lines, warehouseId } = req.body;
+  const { seriesId, periodId, partnerId, orderId, date, lines, warehouseId, internalOrderId } =
+    req.body;
 
   try {
     const flags = await getConfigSection(req.tenantClient, 'flags', FLAGS_DEFAULTS);
@@ -163,6 +199,7 @@ router.post('/', async (req: any, res) => {
         billToAddress: req.body.billToAddress || null,
         shipToAddress: req.body.shipToAddress || null,
         warehouseId: warehouseId || null,
+        internalOrderId: internalOrderId || null,
         subtotal: '0',
         taxTotal: '0',
         total: '0',
@@ -188,9 +225,22 @@ router.post('/', async (req: any, res) => {
           );
         }
 
-        const lineSubtotal = Number(line.quantity) * Number(line.price);
+        const qty = Number(line.quantity);
+        const price = Number(line.price);
+        const gross = qty * price;
+        const discountRate = Number(line.discountRate || 0);
+        const discountAmount =
+          line.discountAmount != null
+            ? Number(line.discountAmount)
+            : gross * (discountRate / 100);
+        const lineSubtotal = gross - discountAmount;
         const taxRate = taxRateMap[line.taxGroupId] || 0;
         const lineTax = lineSubtotal * (taxRate / 100);
+        const withholdingRate = Number(line.withholdingRate || 0);
+        const withholdingAmount =
+          line.withholdingAmount != null
+            ? Number(line.withholdingAmount)
+            : lineSubtotal * (withholdingRate / 100);
 
         calculatedSubtotal += lineSubtotal;
         calculatedTaxTotal += lineTax;
@@ -211,13 +261,24 @@ router.post('/', async (req: any, res) => {
           itemId: line.itemId,
           warehouseId: targetWarehouse,
           zoneId: line.zoneId || null,
-          quantity: String(line.quantity),
-          price: String(line.price),
+          quantity: String(qty),
+          price: String(price),
           taxGroupId: line.taxGroupId || null,
           lineTotal: String(lineSubtotal + lineTax),
           baseLine: line.baseLine || null,
           uomId: line.uomId || null,
           uomFactor: String(uomFactor),
+          // Mig 032 — desglose fiscal por línea.
+          description: line.description || null,
+          discountRate: String(discountRate),
+          discountAmount: String(discountAmount.toFixed(4)),
+          taxRate: String(taxRate),
+          taxAmount: String(lineTax.toFixed(4)),
+          withholdingRate: withholdingRate ? String(withholdingRate) : null,
+          withholdingAmount: withholdingAmount ? String(withholdingAmount.toFixed(4)) : null,
+          costCenterId: line.costCenterId || null,
+          profitCenterId: line.profitCenterId || null,
+          internalOrderId: line.internalOrderId || internalOrderId || null,
         });
 
         // B. Reducir Stock Global (en UoM base)
@@ -386,9 +447,48 @@ router.post('/', async (req: any, res) => {
   }
 });
 
-// POST /:id/cancel — Cancela un albarán de venta, devolviendo stock y reabriendo el pedido origen
+// POST /:id/cancel — Cancela un albarán de venta, devolviendo stock y
+// reabriendo el pedido origen. En modo logística integrada, también
+// propaga la cancelación al Shipment activo si existe.
+//
+// Body: { reason?: string; force?: boolean }
+//   - reason: motivo, se registra en audit + shipmentEvents.
+//   - force:  obligatorio si el envío ya está en ruta (in_transit /
+//             out_for_delivery). Protege contra cancelaciones accidentales
+//             cuando el conductor ya está circulando con el paquete.
 router.post('/:id/cancel', async (req: any, res) => {
   try {
+    const body = req.body || {};
+
+    // Pre-check del shipment vinculado — fuera de la transacción porque
+    // un rechazo no debe dejar la tx abierta.
+    const [activeShipment] = await req.tenantClient
+      .select()
+      .from(schema.shipments)
+      .where(
+        sql`${schema.shipments.sourceDocType} = 'SDN' AND ${schema.shipments.sourceDocId} = ${req.params.id} AND ${schema.shipments.preparationStatus} NOT IN ('cancelled','delivered','returned')`,
+      );
+    if (activeShipment) {
+      if (activeShipment.preparationStatus === 'delivered') {
+        return res.status(409).json({
+          error:
+            'El envío ya ha sido entregado. Usa "Devolver" en el envío en lugar de cancelar el albarán.',
+        });
+      }
+      const inRoute = ['in_transit', 'out_for_delivery'].includes(
+        activeShipment.preparationStatus,
+      );
+      if (inRoute && !body.force) {
+        return res.status(409).json({
+          error:
+            'El envío está en ruta. Confirma con force=true para cancelarlo — el conductor debe volver sin entregar.',
+          requiresForce: true,
+          shipmentId: activeShipment.id,
+          shipmentStatus: activeShipment.preparationStatus,
+        });
+      }
+    }
+
     const result = await req.tenantClient.transaction(async (tx: any) => {
       const [header] = await tx
         .select()
@@ -470,6 +570,43 @@ router.post('/:id/cancel', async (req: any, res) => {
         .set({ status: 'X' })
         .where(eq(schema.salesDeliveryNotes.id, req.params.id));
 
+      // 2b. Propagar al shipment vinculado (si existe y sigue vivo) +
+      // cancelar picking tasks asociadas. La cancelación fiscal del
+      // albarán debe parar también la operación logística.
+      if (activeShipment) {
+        await tx
+          .update(schema.shipments)
+          .set({
+            status: 'cancelled',
+            preparationStatus: 'cancelled',
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.shipments.id, activeShipment.id));
+
+        await tx.insert(schema.shipmentEvents).values({
+          id: crypto.randomUUID(),
+          shipmentId: activeShipment.id,
+          kind: 'status_change',
+          status: 'cancelled',
+          description: body.reason
+            ? `Cancelado al anular el albarán: ${body.reason}`
+            : 'Cancelado al anular el albarán de venta',
+        });
+
+        // Picking tasks pendientes → cancelled (el almacén deja de
+        // procesarlas).
+        try {
+          await tx
+            .update(schema.pickingTasks)
+            .set({ status: 'cancelled' })
+            .where(
+              sql`${schema.pickingTasks.shipmentId} = ${activeShipment.id} AND ${schema.pickingTasks.status} IN ('pending','in_progress')`,
+            );
+        } catch {
+          /* tabla opcional, si no existe pickingTasks no rompemos */
+        }
+      }
+
       // 3. Recalcular estado del pedido origen
       if (header.orderId) {
         const soLines = await tx
@@ -486,7 +623,12 @@ router.post('/:id/cancel', async (req: any, res) => {
       return { success: true };
     });
 
-    res.json(result);
+    res.json({
+      ...result,
+      shipmentCancelled: !!activeShipment,
+      shipmentId: activeShipment?.id || null,
+    });
+
     logAudit({
       tenantClient: req.tenantClient,
       tenantId: req.tenantId || '',
@@ -494,7 +636,37 @@ router.post('/:id/cancel', async (req: any, res) => {
       entityType: 'SalesDeliveryNote',
       entityId: req.params.id,
       action: 'DELETE',
+      newValue: { reason: body.reason || null, force: !!body.force },
     });
+
+    // Side-effects fire-and-forget: no bloquean la respuesta al cliente.
+    dispatchEvent(req.tenantId, 'sales_delivery_note.cancelled', {
+      id: req.params.id,
+      reason: body.reason || null,
+      shipmentId: activeShipment?.id || null,
+    }).catch(() => {});
+
+    if (activeShipment) {
+      // Deducir la URL pública desde el Origin del request (sin tocar tenant
+      // config para no hacer esta ruta async).
+      const origin = (req.headers?.origin as string | undefined) || '';
+      const baseUrl =
+        process.env.PUBLIC_BASE_URL?.trim() ||
+        origin ||
+        `${req.protocol}://${req.get('host')}`;
+      notifyShipmentStageChange(
+        req.tenantClient,
+        req.tenantId,
+        activeShipment.id,
+        'cancelled' as any,
+        baseUrl.replace(/\/$/, ''),
+      ).catch(() => {});
+      dispatchEvent(req.tenantId, 'shipment.cancelled', {
+        id: activeShipment.id,
+        reason: body.reason || null,
+        cascadedFrom: 'sales_delivery_note',
+      }).catch(() => {});
+    }
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

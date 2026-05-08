@@ -20,6 +20,12 @@ router.get('/', async (req: any, res) => {
       purchaseInvoices: [],
       salesDeliveryNotes: [],
       purchaseDeliveryNotes: [],
+      salesOrders: [],
+      purchaseOrders: [],
+      journalEntries: [],
+      employees: [],
+      internalOrders: [],
+      chartOfAccounts: [],
       total: 0,
     });
   }
@@ -101,13 +107,95 @@ router.get('/', async (req: any, res) => {
       }));
     };
 
-    const [salesInvoices, purchaseInvoices, salesDeliveryNotes, purchaseDeliveryNotes] =
-      await Promise.all([
-        searchDocs(schema.salesInvoices),
-        searchDocs(schema.purchaseInvoices),
-        searchDocs(schema.salesDeliveryNotes),
-        searchDocs(schema.purchaseDeliveryNotes),
-      ]);
+    const [
+      salesInvoices,
+      purchaseInvoices,
+      salesDeliveryNotes,
+      purchaseDeliveryNotes,
+      salesOrders,
+      purchaseOrders,
+    ] = await Promise.all([
+      searchDocs(schema.salesInvoices),
+      searchDocs(schema.purchaseInvoices),
+      searchDocs(schema.salesDeliveryNotes),
+      searchDocs(schema.purchaseDeliveryNotes),
+      searchDocs(schema.salesOrders),
+      searchDocs(schema.purchaseOrders),
+    ]);
+
+    // 7. Asientos contables — por número o descripción.
+    const journalEntries = await db
+      .select({
+        id: schema.journalEntries.id,
+        number: schema.journalEntries.number,
+        date: schema.journalEntries.date,
+        description: schema.journalEntries.description,
+        status: schema.journalEntries.status,
+      })
+      .from(schema.journalEntries)
+      .where(
+        or(
+          ilike(schema.journalEntries.description, pattern),
+          sql`${schema.journalEntries.number}::text ILIKE ${pattern}`,
+        ),
+      )
+      .orderBy(desc(schema.journalEntries.createdAt))
+      .limit(LIMIT);
+
+    // 8. Empleados — código, nombre, apellido, email, DNI.
+    const employees = await db
+      .select({
+        id: schema.employees.id,
+        code: schema.employees.code,
+        firstName: schema.employees.firstName,
+        lastName: schema.employees.lastName,
+        email: schema.employees.email,
+      })
+      .from(schema.employees)
+      .where(
+        or(
+          ilike(schema.employees.code, pattern),
+          ilike(schema.employees.firstName, pattern),
+          ilike(schema.employees.lastName, pattern),
+          ilike(schema.employees.email, pattern),
+          ilike(schema.employees.dni, pattern),
+        ),
+      )
+      .limit(LIMIT);
+
+    // 9. Proyectos / órdenes internas.
+    const internalOrders = await db
+      .select({
+        id: schema.internalOrders.id,
+        code: schema.internalOrders.code,
+        name: schema.internalOrders.name,
+        status: schema.internalOrders.status,
+      })
+      .from(schema.internalOrders)
+      .where(
+        or(
+          ilike(schema.internalOrders.code, pattern),
+          ilike(schema.internalOrders.name, pattern),
+        ),
+      )
+      .limit(LIMIT);
+
+    // 10. Plan contable.
+    const chartOfAccounts = await db
+      .select({
+        id: schema.chartOfAccounts.id,
+        code: schema.chartOfAccounts.code,
+        name: schema.chartOfAccounts.name,
+        type: schema.chartOfAccounts.type,
+      })
+      .from(schema.chartOfAccounts)
+      .where(
+        or(
+          ilike(schema.chartOfAccounts.code, pattern),
+          ilike(schema.chartOfAccounts.name, pattern),
+        ),
+      )
+      .limit(LIMIT);
 
     const total =
       partners.length +
@@ -115,7 +203,13 @@ router.get('/', async (req: any, res) => {
       salesInvoices.length +
       purchaseInvoices.length +
       salesDeliveryNotes.length +
-      purchaseDeliveryNotes.length;
+      purchaseDeliveryNotes.length +
+      salesOrders.length +
+      purchaseOrders.length +
+      journalEntries.length +
+      employees.length +
+      internalOrders.length +
+      chartOfAccounts.length;
 
     res.json({
       partners,
@@ -124,6 +218,12 @@ router.get('/', async (req: any, res) => {
       purchaseInvoices,
       salesDeliveryNotes,
       purchaseDeliveryNotes,
+      salesOrders,
+      purchaseOrders,
+      journalEntries,
+      employees,
+      internalOrders,
+      chartOfAccounts,
       total,
     });
   } catch (error: any) {

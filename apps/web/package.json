@@ -5,18 +5,24 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:https": "node ./scripts/ensure-certs.mjs && vite --config vite.https.config.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/modifiers": "^9.0.0",
     "@monaco-editor/react": "^4.7.0",
     "@openfactu/common": "^0.0.2",
     "@openfactu/pdf": "^0.0.2",
-    "@openfactu/ui": "^0.1.1",
+    "@openfactu/ui": "^0.2.1",
+    "@zxing/browser": "^0.1.5",
     "lucide-react": "^1.8.0",
+    "maplibre-gl": "^5.24.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-map-gl": "^8.1.1",
     "react-router-dom": "^7.14.0",
     "recharts": "^3.8.1",
     "tailwindcss-animated": "^2.0.0"
@@ -36,6 +42,7 @@
     "tailwindcss": "^3.4.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.0",
-    "vite": "^8.0.4"
+    "vite": "^8.0.4",
+    "vite-plugin-pwa": "^1.2.0"
   }
 }

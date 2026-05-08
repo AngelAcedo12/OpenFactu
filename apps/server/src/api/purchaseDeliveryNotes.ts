@@ -1,9 +1,11 @@
 import { Router } from 'express';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import crypto from 'crypto';
 import { renderDocumentPdf } from '../core/documents/renderDocumentPdf';
 import { logAudit } from '../utils/audit';
+import { notifyShipmentStageChange } from '../core/logistics/shipmentNotifications';
+import { dispatchEvent } from '../core/webhooks/WebhookQueue';
 
 const router = Router();
 
@@ -38,7 +40,39 @@ router.get('/', async (req: any, res) => {
         eq(schema.purchaseDeliveryNotes.periodId, schema.accountingPeriods.id),
       )
       .orderBy(sql`${schema.purchaseDeliveryNotes.date} DESC`);
-    res.json(results);
+
+    // Idéntico al SDN: enriquecer con info del shipment de recepción vivo.
+    const ids = results.map((r: any) => r.id);
+    let shipmentMap = new Map<string, string>();
+    if (ids.length > 0) {
+      const active = await req.tenantClient
+        .select({
+          id: schema.shipments.id,
+          sourceDocId: schema.shipments.sourceDocId,
+        })
+        .from(schema.shipments)
+        .where(
+          and(
+            eq(schema.shipments.sourceDocType, 'PDN'),
+            inArray(schema.shipments.sourceDocId, ids),
+            notInArray(schema.shipments.preparationStatus, [
+              'cancelled',
+              'delivered',
+              'received',
+              'returned',
+            ]),
+          ),
+        );
+      for (const s of active as any[]) {
+        if (s.sourceDocId) shipmentMap.set(s.sourceDocId, s.id);
+      }
+    }
+    const enriched = results.map((r: any) => ({
+      ...r,
+      hasActiveShipment: shipmentMap.has(r.id),
+      activeShipmentId: shipmentMap.get(r.id) || null,
+    }));
+    res.json(enriched);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -129,7 +163,8 @@ router.get('/:id/pdf', async (req: any, res) => {
 
 // POST new delivery note (Entry of Goods)
 router.post('/', async (req: any, res) => {
-  const { seriesId, periodId, partnerId, orderId, date, lines, warehouseId } = req.body;
+  const { seriesId, periodId, partnerId, orderId, date, lines, warehouseId, internalOrderId } =
+    req.body;
 
   try {
     const result = await req.tenantClient.transaction(async (tx: any) => {
@@ -172,6 +207,7 @@ router.post('/', async (req: any, res) => {
           billToAddress: req.body.billToAddress || null,
           shipToAddress: req.body.shipToAddress || null,
           warehouseId: warehouseId || null,
+          internalOrderId: internalOrderId || null,
           subtotal: '0',
           taxTotal: '0',
           total: '0',
@@ -214,9 +250,22 @@ router.post('/', async (req: any, res) => {
           }
         }
 
-        const lineSubtotal = Number(line.quantity) * Number(line.price);
+        const qty = Number(line.quantity);
+        const price = Number(line.price);
+        const gross = qty * price;
+        const discountRate = Number(line.discountRate || 0);
+        const discountAmount =
+          line.discountAmount != null
+            ? Number(line.discountAmount)
+            : gross * (discountRate / 100);
+        const lineSubtotal = gross - discountAmount;
         const taxRate = taxRateMap[line.taxGroupId] || 0;
         const lineTax = lineSubtotal * (taxRate / 100);
+        const withholdingRate = Number(line.withholdingRate || 0);
+        const withholdingAmount =
+          line.withholdingAmount != null
+            ? Number(line.withholdingAmount)
+            : lineSubtotal * (withholdingRate / 100);
 
         calculatedSubtotal += lineSubtotal;
         calculatedTaxTotal += lineTax;
@@ -251,13 +300,24 @@ router.post('/', async (req: any, res) => {
           warehouseId: targetWarehouse,
           zoneId: line.zoneId || null,
           batchNum: line.batchNum || null,
-          quantity: String(line.quantity),
+          quantity: String(qty),
           uomId: line.uomId || null,
           uomFactor: String(uomFactor),
-          price: String(line.price),
+          price: String(price),
           taxGroupId: line.taxGroupId || null,
           lineTotal: String(lineSubtotal + lineTax),
           baseLine: line.baseLine || null,
+          // Mig 032 — desglose fiscal por línea.
+          description: line.description || null,
+          discountRate: String(discountRate),
+          discountAmount: String(discountAmount.toFixed(4)),
+          taxRate: String(taxRate),
+          taxAmount: String(lineTax.toFixed(4)),
+          withholdingRate: withholdingRate ? String(withholdingRate) : null,
+          withholdingAmount: withholdingAmount ? String(withholdingAmount.toFixed(4)) : null,
+          costCenterId: line.costCenterId || null,
+          profitCenterId: line.profitCenterId || null,
+          internalOrderId: line.internalOrderId || internalOrderId || null,
         });
 
         // B. Incrementar Stock Global
@@ -439,6 +499,36 @@ router.post('/', async (req: any, res) => {
 
 async function cancelPurchaseDeliveryNote(req: any, res: any) {
   try {
+    const body = req.body || {};
+
+    // Pre-check del shipment de recepción vinculado.
+    const [activeShipment] = await req.tenantClient
+      .select()
+      .from(schema.shipments)
+      .where(
+        sql`${schema.shipments.sourceDocType} = 'PDN' AND ${schema.shipments.sourceDocId} = ${req.params.id} AND ${schema.shipments.preparationStatus} NOT IN ('cancelled','received','delivered','returned')`,
+      );
+    if (activeShipment) {
+      if (['received', 'delivered'].includes(activeShipment.preparationStatus)) {
+        return res.status(409).json({
+          error:
+            'La recepción ya está cerrada. No se puede cancelar el albarán de compra.',
+        });
+      }
+      const inProgress = ['in_transit', 'out_for_delivery', 'receiving'].includes(
+        activeShipment.preparationStatus,
+      );
+      if (inProgress && !body.force) {
+        return res.status(409).json({
+          error:
+            'Recepción en curso. Confirma con force=true para cancelar.',
+          requiresForce: true,
+          shipmentId: activeShipment.id,
+          shipmentStatus: activeShipment.preparationStatus,
+        });
+      }
+    }
+
     const result = await req.tenantClient.transaction(async (tx: any) => {
       // 1. Obtener cabecera y líneas para revertir
       const [header] = await tx
@@ -521,6 +611,37 @@ async function cancelPurchaseDeliveryNote(req: any, res: any) {
         .set({ status: 'X' })
         .where(eq(schema.purchaseDeliveryNotes.id, req.params.id));
 
+      // 2b. Cascada al shipment de recepción + picking tasks asociados.
+      if (activeShipment) {
+        await tx
+          .update(schema.shipments)
+          .set({
+            status: 'cancelled',
+            preparationStatus: 'cancelled',
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.shipments.id, activeShipment.id));
+        await tx.insert(schema.shipmentEvents).values({
+          id: crypto.randomUUID(),
+          shipmentId: activeShipment.id,
+          kind: 'status_change',
+          status: 'cancelled',
+          description: body.reason
+            ? `Cancelado al anular el albarán: ${body.reason}`
+            : 'Cancelado al anular el albarán de compra',
+        });
+        try {
+          await tx
+            .update(schema.pickingTasks)
+            .set({ status: 'cancelled' })
+            .where(
+              sql`${schema.pickingTasks.shipmentId} = ${activeShipment.id} AND ${schema.pickingTasks.status} IN ('pending','in_progress')`,
+            );
+        } catch {
+          /* opcional */
+        }
+      }
+
       // 3. Recalcular estado del pedido
       if (header.orderId) {
         const poLines = await tx
@@ -538,7 +659,11 @@ async function cancelPurchaseDeliveryNote(req: any, res: any) {
       return { success: true };
     });
 
-    res.json(result);
+    res.json({
+      ...result,
+      shipmentCancelled: !!activeShipment,
+      shipmentId: activeShipment?.id || null,
+    });
     logAudit({
       tenantClient: req.tenantClient,
       tenantId: req.tenantId || '',
@@ -546,7 +671,21 @@ async function cancelPurchaseDeliveryNote(req: any, res: any) {
       entityType: 'PurchaseDeliveryNote',
       entityId: req.params.id,
       action: 'DELETE',
+      newValue: { reason: body.reason || null, force: !!body.force },
     });
+
+    dispatchEvent(req.tenantId, 'purchase_delivery_note.cancelled', {
+      id: req.params.id,
+      reason: body.reason || null,
+      shipmentId: activeShipment?.id || null,
+    }).catch(() => {});
+    if (activeShipment) {
+      dispatchEvent(req.tenantId, 'shipment.cancelled', {
+        id: activeShipment.id,
+        reason: body.reason || null,
+        cascadedFrom: 'purchase_delivery_note',
+      }).catch(() => {});
+    }
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -4,6 +4,12 @@ import * as schema from '../db/schema';
 import { DocumentEngine } from '../core/documents/DocumentEngine';
 import { renderDocumentPdf } from '../core/documents/renderDocumentPdf';
 import { logAudit } from '../utils/audit';
+import {
+  assertLockedPatchAllowed,
+  buildPaymentDueLines,
+  computeWithholding,
+  latestDueDate,
+} from '../core/documents/invoiceLock';
 
 const router = Router();
 
@@ -20,6 +26,10 @@ router.get('/', async (req: any, res) => {
         partnerId: schema.salesInvoices.partnerId,
         total: schema.salesInvoices.total,
         status: schema.salesInvoices.status,
+        paymentStatus: schema.salesInvoices.paymentStatus,
+        amountPaid: schema.salesInvoices.amountPaid,
+        isLocked: schema.salesInvoices.isLocked,
+        dueDate: schema.salesInvoices.dueDate,
         baseDocCode: sql<string | null>`(
         SELECT COALESCE(ds."prefix", '') || '-' || COALESCE(ap."code", '') || '-' || LPAD(sdn."docNum"::text, 6, '0')
         FROM "SalesDeliveryNote" sdn
@@ -85,11 +95,57 @@ router.get('/:id', async (req: any, res) => {
       }),
     );
 
+    // Drizzle solo proyecta las columnas declaradas en el schema, así que
+    // los campos custom `p_*` (plugin/user) se pierden. Hacemos un SELECT
+    // crudo y mergeamos solo esas columnas.
+    const schemaName = req.tenantSchema || req.tenant?.schemaName;
+    if (!schemaName) {
+      // No podemos leer columnas custom sin conocer el schema; devolvemos sin merge.
+      return res.json({
+        ...header.header,
+        seriesPrefix: header.seriesPrefix,
+        periodCode: header.periodCode,
+        lines: linesWithBatches,
+      });
+    }
+    const rawHeader: any = await req.tenantClient.execute(
+      sql.raw(
+        `SELECT * FROM "${schemaName}"."SalesInvoice" WHERE "id" = '${req.params.id}'`,
+      ),
+    );
+    const rawHeaderRow = rawHeader.rows?.[0] || {};
+    const pluginCols: Record<string, any> = {};
+    for (const [k, v] of Object.entries(rawHeaderRow)) {
+      if (k.startsWith('p_')) pluginCols[k] = v;
+    }
+
+    const lineIds = linesWithBatches.map((l: any) => l.id);
+    const linePluginByLineId: Record<string, Record<string, any>> = {};
+    if (lineIds.length > 0) {
+      const escapedIds = lineIds.map((id: string) => `'${String(id).replace(/'/g, "''")}'`).join(',');
+      const rawLines: any = await req.tenantClient.execute(
+        sql.raw(
+          `SELECT * FROM "${schemaName}"."SalesInvoiceLine" WHERE "id" IN (${escapedIds})`,
+        ),
+      );
+      for (const r of rawLines.rows || []) {
+        const entry: Record<string, any> = {};
+        for (const [k, v] of Object.entries(r)) {
+          if (k.startsWith('p_')) entry[k] = v;
+        }
+        linePluginByLineId[r.id] = entry;
+      }
+    }
+
     res.json({
       ...header.header,
+      ...pluginCols,
       seriesPrefix: header.seriesPrefix,
       periodCode: header.periodCode,
-      lines: linesWithBatches,
+      lines: linesWithBatches.map((l: any) => ({
+        ...l,
+        ...(linePluginByLineId[l.id] || {}),
+      })),
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -148,7 +204,7 @@ router.post('/', async (req: any, res) => {
   }
 });
 
-// POST — asienta un borrador (D → O)
+// POST — asienta un borrador (D → O) y lockea la factura
 router.post('/:id/post', async (req: any, res) => {
   try {
     const [header] = await req.tenantClient
@@ -159,12 +215,64 @@ router.post('/:id/post', async (req: any, res) => {
     if (header.status !== 'D')
       return res.status(400).json({ error: 'Solo se pueden asentar facturas en estado Borrador.' });
 
+    // Si tiene PaymentTerm, calcular paymentDueLines a partir de date+days.
+    let paymentDueLines: Array<{ date: string; amount: number }> = [];
+    let dueDate: string | null = header.dueDate || null;
+    if (header.paymentTermId) {
+      const [term] = await req.tenantClient
+        .select()
+        .from(schema.paymentTerms)
+        .where(eq(schema.paymentTerms.id, header.paymentTermId));
+      if (term && Array.isArray(term.lines) && term.lines.length > 0) {
+        paymentDueLines = buildPaymentDueLines(
+          new Date(header.date),
+          term.lines as Array<{ days: number; percentage: number }>,
+          Number(header.total),
+        );
+        dueDate = latestDueDate(paymentDueLines) || dueDate;
+      }
+    }
+
+    // Calcular withholding del documento si se definió tasa.
+    const withholdingAmount = computeWithholding(Number(header.subtotal), header.withholdingRate);
+
     await req.tenantClient
       .update(schema.salesInvoices)
-      .set({ status: 'O' })
+      .set({
+        status: 'O',
+        isLocked: true,
+        lockedAt: new Date(),
+        paymentDueLines,
+        dueDate,
+        withholdingAmount: withholdingAmount != null ? String(withholdingAmount) : null,
+      })
       .where(eq(schema.salesInvoices.id, req.params.id));
 
-    res.json({ success: true });
+    // Generación automática de asiento (best-effort). Si faltan mapeos básicos
+    // devuelve null y seguimos — el asiento se puede crear manualmente luego.
+    let journalEntryId: string | null = null;
+    try {
+      const { JournalEngine } = await import('../core/accounting/JournalEngine');
+      const fresh = { ...header, isLocked: true };
+      const invoiceLines = await req.tenantClient
+        .select()
+        .from(schema.salesInvoiceLines)
+        .where(eq(schema.salesInvoiceLines.invoiceId, req.params.id));
+      const result = await JournalEngine.createFromSalesInvoice(
+        req.tenantClient,
+        fresh,
+        invoiceLines,
+        req.user?.id,
+      );
+      if (result) {
+        await JournalEngine.post(req.tenantClient, result.id, req.user?.id);
+        journalEntryId = result.id;
+      }
+    } catch (je: any) {
+      console.warn('[SalesInvoice post] No se pudo generar asiento:', je.message);
+    }
+
+    res.json({ success: true, isLocked: true, paymentDueLines, dueDate, journalEntryId });
     logAudit({
       tenantClient: req.tenantClient,
       tenantId: req.tenantId || '',
@@ -172,8 +280,8 @@ router.post('/:id/post', async (req: any, res) => {
       entityType: 'SalesInvoice',
       entityId: req.params.id,
       action: 'UPDATE',
-      oldValue: { status: 'D' },
-      newValue: { status: 'O' },
+      oldValue: { status: 'D', isLocked: false },
+      newValue: { status: 'O', isLocked: true, lockedAt: new Date() },
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

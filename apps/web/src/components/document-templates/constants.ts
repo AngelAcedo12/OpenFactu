@@ -1,6 +1,12 @@
-import type { DocType } from '../../utils/visualTemplateBuilder';
+import type { DocType as PdfDocType } from '../../utils/visualTemplateBuilder';
 
-export type { DocType };
+/**
+ * `FREE` es un tipo extendido propio (no existe en el paquete @openfactu/pdf).
+ * Identifica plantillas "libres" — sin documento ligado — útiles para
+ * etiquetas de artículos, recibos genéricos, etc. El contexto Handlebars
+ * sólo trae `queries.<name>` (admin) + parámetros de entrada.
+ */
+export type DocType = PdfDocType | 'FREE';
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
   SINV: 'Factura de Venta',
@@ -9,15 +15,17 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   PDN: 'Albarán de Compra',
   SO: 'Pedido de Venta',
   PO: 'Pedido de Compra',
+  FREE: 'Documento Libre',
 };
 
 export const DOC_TYPE_COLORS: Record<DocType, string> = {
-  SINV: 'bg-amber-50 text-amber-700 border-amber-200',
-  PINV: 'bg-amber-50 text-amber-700 border-amber-200',
-  SDN: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  PDN: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  SO: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  PO: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  SINV: 'bg-amber-50 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-600',
+  PINV: 'bg-amber-50 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-600',
+  SDN: 'bg-emerald-50 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-600',
+  PDN: 'bg-emerald-50 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-600',
+  SO: 'bg-indigo-50 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-600',
+  PO: 'bg-indigo-50 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-600',
+  FREE: 'bg-purple-50 dark:bg-purple-900 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-600',
 };
 
 export const DOC_TYPE_OPTIONS = (Object.keys(DOC_TYPE_LABELS) as DocType[]).map((v) => ({
@@ -32,4 +40,7 @@ export interface TemplateRow {
   isDefault: boolean;
   updatedAt?: string;
   html?: string;
+  canvasLayout?: unknown;
+  layoutVersion?: number;
+  legacyHtml?: boolean;
 }

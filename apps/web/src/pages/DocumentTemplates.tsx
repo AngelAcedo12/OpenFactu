@@ -134,6 +134,7 @@ export const DocumentTemplates: React.FC = () => {
       onSetDefault={handleSetDefault}
       onDuplicate={handleDuplicate}
       onDelete={handleDelete}
+      onReload={fetchList}
     />
   );
 };

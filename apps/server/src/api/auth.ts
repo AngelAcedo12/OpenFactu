@@ -235,7 +235,10 @@ router.get('/me', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
     const activeTenantId = payload.tenantId || user.tenantId;
-    let resolvedRole = payload.role || user.role;
+    // El rol global debe salir SIEMPRE de la BD, no del JWT — si promueves a
+    // alguien a SUPERUSER a mano, el JWT viejo todavía dice ADMIN y lo
+    // estaríamos propagando indefinidamente hasta que cerrase sesión.
+    let resolvedRole = user.role;
     let resolvedPermissions: any = null;
 
     if (user.role !== 'SUPERUSER' && activeTenantId) {

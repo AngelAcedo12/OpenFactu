@@ -6,6 +6,7 @@ import { PluginContext } from './types';
 import { HookManager } from '../core/plugins/HookManager';
 import { FactuApi } from '../core/plugins/FactuApi';
 import { TenantPluginCache } from '../core/plugins/TenantPluginCache';
+import { CarrierRegistry } from '../core/carriers/CarrierRegistry';
 
 // Almacén en memoria de plugins cargados (instalados globalmente)
 export const activePlugins: string[] = [];
@@ -84,6 +85,9 @@ export const loadPlugins = async (app: Express) => {
               },
             },
             factuApi: FactuApi,
+            carriers: {
+              register: (adapter) => CarrierRegistry.register(adapter),
+            },
           };
 
           await initFn(context);
@@ -184,6 +188,9 @@ export async function reloadPlugin(pluginId: string): Promise<{ success: boolean
           },
         },
         factuApi: FactuApi,
+        carriers: {
+          register: (adapter) => CarrierRegistry.register(adapter),
+        },
       };
 
       await initFn(context);

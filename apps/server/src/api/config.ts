@@ -4,10 +4,14 @@ import {
   BRANDING_DEFAULTS,
   FORMAT_DEFAULTS,
   FLAGS_DEFAULTS,
+  APP_DEFAULTS,
   type BrandingConfig,
   type FormatConfig,
   type FlagsConfig,
+  type AppConfig,
 } from '../core/config/appConfig';
+import { getStorageConfig, setStorageConfig } from '../core/config/storageConfig';
+import { StorageResolver } from '../core/storage/StorageResolver';
 import { logAudit } from '../utils/audit';
 
 const router = Router();
@@ -53,5 +57,88 @@ function mount<T extends Record<string, any>>(section: string, defaults: T, enti
 mount<BrandingConfig>('branding', BRANDING_DEFAULTS, 'BrandingConfig');
 mount<FormatConfig>('format', FORMAT_DEFAULTS, 'FormatConfig');
 mount<FlagsConfig>('flags', FLAGS_DEFAULTS, 'FlagsConfig');
+mount<AppConfig>('app', APP_DEFAULTS, 'AppConfig');
+
+// Sección fiscal — agrupa las claves SystemConfig añadidas en la mig 032
+// (IBAN, SWIFT, régimen fiscal, pie legal, color del PDF…).
+interface FiscalConfig {
+  company_iban: string;
+  company_bank_name: string;
+  company_bank_swift: string;
+  company_fiscal_regime: string;
+  company_invoice_footer: string;
+  company_invoice_color: string;
+  // Firma / representante legal — aparece en el PDF de la factura
+  signature_name: string;        // nombre del firmante (p.ej. "Juan García Pérez")
+  signature_role: string;        // cargo (p.ej. "Administrador único")
+  signature_image_url: string;   // URL a la imagen (rubrica escaneada)
+  signature_show_in_pdf: string; // 'true' | 'false' — flag textual
+}
+const FISCAL_DEFAULTS: FiscalConfig = {
+  company_iban: '',
+  company_bank_name: '',
+  company_bank_swift: '',
+  company_fiscal_regime: '',
+  company_invoice_footer: '',
+  company_invoice_color: '#0D9488',
+  signature_name: '',
+  signature_role: '',
+  signature_image_url: '',
+  signature_show_in_pdf: 'false',
+};
+mount<FiscalConfig>('fiscal', FISCAL_DEFAULTS, 'FiscalConfig');
+
+/**
+ * GET /api/config/storage — devuelve la config de almacenamiento del tenant
+ *   { provider: 'local'|'gdrive'|'onedrive', local: {basePath?}, gdrive: {...}, onedrive: {...} }
+ */
+router.get('/storage', async (req: any, res) => {
+  if (!req.tenantId) return res.json({ provider: 'local' });
+  try {
+    const cfg = await getStorageConfig(req.tenantClient);
+    res.json(cfg);
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message || 'Error al leer config de storage' });
+  }
+});
+
+router.put('/storage', async (req: any, res) => {
+  if (!req.tenantId) {
+    return res.status(400).json({ error: 'Se requiere tenant para modificar configuración' });
+  }
+  try {
+    const before = await getStorageConfig(req.tenantClient);
+    await setStorageConfig(req.tenantClient, req.body || {});
+    const after = await getStorageConfig(req.tenantClient);
+    res.json(after);
+    logAudit({
+      tenantClient: req.tenantClient,
+      tenantId: req.tenantId || '',
+      userId: req.user?.id,
+      entityType: 'StorageConfig',
+      entityId: 'storage',
+      action: 'UPDATE',
+      oldValue: before,
+      newValue: after,
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message || 'Error al guardar config de storage' });
+  }
+});
+
+/**
+ * POST /api/config/storage/healthcheck — diagnóstico del adapter activo.
+ */
+router.post('/storage/healthcheck', async (req: any, res) => {
+  if (!req.tenantId) return res.status(400).json({ error: 'tenant requerido' });
+  try {
+    const tenantSchema = req.tenantSchema || '';
+    const adapter = await StorageResolver.forTenant(req.tenantClient, tenantSchema);
+    const r = await adapter.healthCheck();
+    res.json({ provider: adapter.id, ...r });
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message || 'Error al comprobar' });
+  }
+});
 
 export default router;

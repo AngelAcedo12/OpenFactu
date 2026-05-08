@@ -13,6 +13,7 @@ import {
   cn,
 } from '@openfactu/ui';
 import { useAuth } from '../context/AuthContext';
+import { CloneDocumentActions } from '../components/common/CloneDocumentActions';
 import { useTabs, useCurrentTab } from '../context/TabsContext';
 import {
   FileStack,
@@ -26,9 +27,13 @@ import {
   PlusSquare,
   Barcode,
   Download,
+  CreditCard,
+  Mail,
 } from 'lucide-react';
 import { DocumentActionBar } from '../components/DocumentActionBar';
 import { DocumentDetailLayout } from '../components/DocumentDetailLayout';
+import { AttachmentsPanel } from '../components/AttachmentsPanel';
+import { TraceabilityButton } from '../components/common/TraceabilityButton';
 import { DocumentTotalsBlock } from '../components/DocumentTotalsBlock';
 import {
   buildDetailLineColumns,
@@ -42,8 +47,19 @@ import { useTheme } from '../context/ThemeContext';
 import { BatchSelectionModal } from '../components/BatchSelectionModal';
 import { BatchAssignmentPanel } from '../components/BatchAssignmentPanel';
 import { useItemUoms } from '../hooks/useItemUoms';
+import { usePluginLineFields } from '../hooks/usePluginLineFields';
 import { PluginFieldsPanel } from '../components/PluginFieldsPanel';
 import { useDocument, useDataTable, DocType, DocKind, DocSide } from '@openfactu/common';
+import { useDocumentScanner } from '../hooks/useDocumentScanner';
+import { InternalOrderHeaderField } from '../components/InternalOrderHeaderField';
+import { InternalOrderChip } from '../components/InternalOrderChip';
+import { useInternalOrderLineColumn } from '../hooks/useLineInternalOrderColumn';
+import { BulkSendToolbar } from '../components/documents/BulkSendToolbar';
+import { PaymentStatusBadge } from '../components/payments/PaymentStatusBadge';
+import { RegisterPaymentModal } from '../components/payments/RegisterPaymentModal';
+import { DocumentFiscalPanel } from '../components/documents/DocumentFiscalPanel';
+import { SendInvoiceModal } from '../components/documents/SendInvoiceModal';
+import { InvoicePaymentsList } from '../components/payments/InvoicePaymentsList';
 
 // Eliminamos SerialBadges inline para usar el modo Popup limpio
 
@@ -53,11 +69,13 @@ const InvoiceList: React.FC<{
   loading: boolean;
   partners: any[];
   onCreate: () => void;
+  onCreateFromClone?: (payload: { header: any; lines: any[] }) => void;
   onDetail: (inv: any) => void;
   mastersError?: string | null;
   doc: any;
-}> = ({ data, loading, partners, onCreate, onDetail, mastersError, doc }) => {
+}> = ({ data, loading, partners, onCreate, onCreateFromClone, onDetail, mastersError, doc }) => {
   const { token, user } = useAuth();
+  const [selectedKeys, setSelectedKeys] = useState<Set<string | number>>(new Set());
   const toast = useToast();
   const fmt = useFormat();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -100,6 +118,8 @@ const InvoiceList: React.FC<{
   const columns = [
     {
       header: 'Documento',
+      sortable: true,
+      sortAccessor: (item: any) => `${item.seriesPrefix||''}-${String(item.docNum||0).padStart(6,'0')}`,
       accessor: (item: any) => (
         <div className="flex flex-col">
           <span className="font-bold text-slate-900 dark:text-slate-100 leading-none">
@@ -111,7 +131,7 @@ const InvoiceList: React.FC<{
         </div>
       ),
     },
-    { header: 'Fecha', accessor: (item: any) => fmt.date(item.date) },
+    { header: 'Fecha', sortable: true, sortAccessor: (item: any) => new Date(item.date).getTime(), accessor: (item: any) => fmt.date(item.date) },
     {
       header: 'Proveedor',
       accessor: (item: any) => (
@@ -139,8 +159,27 @@ const InvoiceList: React.FC<{
         ),
     },
     {
+      header: 'Retención',
+      align: 'right' as const,
+      sortable: true,
+      sortAccessor: (item: any) => Number(item.withholdingAmount) || 0,
+      cell: (item: any) =>
+        Number(item.withholdingAmount) > 0 ? (
+          <span className="text-rose-600 dark:text-rose-400 font-bold text-xs tabular-nums">
+            −{fmt.money(item.withholdingAmount)}
+            {Number(item.withholdingRate) > 0 && (
+              <span className="ml-1 text-[10px] opacity-70">({item.withholdingRate}%)</span>
+            )}
+          </span>
+        ) : (
+          <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+        ),
+    },
+    {
       header: 'Total',
       align: 'right' as const,
+      sortable: true,
+      sortAccessor: (item: any) => Number(item.total) || 0,
       accessor: (item: any) => (
         <span className="font-black text-slate-900 dark:text-slate-100">
           {fmt.money(item.total)}
@@ -150,12 +189,23 @@ const InvoiceList: React.FC<{
     {
       header: 'Estado',
       align: 'center' as const,
+      sortable: true,
+      sortAccessor: (item: any) => item.status || '',
       cell: (item: any) => {
         if (item.status === 'D') return <Badge variant="warning">Borrador</Badge>;
         if (item.status === 'O') return <Badge variant="success">Asentado</Badge>;
         if (item.status === 'X') return <Badge variant="error">Cancelado</Badge>;
         return <Badge variant="neutral">{item.status}</Badge>;
       },
+    },
+    {
+      header: 'Pago',
+      align: 'center' as const,
+      sortable: true,
+      sortAccessor: (item: any) => item.paymentStatus || 'pending',
+      cell: (item: any) => (
+        <PaymentStatusBadge status={item.paymentStatus} isLocked={item.isLocked} compact />
+      ),
     },
     {
       header: 'Acciones',
@@ -169,7 +219,7 @@ const InvoiceList: React.FC<{
             handleQuickPdf(item.id);
           }}
           isLoading={downloadingId === item.id}
-          className="h-8 w-8 p-0 text-slate-500 dark:text-slate-400 hover:text-primary"
+          className="h-8 w-8 p-0 text-ink-500 dark:text-ink-400 hover:text-accent hover:bg-accent/10 dark:hover:bg-accent/15"
           title="Descargar PDF"
         >
           <Download size={14} />
@@ -199,6 +249,9 @@ const InvoiceList: React.FC<{
           )}
         </div>
         <div className="flex items-center gap-3">
+          {doc.state.canWrite && onCreateFromClone && (
+            <CloneDocumentActions docType="PINV" onPaste={onCreateFromClone} show="paste" />
+          )}
           <Button
             onClick={onCreate}
             disabled={!doc.state.canWrite}
@@ -236,12 +289,8 @@ const InvoiceList: React.FC<{
           ]}
           searchPlaceholder="Buscar por factura..."
         />
-        <Table
-          columns={columns}
-          data={filteredData || []}
-          isLoading={loading}
-          onRowClick={onDetail}
-        />
+        <BulkSendToolbar selectedKeys={selectedKeys} rows={filteredData || []} partners={partners} docType="PINV" onClear={() => setSelectedKeys(new Set())} onSent={() => setSelectedKeys(new Set())} />
+        <Table columns={columns} data={filteredData || []} isLoading={loading} onRowClick={onDetail} selectable selectedKeys={selectedKeys} onSelectionChange={setSelectedKeys} />
       </Card>
     </div>
   );
@@ -257,10 +306,29 @@ const InvoiceForm: React.FC<{
   actions: any;
   computations: any;
   setViewingBatch: (l: any) => void;
-}> = ({ onBack, onSubmit, state, setState, masters, actions, computations, setViewingBatch }) => {
+  internalOrderId: string | null;
+  setInternalOrderId: (id: string | null) => void;
+}> = ({ onBack, onSubmit, state, setState, masters, actions, computations, setViewingBatch, internalOrderId, setInternalOrderId }) => {
   const [batchEditingIdx, setBatchEditingIdx] = useState<number | null>(null);
   const fmt = useFormat();
   const itemUoms = useItemUoms();
+
+  // Autocompletar IRPF del proveedor en silencio cuando cambie el partner y el
+  // doc aún no tenga tasa asignada. El usuario puede sobrescribirla después.
+  // Los campos fiscales viven en `pluginData` con prefijo `__fiscal_` (ver
+  // DocumentFiscalPanel) — el backend los extrae al guardar.
+  useEffect(() => {
+    if (!state.partnerId) return;
+    const p = masters.partners.find((x: any) => x.id === state.partnerId);
+    const partnerRate = Number(p?.defaultWithholdingRate || 0);
+    const currentRate = Number(
+      state.pluginData?.__fiscal_withholdingRate ?? state.withholdingRate ?? 0,
+    );
+    if (partnerRate > 0 && currentRate === 0) {
+      setState.setPluginField?.('__fiscal_withholdingRate', partnerRate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.partnerId, masters.partners]);
 
   const duplicateLine = (idx: number) => {
     const newLine = { ...state.lines[idx], batchDetails: [] };
@@ -269,20 +337,26 @@ const InvoiceForm: React.FC<{
     setState.setLines(newLines);
   };
 
+  const pluginLineFields = usePluginLineFields('PurchaseInvoiceLine');
+  const projectCol = useInternalOrderLineColumn(actions.updateLine);
   const columns = useMemo(
-    () => buildFormLineColumns({
-      kind: DocKind.Invoice,
-      side: DocSide.Purchase,
-      state,
-      masters,
-      actions,
-      onAssignBatch: setBatchEditingIdx,
-      onViewBatch: setViewingBatch,
-      onDuplicateLine: duplicateLine,
-      fmt,
-      getItemUoms: itemUoms.get,
-    }),
-    [state.lines, masters.items, masters.taxGroups],
+    () => {
+      const base = buildFormLineColumns({
+        kind: DocKind.Invoice,
+        side: DocSide.Purchase,
+        state,
+        masters,
+        actions,
+        onAssignBatch: setBatchEditingIdx,
+        onViewBatch: setViewingBatch,
+        onDuplicateLine: duplicateLine,
+        fmt,
+        getItemUoms: itemUoms.get,
+        pluginLineFields,
+      });
+      return [...base.slice(0, -1), projectCol, base[base.length - 1]];
+    },
+    [state.lines, masters.items, masters.taxGroups, pluginLineFields, projectCol],
   );
 
   return (
@@ -352,8 +426,14 @@ const InvoiceForm: React.FC<{
                 className="font-bold text-slate-700 dark:text-slate-200 h-10 border-slate-200 dark:border-slate-700"
               />
             </div>
+            <InternalOrderHeaderField
+              value={internalOrderId}
+              onChange={setInternalOrderId}
+            />
           </div>
         </Card>
+
+        <DocumentFiscalPanel kind="purchase" state={state} setState={setState} />
 
         <div className="space-y-6">
           <Card className="p-6 space-y-6 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
@@ -490,6 +570,35 @@ const InvoiceDetail: React.FC<{
   const period = masters.periods?.find((p: any) => p.id === invoice.periodId);
   const fromDelivery = invoice.lines?.some((l: any) => l.baseId);
 
+  // Fetch lazy de catálogos que no vienen en `masters` para pintar nombres
+  // en el bloque de Información (tipo doc, método de pago, plazo).
+  const { token, user } = useAuth();
+  const [docTypes, setDocTypes] = React.useState<any[]>([]);
+  const [payMethods, setPayMethods] = React.useState<any[]>([]);
+  const [payTerms, setPayTerms] = React.useState<any[]>([]);
+  React.useEffect(() => {
+    const h = { Authorization: `Bearer ${token}`, 'x-tenant-id': user?.tenantId || '' };
+    Promise.all([
+      fetch('/api/document-types', { headers: h }).then((r) => (r.ok ? r.json() : [])),
+      fetch('/api/payment-methods', { headers: h }).then((r) => (r.ok ? r.json() : [])),
+      fetch('/api/payment-terms', { headers: h }).then((r) => (r.ok ? r.json() : [])),
+    ]).then(([t, m, te]) => {
+      setDocTypes(Array.isArray(t) ? t : []);
+      setPayMethods(Array.isArray(m) ? m : []);
+      setPayTerms(Array.isArray(te) ? te : []);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.tenantId]);
+  const docType = docTypes.find((d) => d.id === invoice.documentTypeId);
+  const payMethod = payMethods.find((m) => m.id === invoice.paymentMethodId);
+  const payTerm = payTerms.find((p) => p.id === invoice.paymentTermId);
+
+  const [payModalOpen, setPayModalOpen] = React.useState(false);
+  const [emailModalOpen, setEmailModalOpen] = React.useState(false);
+  const [paymentsRefreshKey, setPaymentsRefreshKey] = React.useState(0);
+  const remaining = Math.max(0, Number(invoice.total || 0) - Number(invoice.amountPaid || 0));
+  const docCode = `${invoice.seriesPrefix}-${invoice.periodCode}-${String(invoice.docNum).padStart(6, '0')}`;
+
   const columns = useMemo(
     () => buildDetailLineColumns({
       kind: DocKind.Invoice,
@@ -511,16 +620,65 @@ const InvoiceDetail: React.FC<{
         <DocumentActionBar
           docType="PINV"
           pdfUrl={`/api/purchases/invoices/${invoice.id}/pdf`}
+          docId={invoice.id}
+          docCode={docCode}
           onCancel={() => onCancel(invoice.id)}
           showCancel={(invoice.status === 'O' || invoice.status === 'D') && !!canDelete}
+          onSendEmail={invoice.status === 'O' ? () => setEmailModalOpen(true) : undefined}
           primary={
             invoice.status === 'D' && onPost
               ? { label: 'Asentar Factura', icon: Save, onClick: onPost, isLoading: isPosting }
-              : undefined
+              : invoice.status === 'O' && remaining > 0
+                ? {
+                    label: 'Registrar pago',
+                    icon: CreditCard,
+                    onClick: () => setPayModalOpen(true),
+                  }
+                : undefined
           }
         />
       }
     >
+      <div className="flex items-center gap-3 mb-4 -mt-2">
+        <PaymentStatusBadge status={invoice.paymentStatus} isLocked={invoice.isLocked} />
+        <CloneDocumentActions docType="PINV" doc={invoice} show="copy" size={14} />
+        <TraceabilityButton type="PINV" id={invoice.id} docCode={docCode} />
+        <InternalOrderChip internalOrderId={invoice.internalOrderId} />
+        {invoice.amountPaid != null && Number(invoice.amountPaid) > 0 && (
+          <span className="text-xs font-mono text-ink-500 dark:text-ink-400">
+            Pagado {fmt.money(Number(invoice.amountPaid))} ·{' '}
+            {remaining > 0 ? `Pendiente ${fmt.money(remaining)}` : 'Completo'}
+          </span>
+        )}
+      </div>
+      <RegisterPaymentModal
+        open={payModalOpen}
+        onClose={() => setPayModalOpen(false)}
+        kind="purchase"
+        invoiceId={invoice.id}
+        invoiceCode={docCode}
+        remaining={remaining}
+        onSuccess={() => setPaymentsRefreshKey((v) => v + 1)}
+      />
+      <SendInvoiceModal
+        open={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        docType="PINV"
+        docId={invoice.id}
+        docCode={docCode}
+        partnerName={partner?.name}
+        partnerEmail={partner?.email}
+      />
+      {invoice.status === 'O' && (
+        <div className="mb-4">
+          <InvoicePaymentsList
+            kind="purchase"
+            invoiceId={invoice.id}
+            refreshKey={paymentsRefreshKey}
+            onChanged={() => setPaymentsRefreshKey((v) => v + 1)}
+          />
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card
           className="md:col-span-2 border-slate-100 dark:border-slate-800"
@@ -588,6 +746,61 @@ const InvoiceDetail: React.FC<{
                 </dd>
               </div>
             )}
+            {docType && (
+              <div className="flex justify-between items-baseline gap-4">
+                <dt className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Tipo de factura
+                </dt>
+                <dd className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate flex items-center gap-2">
+                  {docType.name}
+                  {docType.isRectify && (
+                    <span className="px-1.5 py-0.5 rounded-xs text-[9px] font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                      Rectificativa
+                    </span>
+                  )}
+                </dd>
+              </div>
+            )}
+            {payMethod && (
+              <div className="flex justify-between items-baseline gap-4">
+                <dt className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Método de pago
+                </dt>
+                <dd className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                  {payMethod.name}
+                </dd>
+              </div>
+            )}
+            {payTerm && (
+              <div className="flex justify-between items-baseline gap-4">
+                <dt className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Plazo de pago
+                </dt>
+                <dd className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                  {payTerm.name}
+                </dd>
+              </div>
+            )}
+            {invoice.dueDate && (
+              <div className="flex justify-between items-baseline gap-4">
+                <dt className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Vencimiento
+                </dt>
+                <dd className="text-sm font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+                  {fmt.date(invoice.dueDate)}
+                </dd>
+              </div>
+            )}
+            {Number(invoice.withholdingRate) > 0 && (
+              <div className="flex justify-between items-baseline gap-4">
+                <dt className="text-[11px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                  Retención IRPF
+                </dt>
+                <dd className="text-sm font-bold text-rose-600 dark:text-rose-400 tabular-nums">
+                  {invoice.withholdingRate}% ({fmt.money(invoice.withholdingAmount || 0)})
+                </dd>
+              </div>
+            )}
           </dl>
         </Card>
       </div>
@@ -598,9 +811,21 @@ const InvoiceDetail: React.FC<{
           subtotal={invoice.subtotal || 0}
           tax={invoice.taxTotal || 0}
           total={invoice.total || 0}
+          withholdingAmount={invoice.withholdingAmount}
+          withholdingRate={invoice.withholdingRate}
           totalLabel="Total Factura"
         />
       </Card>
+
+      <PluginFieldsPanel
+        tableName="PurchaseInvoice"
+        values={invoice}
+        onChange={() => {}}
+        disabled
+        layout="inline"
+        title="Campos de plugin"
+      />
+      <AttachmentsPanel entityType="PurchaseInvoice" entityId={invoice.id} />
     </DocumentDetailLayout>
   );
 };
@@ -629,6 +854,7 @@ export const PurchaseInvoices: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(isDetail);
   const [viewingBatch, setViewingBatch] = useState<any>(null);
   const [posting, setPosting] = useState(false);
+  const [internalOrderId, setInternalOrderId] = useState<string | null>(null);
 
   const doc = useDocument({
     token: token || '',
@@ -637,6 +863,7 @@ export const PurchaseInvoices: React.FC = () => {
     apiEndpoint: '/api/purchases/invoices',
     permissions: (user as any)?.permissions?.['/purchases/invoices'],
   });
+  useDocumentScanner(doc, isCreate);
 
   const authHeaders = {
     Authorization: `Bearer ${token}`,
@@ -684,6 +911,40 @@ export const PurchaseInvoices: React.FC = () => {
     })();
   }, [isDetail, detailId, token, user?.tenantId, dataVersion]);
 
+  // Clone-from-clipboard: payload pegado desde otra vista.
+  useEffect(() => {
+    if (!isCreate) return;
+    const raw = sessionStorage.getItem('keirost:cloneInvoice:PINV');
+    if (!raw) return;
+    sessionStorage.removeItem('keirost:cloneInvoice:PINV');
+    try {
+      const { header, lines } = JSON.parse(raw);
+      if (header?.partnerId) doc.setState.setPartnerId(header.partnerId);
+      if (header?.internalOrderId) setInternalOrderId(header.internalOrderId);
+      if (Array.isArray(lines)) {
+        doc.setState.setLines(
+          lines.map((l: any) => ({
+            itemId: l.itemId,
+            quantity: Number(l.quantity) || 0,
+            price: Number(l.price) || 0,
+            taxGroupId: l.taxGroupId,
+            warehouseId: l.warehouseId,
+            zoneId: l.zoneId,
+            uomId: l.uomId,
+            uomFactor: l.uomFactor != null ? Number(l.uomFactor) : undefined,
+            batchDetails: l.batchDetails,
+            description: l.description,
+            costCenterId: l.costCenterId,
+            profitCenterId: l.profitCenterId,
+            internalOrderId: l.internalOrderId,
+          })),
+        );
+      }
+    } catch (e) {
+      console.error('Error parseando payload de clone', e);
+    }
+  }, [isCreate]);
+
   // Copy-from: /purchases/invoices/new?copyFrom=<id>
   useEffect(() => {
     if (!isCreate) return;
@@ -694,6 +955,7 @@ export const PurchaseInvoices: React.FC = () => {
     try {
       const pdn = JSON.parse(sourceData);
       doc.setState.setPartnerId(pdn.partnerId);
+      if (pdn.internalOrderId) setInternalOrderId(pdn.internalOrderId);
       doc.setState.setLines(
         pdn.lines.map((l: any) => ({
           itemId: l.itemId,
@@ -715,7 +977,17 @@ export const PurchaseInvoices: React.FC = () => {
 
   const handleSubmit = async (extra?: any) => {
     try {
-      await doc.actions.submitDocument(extra);
+      const pd = doc.state.pluginData || {};
+      const fiscalFields: Record<string, any> = {};
+      for (const [k, v] of Object.entries(pd)) {
+        if (k.startsWith('__fiscal_') && v !== '' && v != null) {
+          fiscalFields[k.replace('__fiscal_', '')] = v;
+        }
+      }
+      if (doc.state.withholdingRate) fiscalFields.withholdingRate = doc.state.withholdingRate;
+      if (internalOrderId) fiscalFields.internalOrderId = internalOrderId;
+
+      await doc.actions.submitDocument({ ...fiscalFields, ...extra });
       toast.success('Factura asentada correctamente');
       notifyDocChange(DocType.PurchaseInvoice);
       currentTab.close();
@@ -798,6 +1070,8 @@ export const PurchaseInvoices: React.FC = () => {
           actions={doc.actions}
           computations={doc.computations}
           setViewingBatch={setViewingBatch}
+          internalOrderId={internalOrderId}
+          setInternalOrderId={setInternalOrderId}
         />
         {viewingBatch && (
           <BatchSelectionModal
@@ -863,6 +1137,10 @@ export const PurchaseInvoices: React.FC = () => {
       partners={doc.masters.partners}
       mastersError={doc.state.mastersError}
       onCreate={() => openTab('/purchases/invoices/new')}
+      onCreateFromClone={(payload) => {
+        sessionStorage.setItem('keirost:cloneInvoice:PINV', JSON.stringify(payload));
+        openTab('/purchases/invoices/new');
+      }}
       onDetail={(inv) => openTab(`/purchases/invoices/${inv.id}`, { title: formatDocCode(inv) })}
     />
   );

@@ -6,6 +6,7 @@ import { logAudit } from '../utils/audit';
 import { ClientFactory } from '../core/tenant/ClientFactory';
 import { validateTaxId } from '@openfactu/common';
 import { HookManager } from '../core/plugins/HookManager';
+import { validateIban, normalizeIban } from '../utils/ibanValidation';
 
 const router = Router();
 
@@ -77,6 +78,13 @@ router.post('/', async (req: any, res) => {
     const taxErr = await checkTaxId(restBody.nif, restBody.countryCode);
     if (taxErr) return res.status(400).json({ error: taxErr });
 
+    // Validación de IBAN si se informa
+    if (restBody.iban) {
+      const ibanCheck = validateIban(restBody.iban);
+      if (!ibanCheck.ok) return res.status(400).json({ error: `IBAN inválido: ${ibanCheck.reason}` });
+      restBody.iban = normalizeIban(restBody.iban);
+    }
+
     let finalCode = code;
 
     if (groupId) {
@@ -135,7 +143,16 @@ router.post('/', async (req: any, res) => {
       newValue: partner,
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    // Drizzle envuelve el error de pg en `Failed query: ...` ocultando la
+    // causa real. Extraemos `error.cause.message` cuando existe para devolver
+    // un mensaje útil ("duplicate key", "null violates not-null", etc.).
+    const detail =
+      (error?.cause?.detail as string | undefined) ||
+      (error?.cause?.message as string | undefined) ||
+      error?.message ||
+      'Error desconocido';
+    console.error('[Partners.create] error:', detail, '\nfull:', error?.stack || error);
+    res.status(500).json({ error: detail });
   }
 });
 
@@ -158,6 +175,14 @@ router.patch('/:id', async (req: any, res) => {
     const effectiveNif = restBody.nif !== undefined ? restBody.nif : oldPartner?.nif;
     const taxErr = await checkTaxId(effectiveNif, effectiveCountry);
     if (taxErr) return res.status(400).json({ error: taxErr });
+
+    // Validación de IBAN si se informa
+    if (restBody.iban) {
+      const ibanCheck = validateIban(restBody.iban);
+      if (!ibanCheck.ok) return res.status(400).json({ error: `IBAN inválido: ${ibanCheck.reason}` });
+      restBody.iban = normalizeIban(restBody.iban);
+    }
+
     const sanitizedBody = Object.keys(restBody).reduce((acc: any, key) => {
       acc[key] = restBody[key] === '' ? null : restBody[key];
       return acc;

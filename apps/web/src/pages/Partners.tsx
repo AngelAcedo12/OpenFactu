@@ -1,7 +1,8 @@
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { validateIban, validateSwift, formatIban } from '../utils/bankValidation';
 import { Table, Card, Button, Input, Modal, useToast, Badge } from '@openfactu/ui';
-import { Users, Plus, MapPin, Contact, FileText, Trash2, Edit2 } from 'lucide-react';
+import { Users, Plus, MapPin, Contact, FileText, Trash2, Edit2, Landmark } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CountrySelect } from '../components/geo/CountrySelect';
 import { SubRegionSelect } from '../components/geo/SubRegionSelect';
@@ -10,6 +11,8 @@ import { TaxIdInput } from '../components/geo/TaxIdInput';
 import { PostalCodeInput } from '../components/geo/PostalCodeInput';
 import { PhoneInput } from '../components/geo/PhoneInput';
 import { PluginFieldsPanel } from '../components/PluginFieldsPanel';
+import { usePluginListColumns } from '../components/plugin-fields';
+import { AttachmentsPanel } from '../components/AttachmentsPanel';
 
 export const Partners: React.FC = () => {
   const { token, user } = useAuth();
@@ -30,7 +33,9 @@ export const Partners: React.FC = () => {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'contact' | 'addresses'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'contact' | 'addresses' | 'fiscal'>(
+    'general',
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form State
@@ -45,6 +50,14 @@ export const Partners: React.FC = () => {
     website: '',
     priceListId: '',
     countryCode: 'ES',
+    // Mig 033 — defaults fiscales que la factura hereda al elegir este partner
+    defaultDocumentTypeId: '',
+    defaultPaymentMethodId: '',
+    defaultPaymentTermId: '',
+    defaultWithholdingRate: '' as string | number,
+    iban: '',
+    bankName: '',
+    bankSwift: '',
   });
   const [addresses, setAddresses] = useState<any[]>([]);
 
@@ -209,7 +222,7 @@ export const Partners: React.FC = () => {
 
   const columns = [
     {
-      header: 'Código',
+      header: 'Código', sortable: true, sortAccessor: (i: any) => i.code ?? '',
       cell: (p: any) => (
         <Badge variant="neutral" className="font-mono">
           {p.code}
@@ -230,7 +243,7 @@ export const Partners: React.FC = () => {
       ),
     },
     { header: 'NIF/VAT', cell: (p: any) => p.nif },
-    { header: 'Grupo', cell: (p: any) => groups.find((g) => g.id === p.groupId)?.name || '-' },
+    { header: 'Grupo', sortable: true, sortAccessor: (i: any) => i.groupName ?? '', cell: (p: any) => groups.find((g) => g.id === p.groupId)?.name || '-' },
     { header: 'Contacto', cell: (p: any) => p.email || p.phone || '-' },
     {
       header: 'Direcciones',
@@ -251,6 +264,11 @@ export const Partners: React.FC = () => {
       ),
     },
   ];
+
+  const pluginCols = usePluginListColumns('BusinessPartner');
+  const actionsCol = columns[columns.length - 1];
+  const restCols = columns.slice(0, -1);
+  const allColumns = [...restCols, ...pluginCols, actionsCol];
 
   return (
     <div className="p-4 space-y-6 animate-in fade-in duration-500">
@@ -275,7 +293,7 @@ export const Partners: React.FC = () => {
       </div>
 
       <Card className="overflow-hidden border-slate-100 dark:border-slate-800" noPadding>
-        <Table columns={columns} data={partners} isLoading={loading} />
+        <Table columns={allColumns} data={partners} isLoading={loading} />
       </Card>
 
       <Modal
@@ -286,30 +304,37 @@ export const Partners: React.FC = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* TABS */}
-          <div className="flex border-b text-sm font-bold text-slate-500 dark:text-slate-400">
+          <div className="flex border-b border-line dark:border-ink-700 text-sm font-bold text-ink-500 dark:text-ink-400">
             <button
               type="button"
               onClick={() => setActiveTab('general')}
-              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'general' ? 'border-primary text-primary bg-white dark:bg-slate-800' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-100'}`}
+              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'general' ? 'border-accent text-accent bg-white dark:bg-ink-800' : 'border-transparent hover:text-accent dark:hover:text-accent'}`}
             >
               <FileText size={16} /> General
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('contact')}
-              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'contact' ? 'border-primary text-primary bg-white dark:bg-slate-800' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-100'}`}
+              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'contact' ? 'border-accent text-accent bg-white dark:bg-ink-800' : 'border-transparent hover:text-accent dark:hover:text-accent'}`}
             >
               <Contact size={16} /> Contacto
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('addresses')}
-              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'addresses' ? 'border-primary text-primary bg-white dark:bg-slate-800' : 'border-transparent hover:text-slate-800 dark:hover:text-slate-100'}`}
+              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'addresses' ? 'border-accent text-accent bg-white dark:bg-ink-800' : 'border-transparent hover:text-accent dark:hover:text-accent'}`}
             >
               <MapPin size={16} /> Direcciones{' '}
               <Badge variant="neutral" className="ml-1 scale-75">
                 {addresses.length}
               </Badge>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('fiscal')}
+              className={`px-6 py-3 border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'fiscal' ? 'border-accent text-accent bg-white dark:bg-ink-800' : 'border-transparent hover:text-accent dark:hover:text-accent'}`}
+            >
+              <Landmark size={16} /> Fiscal
             </button>
           </div>
 
@@ -326,7 +351,7 @@ export const Partners: React.FC = () => {
                       required
                       value={formData.groupId}
                       onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
-                      className="w-full h-10 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      className="flex w-full h-10 rounded-[2px] border border-[var(--k-line)] dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] text-[var(--k-ink-900)] dark:text-slate-100 px-3 transition-colors focus-visible:outline-none focus-visible:border-accent"
                     >
                       <option value="">Seleccionar Grupo...</option>
                       {groups.map((g) => (
@@ -394,7 +419,7 @@ export const Partners: React.FC = () => {
                   <select
                     value={formData.priceListId}
                     onChange={(e) => setFormData({ ...formData, priceListId: e.target.value })}
-                    className="w-full h-10 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="flex w-full h-10 rounded-[2px] border border-[var(--k-line)] dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] text-[var(--k-ink-900)] dark:text-slate-100 px-3 transition-colors focus-visible:outline-none focus-visible:border-accent"
                   >
                     <option value="">Tarifa Estándar (Sin descuento)</option>
                     {priceLists.map((pl) => (
@@ -406,6 +431,147 @@ export const Partners: React.FC = () => {
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-medium">
                     Esta tarifa determinará los precios por defecto en pedidos y facturas.
                   </p>
+                </div>
+
+              </div>
+            )}
+
+            {/* PESTAÑA FISCAL — defaults que se heredan al facturar + banca */}
+            {activeTab === 'fiscal' && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                <div>
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-ink-500 dark:text-ink-400 mb-3">
+                    Valores por defecto al facturar
+                  </h3>
+                  <p className="text-[11px] text-ink-400 dark:text-ink-500 mb-3">
+                    Al crear una factura para este interlocutor, estos valores se sugieren
+                    automáticamente. Puedes sobreescribirlos en cada factura.
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <LookupSelect
+                      endpoint="/api/document-types"
+                      label="Tipo de documento"
+                      value={formData.defaultDocumentTypeId}
+                      onChange={(v) => setFormData({ ...formData, defaultDocumentTypeId: v })}
+                      headers={{
+                        Authorization: `Bearer ${token}`,
+                        'x-tenant-id': user?.tenantId || '',
+                      }}
+                    />
+                    <LookupSelect
+                      endpoint="/api/payment-methods"
+                      label="Método de pago"
+                      value={formData.defaultPaymentMethodId}
+                      onChange={(v) => setFormData({ ...formData, defaultPaymentMethodId: v })}
+                      headers={{
+                        Authorization: `Bearer ${token}`,
+                        'x-tenant-id': user?.tenantId || '',
+                      }}
+                    />
+                    <LookupSelect
+                      endpoint="/api/payment-terms"
+                      label="Plazo de pago"
+                      value={formData.defaultPaymentTermId}
+                      onChange={(v) => setFormData({ ...formData, defaultPaymentTermId: v })}
+                      headers={{
+                        Authorization: `Bearer ${token}`,
+                        'x-tenant-id': user?.tenantId || '',
+                      }}
+                    />
+                    <div>
+                      <label className="text-xs font-bold text-ink-500 dark:text-ink-400 mb-1 block">
+                        Retención %
+                      </label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={formData.defaultWithholdingRate}
+                        onChange={(e) =>
+                          setFormData({ ...formData, defaultWithholdingRate: e.target.value })
+                        }
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-line dark:border-ink-700">
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-ink-500 dark:text-ink-400 mb-3">
+                    Cuenta bancaria principal
+                  </h3>
+                  <p className="text-[11px] text-ink-400 dark:text-ink-500 mb-3">
+                    IBAN al que se envían los cobros/pagos de este interlocutor. Próximamente
+                    podrás registrar varias cuentas por interlocutor.
+                  </p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-bold text-ink-500 dark:text-ink-400 mb-1 block">
+                        IBAN
+                      </label>
+                      <Input
+                        value={formData.iban}
+                        onChange={(e) => setFormData({ ...formData, iban: e.target.value })}
+                        onBlur={(e) =>
+                          setFormData({ ...formData, iban: formatIban(e.target.value) })
+                        }
+                        placeholder="ES91 2100 0418 45 0200051332"
+                      />
+                      {formData.iban?.trim() &&
+                        (() => {
+                          const res = validateIban(formData.iban);
+                          return res.ok ? (
+                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
+                              ✓ IBAN válido
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1 font-mono">
+                              ⚠ {res.reason}
+                            </p>
+                          );
+                        })()}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-ink-500 dark:text-ink-400 mb-1 block">
+                          Banco
+                        </label>
+                        <Input
+                          value={formData.bankName}
+                          onChange={(e) =>
+                            setFormData({ ...formData, bankName: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-ink-500 dark:text-ink-400 mb-1 block">
+                          SWIFT / BIC
+                        </label>
+                        <Input
+                          value={formData.bankSwift}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              bankSwift: e.target.value.toUpperCase(),
+                            })
+                          }
+                          placeholder="CAIXESBBXXX"
+                        />
+                        {formData.bankSwift?.trim() &&
+                          (() => {
+                            const res = validateSwift(formData.bankSwift);
+                            return res.ok ? (
+                              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
+                                ✓ SWIFT válido
+                              </p>
+                            ) : (
+                              <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1 font-mono">
+                                ⚠ {res.reason}
+                              </p>
+                            );
+                          })()}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -581,6 +747,12 @@ export const Partners: React.FC = () => {
             )}
           </div>
 
+          {editingId && (
+            <div className="mt-4">
+              <AttachmentsPanel entityType="BusinessPartner" entityId={editingId} />
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="secondary" type="button" onClick={() => setIsModalOpen(false)}>
               Cancelar
@@ -591,6 +763,41 @@ export const Partners: React.FC = () => {
           </div>
         </form>
       </Modal>
+    </div>
+  );
+};
+
+/** Select que carga opciones de un endpoint /api/... y las muestra como dropdown. */
+const LookupSelect: React.FC<{
+  endpoint: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  headers: Record<string, string>;
+}> = ({ endpoint, label, value, onChange, headers }) => {
+  const [options, setOptions] = useState<Array<{ id: string; code?: string; name: string }>>([]);
+  useEffect(() => {
+    fetch(endpoint, { headers })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setOptions(Array.isArray(data) ? data : []))
+      .catch(() => setOptions([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endpoint]);
+  return (
+    <div>
+      <label className="text-xs font-bold text-ink-500 dark:text-ink-400 mb-1 block">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="flex w-full h-10 rounded-[2px] border border-[var(--k-line)] dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] text-[var(--k-ink-900)] dark:text-slate-100 px-3 transition-colors focus-visible:outline-none focus-visible:border-accent"
+      >
+        <option value="">—</option>
+        {options.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.code ? `${o.code} · ${o.name}` : o.name}
+          </option>
+        ))}
+      </select>
     </div>
   );
 };

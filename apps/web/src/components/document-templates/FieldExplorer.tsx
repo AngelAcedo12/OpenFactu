@@ -117,7 +117,7 @@ export const FieldExplorer: React.FC<Props> = ({ onInsert, insertMode }) => {
               </span>
             </div>
             {group.note && (
-              <div className="px-3 py-2 text-[9px] text-indigo-600 italic bg-indigo-50/40 border-b border-indigo-50">
+              <div className="px-3 py-2 text-[9px] italic text-indigo-700 dark:text-indigo-300 bg-indigo-50/60 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800/40">
                 {group.note}
               </div>
             )}

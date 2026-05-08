@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { CORE_MODULES, findActiveModule, type Module, type SubTab } from '../modules/registry';
+import { useAuth } from './AuthContext';
 
 interface PluginRoute {
   path: string;
@@ -29,6 +30,27 @@ interface PluginSubTabManifest {
   icon?: string;
 }
 
+export interface PluginDashboardWidget {
+  id: string;
+  title: string;
+  subtitle?: string;
+  /** Ruta al componente ESM del plugin (resuelve /api/plugins/load/{pluginId}/{component}). */
+  component: string;
+  /** Tamaño en la grid de 4 columnas: sm=1, md=2, lg=3, full=4. Default: md. */
+  size?: 'sm' | 'md' | 'lg' | 'full';
+  /** Orden sugerido (menor = antes). Default: 100. */
+  order?: number;
+}
+
+export interface PluginThemePreset {
+  id: string;
+  label: string;
+  description?: string;
+  colorPrimary: string;
+  colorAccent: string;
+  themeMode: 'light' | 'dark';
+}
+
 interface PluginManifest {
   id: string;
   name: string;
@@ -39,6 +61,10 @@ interface PluginManifest {
     menuItems?: PluginMenuItem[];
     modules?: PluginModuleManifest[];
     subTabs?: PluginSubTabManifest[];
+    /** Widgets a inyectar en el Dashboard principal. */
+    dashboardWidgets?: PluginDashboardWidget[];
+    /** Presets de tema extra que el plugin aporta al selector de Branding. */
+    themes?: PluginThemePreset[];
   };
 }
 
@@ -50,12 +76,23 @@ interface PluginContextType {
   reloadTimestamp: number;
   /** Módulos core + de plugins ya mergeados. */
   modules: Module[];
+  /** Recarga las tablas de usuario (útil tras crear/editar/borrar desde la UI). */
+  reloadUserTables: () => void;
+}
+
+/** Widget de dashboard junto al id del plugin que lo aporta. */
+export interface DashboardWidgetEntry extends PluginDashboardWidget {
+  pluginId: string;
 }
 
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
 
 export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { token: authToken, user: authUser } = useAuth();
   const [manifests, setManifests] = useState<PluginManifest[]>([]);
+  const [userTables, setUserTables] = useState<
+    Array<{ tableName: string; label: string | null; iconName: string | null; kind: string; menuModule: string | null }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [reloadTimestamp, setReloadTimestamp] = useState(Date.now());
   const wsRef = useRef<WebSocket | null>(null);
@@ -92,6 +129,27 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     fetchManifests();
   }, [fetchManifests]);
+
+  // Cargar también las tablas de usuario del tenant actual para inyectar en el menú.
+  const fetchUserTables = useCallback(() => {
+    if (!authToken || !authUser?.tenantId) {
+      setUserTables([]);
+      return;
+    }
+    fetch('/api/user-tables/menu', {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        'x-tenant-id': authUser.tenantId,
+      },
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setUserTables(Array.isArray(d) ? d : []))
+      .catch(() => setUserTables([]));
+  }, [authToken, authUser?.tenantId]);
+
+  useEffect(() => {
+    fetchUserTables();
+  }, [fetchUserTables]);
 
   // WebSocket de desarrollo para hot reload — solo en dev
   useEffect(() => {
@@ -197,11 +255,34 @@ export const PluginProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
 
+    // 4) Tablas de usuario → inyectar como subtabs en el módulo indicado.
+    //    Si no se indicó módulo, se añaden a uno nuevo "custom" al final.
+    for (const ut of userTables) {
+      const modId = ut.menuModule || 'custom';
+      let target = merged.find((m) => m.id === modId);
+      if (!target) {
+        target = {
+          id: 'custom',
+          label: 'Personalizado',
+          icon: 'Wrench',
+          subTabs: [],
+        };
+        merged.push(target);
+      }
+      const pathName = ut.tableName.replace(/^pt_/, '');
+      target.subTabs.push({
+        id: `usertable__${ut.tableName}`,
+        label: ut.label || pathName,
+        path: `/u/${pathName}`,
+        icon: ut.iconName || 'Table',
+      });
+    }
+
     return merged;
-  }, [manifests]);
+  }, [manifests, userTables]);
 
   return (
-    <PluginContext.Provider value={{ manifests, loading, reload, reloadTimestamp, modules }}>
+    <PluginContext.Provider value={{ manifests, loading, reload, reloadTimestamp, modules, reloadUserTables: fetchUserTables }}>
       {children}
     </PluginContext.Provider>
   );
@@ -230,3 +311,29 @@ export const useActiveModule = (pathname: string): Module | null => {
 };
 
 export type { SubTab };
+
+/** Devuelve todos los widgets de dashboard declarados por plugins, ordenados. */
+export const useDashboardWidgets = (): DashboardWidgetEntry[] => {
+  const { manifests } = usePlugins();
+  return useMemo(() => {
+    const all: DashboardWidgetEntry[] = [];
+    for (const m of manifests) {
+      for (const w of m.ui?.dashboardWidgets || []) {
+        all.push({ ...w, pluginId: m.id });
+      }
+    }
+    return all.sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
+  }, [manifests]);
+};
+
+/** Devuelve todos los presets de tema aportados por plugins. */
+export const usePluginThemePresets = (): PluginThemePreset[] => {
+  const { manifests } = usePlugins();
+  return useMemo(() => {
+    const all: PluginThemePreset[] = [];
+    for (const m of manifests) {
+      for (const t of m.ui?.themes || []) all.push(t);
+    }
+    return all;
+  }, [manifests]);
+};

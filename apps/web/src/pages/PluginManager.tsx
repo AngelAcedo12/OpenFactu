@@ -152,13 +152,13 @@ export const PluginManager: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 mb-8 border-b border-slate-200 dark:border-slate-700">
+      <div className="flex items-center gap-1 mb-8 border-b border-line dark:border-ink-700">
         <button
           onClick={() => setTab('plugins')}
           className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             tab === 'plugins'
-              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-ink-500 dark:text-ink-400 hover:text-accent dark:hover:text-accent'
           }`}
         >
           <span className="flex items-center gap-2"><Puzzle size={15} /> Plugins</span>
