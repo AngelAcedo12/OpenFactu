@@ -34,6 +34,7 @@ function App() {
         setSetupChecked(true);
       } catch (err) {
         console.error('Error checking setup status', err);
+        setSetupNeeded(true);
         setSetupChecked(true);
       }
     };
