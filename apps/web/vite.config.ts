@@ -100,6 +100,8 @@ export default defineConfig({
       '@openfactu/pdf/browser',
       '@openfactu/ui',
       '@openfactu/plugin-sdk',
+      '@zxing/browser',
+      '@zxing/library',
     ],
   },
 });
