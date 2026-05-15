@@ -44,6 +44,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
         // Cachea la shell de la SPA y los assets. /api/ nunca se cachea —
         // siempre debe ir a red para datos frescos.
         navigateFallback: '/index.html',
